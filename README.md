@@ -10,7 +10,7 @@ Les décisions d'architecture détaillées sont documentées dans le répertoire
 
 ### Composants principaux
 
-- **Architecture** : 5 microservices principaux (Go, Spring Boot, Node.js)
+- **Architecture** : 5 microservices principaux (Spring Boot, Node.js)
 - **API Gateway** : Point d'entrée unique exposant les API REST et GraphQL.
 - **Communication Asynchrone** : Apache Kafka comme bus d'événements.
 - **Authentification** : Keycloak pour la gestion centralisée des identités et des accès (RBAC).
