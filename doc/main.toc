@@ -1,6 +1,14 @@
 \babel@toc {nil}{}\relax 
-\contentsline {section}{\numberline {1}ADR-001 — Services indépendants}{2}{}%
-\contentsline {section}{\numberline {2}ADR-002 — Protocole rapide pour le GPS}{2}{}%
-\contentsline {section}{\numberline {3}ADR-003 — Alertes traitées sans bloquer le suivi}{2}{}%
+\contentsline {section}{\numberline {1}ADR-001 — Services indépendants}{3}{}%
+\contentsline {section}{\numberline {2}ADR-002 — Protocole rapide pour le GPS}{3}{}%
+\contentsline {section}{\numberline {3}ADR-003 — Alertes traitées sans bloquer le suivi}{3}{}%
 \contentsline {section}{\numberline {4}ADR-004 — Une base adaptée à chaque type de donnée}{3}{}%
 \contentsline {section}{\numberline {5}ADR-005 — Connexion et droits centralisés}{3}{}%
+\contentsline {section}{\numberline {6}ADR-006 - Keycloak}{4}{}%
+\contentsline {section}{\numberline {7}Configuration Keycloak --- Semaine 1}{5}{}%
+\contentsline {subsection}{\numberline {7.1}1. Déploiement du serveur Keycloak en local}{5}{}%
+\contentsline {subsection}{\numberline {7.2}2. Création du Realm}{5}{}%
+\contentsline {subsection}{\numberline {7.3}3. Mise en place du contrôle d'accès (RBAC)}{5}{}%
+\contentsline {subsection}{\numberline {7.4}4. Configuration des Clients}{5}{}%
+\contentsline {subsection}{\numberline {7.5}5. Création d'un utilisateur de test}{6}{}%
+\contentsline {subsection}{\numberline {7.6}6. Exportation de la configuration (Livrable)}{7}{}%
