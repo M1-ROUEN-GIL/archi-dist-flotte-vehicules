@@ -39,7 +39,6 @@
 \titlespacing{\subsection}{0pt}{6pt}{3pt}
 
 \newcommand{\ruledline}{\textcolor{rule}{\rule{\linewidth}{0.4pt}}\vspace{4pt}}
-\newcommand{\adrstatus}[1]{\hfill{\small\color{muted}\textit{Statut :} \textbf{#1}}}
 
 \begin{document}
 
@@ -91,7 +90,7 @@
 \ruledline
 
 % ================================================================
-\section{ADR-001 --- Architecture microservices \adrstatus{Accepté}}
+\section{ADR-001 --- Architecture microservices}
 
 \subsection{Contexte}
 Le système DHL doit gérer simultanément des responsabilités très différentes : le suivi GPS en temps réel des camionnettes de livraison, la gestion administrative des véhicules et des livreurs, la planification des maintenances, et l'envoi d'alertes aux managers. Ces besoins évoluent à des rythmes différents et ont des contraintes de performance distinctes. Une architecture monolithique rendrait difficile la scalabilité ciblée (par exemple, augmenter uniquement la capacité GPS en période de fêtes) et le déploiement indépendant de chaque partie.
@@ -118,7 +117,7 @@ Le système est découpé en \textbf{5 microservices indépendants}, chacun prop
 \noindent\textbf{Inconvénients :} complexité opérationnelle accrue au démarrage, nécessité d'une API Gateway et d'un bus d'événements pour la communication inter-services.
 
 % ================================================================
-\section{ADR-002 --- gRPC pour le streaming GPS \adrstatus{Accepté}}
+\section{ADR-002 --- gRPC pour le streaming GPS}
 
 \subsection{Contexte}
 Les boîtiers GPS embarqués dans les camionnettes DHL émettent leur position toutes les 5 secondes. Pour une flotte de 200 véhicules, cela représente environ 40 messages par seconde en continu. Le protocole REST/HTTP classique, basé sur un modèle requête-réponse, n'est pas adapté à ce flux unidirectionnel permanent et génèrerait une surcharge réseau importante.
@@ -143,7 +142,7 @@ Utiliser \textbf{gRPC (HTTP/2)} pour la communication entre les boîtiers GPS et
 \noindent\textbf{Inconvénients :} les navigateurs web ne supportent pas gRPC nativement --- une couche de traduction \texttt{grpc-web} ou un proxy Envoy est nécessaire entre le frontend et le service.
 
 % ================================================================
-\section{ADR-003 --- Apache Kafka pour la communication asynchrone \adrstatus{Accepté}}
+\section{ADR-003 --- Apache Kafka pour la communication asynchrone}
 
 \subsection{Contexte}
 Plusieurs actions dans le système DHL doivent déclencher des réactions dans d'autres services sans les bloquer : une alerte géofencing ne doit pas ralentir le traitement des positions GPS, et la fin d'une maintenance doit automatiquement remettre le véhicule en disponibilité. Une communication synchrone directe entre services créerait un couplage fort et des risques de cascade en cas de panne.
@@ -171,7 +170,7 @@ Utiliser \textbf{Apache Kafka} comme bus d'événements central. Chaque service 
 \noindent\textbf{Inconvénients :} composant d'infrastructure supplémentaire à déployer et surveiller. La cohérence des données devient éventuelle (\textit{eventual consistency}), ce qui est acceptable pour les cas d'usage du projet.
 
 % ================================================================
-\section{ADR-004 --- Bases de données spécialisées par service \adrstatus{Accepté}}
+\section{ADR-004 --- Bases de données spécialisées par service}
 
 \subsection{Contexte}
 Le système manipule trois catégories de données aux caractéristiques très différentes. Les positions GPS s'accumulent à haute fréquence et nécessitent des requêtes temporelles efficaces. Les données métier sont relationnelles et transactionnelles. Certaines données très consultées doivent être accessibles en quelques millisecondes.
@@ -194,18 +193,38 @@ Appliquer le pattern \textbf{Database per Service} avec trois outils complément
 Le schéma PostgreSQL est composé de 6 tables : \texttt{vehicles}, \texttt{vehicle\_assignments}, \texttt{drivers}, \texttt{driver\_licenses}, \texttt{maintenance\_records} et \texttt{alerts}. Ce périmètre est volontairement limité pour garantir un MVP fonctionnel.
 
 \vspace{8pt}
-{\small\color{muted} Schémas de base de données (PostgreSQL)}\\[6pt]
-\begin{minipage}[t]{0.48\linewidth}
+{\small\color{muted} Schémas de base de données (PostgreSQL + TimescaleDB)}\\[6pt]
+
+% Ligne 1 : vehicles · drivers · alerts
+\begin{minipage}[t]{0.32\linewidth}
   \centering
-  \includegraphics[width=0.78\linewidth]{./bd/alerts.png}\\[6pt]
-  \includegraphics[width=0.78\linewidth]{./bd/drivers.png}
+  \includegraphics[width=\linewidth]{./bd/vehicles.png}
 \end{minipage}
 \hfill
-\begin{minipage}[t]{0.48\linewidth}
+\begin{minipage}[t]{0.32\linewidth}
   \centering
-  \includegraphics[width=0.78\linewidth]{./bd/vehicles.png}\\[6pt]
-  \includegraphics[width=0.78\linewidth]{./bd/maintenance.png}
+  \includegraphics[width=\linewidth]{./bd/drivers.png}
 \end{minipage}
+\hfill
+\begin{minipage}[t]{0.32\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{./bd/alerts.png}
+\end{minipage}
+
+\vspace{8pt}
+
+% Ligne 2 : maintenance · location (centrés)
+\begin{center}
+\begin{minipage}[t]{0.38\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{./bd/maintenance.png}
+\end{minipage}
+\hspace{0.06\linewidth}
+\begin{minipage}[t]{0.38\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{./bd/location.png}
+\end{minipage}
+\end{center}
 
 \subsection{Conséquences}
 \textbf{Avantages :} chaque outil est optimisé pour son type de données, pas de contention entre charges différentes, TimescaleDB réduit la taille des données GPS grâce à la compression automatique.
@@ -213,7 +232,7 @@ Le schéma PostgreSQL est composé de 6 tables : \texttt{vehicles}, \texttt{vehi
 \noindent\textbf{Inconvénients :} trois systèmes à opérer et sauvegarder. Les jointures entre données de services différents sont réalisées au niveau applicatif via GraphQL.
 
 % ================================================================
-\section{ADR-005 --- Keycloak pour l'authentification et les droits \adrstatus{Accepté}}
+\section{ADR-005 --- Keycloak pour l'authentification et les droits}
 
 \subsection{Contexte}
 Les utilisateurs du système DHL n'ont pas tous accès aux mêmes fonctionnalités. Un manager peut superviser le parc mais ne peut pas modifier les données de maintenance. Un technicien accède aux fiches d'intervention mais pas aux données des autres utilisateurs. Implémenter cette logique dans chaque microservice serait coûteux à maintenir et source d'incohérences.
@@ -242,7 +261,7 @@ Les microservices ne gèrent \textbf{aucun mot de passe} directement. Ils vérif
 \noindent\textbf{Inconvénients :} Keycloak est un point critique --- s'il est indisponible, aucune authentification n'est possible. Il doit être déployé en mode haute disponibilité (minimum 2 réplicas Kubernetes).
 
 % ================================================================
-\section{ADR-006 --- Observabilité avec OpenTelemetry \adrstatus{Accepté}}
+\section{ADR-006 --- Observabilité avec OpenTelemetry}
 
 \subsection{Contexte}
 Dans une architecture microservices, une requête utilisateur traverse plusieurs services avant de retourner une réponse. En cas d'erreur ou de lenteur, il est très difficile d'identifier quel service est responsable sans outillage dédié. Les métriques opérationnelles et métier sont également indispensables au pilotage du système DHL.
