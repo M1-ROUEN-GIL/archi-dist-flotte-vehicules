@@ -1,0 +1,448 @@
+openapi: 3.0.3
+info:
+  title: API Service Véhicules
+  version: 1.0.0
+  description: API CRUD pour la gestion du parc automobile DHL Express.
+  contact:
+    name: Équipe DHL Fleet
+servers:
+  - url: http://localhost:3001
+    description: Développement local
+  - url: https://api.dhl-fleet.internal/vehicles
+    description: Production
+
+tags:
+  - name: Véhicules
+    description: Gestion du parc automobile
+  - name: Assignations
+    description: Affectation des véhicules aux conducteurs
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /vehicles:
+    get:
+      tags: [Véhicules]
+      summary: Lister les véhicules
+      description: Retourne la liste paginée des véhicules du parc DHL.
+      parameters:
+        - name: status
+          in: query
+          description: Filtrer par statut
+          schema:
+            $ref: '#/components/schemas/VehicleStatus'
+        - name: fuel_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/FuelType'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Liste paginée des véhicules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehiclePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Véhicules]
+      summary: Ajouter un nouveau véhicule
+      description: Crée un véhicule dans le parc. Rôle requis — admin ou manager.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleInput'
+            example:
+              plate_number: "DH-076-LR"
+              brand: "Mercedes"
+              model: "Sprinter 314 CDI"
+              fuel_type: "diesel"
+              mileage_km: 12000
+              vin: "WDB9066351S123456"
+              color: "Jaune DHL"
+      responses:
+        '201':
+          description: Véhicule créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /vehicles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags: [Véhicules]
+      summary: Récupérer un véhicule par ID
+      responses:
+        '200':
+          description: Détail du véhicule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Véhicules]
+      summary: Mettre à jour un véhicule
+      description: Rôle requis — admin ou manager.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleUpdate'
+      responses:
+        '200':
+          description: Véhicule mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Véhicules]
+      summary: Supprimer un véhicule (soft delete)
+      description: Rôle requis — admin uniquement.
+      responses:
+        '204':
+          description: Véhicule supprimé
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /vehicles/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Véhicules]
+      summary: Changer le statut d'un véhicule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/VehicleStatus'
+      responses:
+        '200':
+          description: Statut mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /vehicles/{id}/assignments:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags: [Assignations]
+      summary: Historique des assignations d'un véhicule
+      responses:
+        '200':
+          description: Liste des assignations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Assignations]
+      summary: Assigner un véhicule à un conducteur
+      description: Rôle requis — admin ou manager.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignmentInput'
+      responses:
+        '201':
+          description: Véhicule assigné
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /vehicles/{id}/assignments/current:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags: [Assignations]
+      summary: Mettre fin à l'assignation courante
+      responses:
+        '200':
+          description: Assignation terminée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT émis par Keycloak (realm gestion-flotte)
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Token JWT manquant ou invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Rôle insuffisant pour cette action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+
+    VehicleStatus:
+      type: string
+      enum: [available, on_delivery, in_maintenance, out_of_service]
+
+    FuelType:
+      type: string
+      enum: [gasoline, diesel, electric, hybrid]
+
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        plate_number:
+          type: string
+          example: "DH-076-LR"
+        brand:
+          type: string
+          example: "Mercedes"
+        model:
+          type: string
+          example: "Sprinter 314 CDI"
+        fuel_type:
+          $ref: '#/components/schemas/FuelType'
+        status:
+          $ref: '#/components/schemas/VehicleStatus'
+        mileage_km:
+          type: integer
+          example: 54230
+        vin:
+          type: string
+          example: "WDB9066351S123456"
+        color:
+          type: string
+          example: "Jaune DHL"
+        seats:
+          type: integer
+          example: 3
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    VehicleInput:
+      type: object
+      required: [plate_number, brand, model, fuel_type, mileage_km]
+      properties:
+        plate_number:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        fuel_type:
+          $ref: '#/components/schemas/FuelType'
+        mileage_km:
+          type: integer
+        vin:
+          type: string
+        color:
+          type: string
+
+    VehicleUpdate:
+      type: object
+      properties:
+        brand:
+          type: string
+        model:
+          type: string
+        mileage_km:
+          type: integer
+        color:
+          type: string
+        seats:
+          type: integer
+
+    VehiclePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Vehicle'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        vehicle_id:
+          type: string
+          format: uuid
+        driver_id:
+          type: string
+          format: uuid
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          example: "Tournée Rouen Nord — Secteur R12 — 63 colis"
+        created_at:
+          type: string
+          format: date-time
+
+    AssignmentInput:
+      type: object
+      required: [driver_id]
+      properties:
+        driver_id:
+          type: string
+          format: uuid
+        notes:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "VEHICLE_NOT_FOUND"
+        message:
+          type: string
+          example: "Le véhicule demandé est introuvable."
+        timestamp:
+          type: string
+          format: date-time

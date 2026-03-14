@@ -1,0 +1,424 @@
+openapi: 3.0.3
+info:
+  title: API Service Conducteurs
+  version: 1.0.0
+  description: Gestion des profils conducteurs (livreurs DHL) et de leurs permis.
+  contact:
+    name: Équipe DHL Fleet
+servers:
+  - url: http://localhost:3002
+    description: Développement local
+  - url: https://api.dhl-fleet.internal/drivers
+    description: Production
+
+tags:
+  - name: Conducteurs
+    description: Gestion des profils livreurs
+  - name: Permis
+    description: Gestion des permis de conduire
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /drivers:
+    get:
+      tags: [Conducteurs]
+      summary: Lister les conducteurs
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/DriverStatus'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Liste paginée des conducteurs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Conducteurs]
+      summary: Ajouter un nouveau conducteur
+      description: Rôle requis — admin ou manager.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverInput'
+            example:
+              keycloak_user_id: "550e8400-e29b-41d4-a716-446655440000"
+              first_name: "Marc"
+              last_name: "Bernard"
+              email: "marc.bernard@dhl.com"
+              phone: "+33612345678"
+              employee_id: "DHL-76203"
+      responses:
+        '201':
+          description: Conducteur créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /drivers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags: [Conducteurs]
+      summary: Récupérer un conducteur par ID
+      responses:
+        '200':
+          description: Détail du conducteur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Conducteurs]
+      summary: Mettre à jour un conducteur
+      description: Rôle requis — admin ou manager.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverUpdate'
+      responses:
+        '200':
+          description: Conducteur mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Conducteurs]
+      summary: Supprimer un conducteur (soft delete)
+      description: Rôle requis — admin uniquement.
+      responses:
+        '204':
+          description: Conducteur supprimé
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /drivers/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Conducteurs]
+      summary: Changer le statut d'un conducteur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/DriverStatus'
+      responses:
+        '200':
+          description: Statut mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /drivers/{id}/licenses:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags: [Permis]
+      summary: Lister les permis d'un conducteur
+      responses:
+        '200':
+          description: Liste des permis
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/License'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Permis]
+      summary: Ajouter un permis à un conducteur
+      description: Rôle requis — admin ou manager.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LicenseInput'
+            example:
+              license_number: "123456789012"
+              category: "C"
+              issued_date: "2020-01-15"
+              expiry_date: "2030-01-14"
+              country: "FR"
+      responses:
+        '201':
+          description: Permis ajouté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/License'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT émis par Keycloak (realm gestion-flotte)
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Token JWT manquant ou invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Rôle insuffisant pour cette action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+
+    DriverStatus:
+      type: string
+      enum: [active, on_leave, suspended, inactive]
+
+    Driver:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        keycloak_user_id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+          example: "Marc"
+        last_name:
+          type: string
+          example: "Bernard"
+        email:
+          type: string
+          format: email
+          example: "marc.bernard@dhl.com"
+        phone:
+          type: string
+          example: "+33612345678"
+        employee_id:
+          type: string
+          example: "DHL-76203"
+        status:
+          $ref: '#/components/schemas/DriverStatus'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DriverInput:
+      type: object
+      required: [keycloak_user_id, first_name, last_name, email]
+      properties:
+        keycloak_user_id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        employee_id:
+          type: string
+
+    DriverUpdate:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone:
+          type: string
+        employee_id:
+          type: string
+
+    DriverPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Driver'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    License:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        driver_id:
+          type: string
+          format: uuid
+        license_number:
+          type: string
+          example: "123456789012"
+        category:
+          type: string
+          enum: [A, B, C, D, BE, CE]
+          example: "C"
+        issued_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+        country:
+          type: string
+          example: "FR"
+        is_valid:
+          type: boolean
+
+    LicenseInput:
+      type: object
+      required: [license_number, category, issued_date, expiry_date, country]
+      properties:
+        license_number:
+          type: string
+        category:
+          type: string
+          enum: [A, B, C, D, BE, CE]
+        issued_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+        country:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "DRIVER_NOT_FOUND"
+        message:
+          type: string
+          example: "Le conducteur demandé est introuvable."
+        timestamp:
+          type: string
+          format: date-time

@@ -370,4 +370,48 @@ Un utilisateur de test a été provisionné pour valider les futurs développeme
 
 Pour garantir la reproductibilité de l'environnement (\textit{Infrastructure as Code}), l'intégralité de la configuration a été exportée via l'interface Keycloak (Include clients + Include groups and roles). Le fichier généré \texttt{realm-export.json} est versionné dans le dépôt Git du projet sous le chemin \texttt{infrastructure/keycloak/realm-export.json}, ce qui permet de reconstruire l'environnement Keycloak complet automatiquement lors du déploiement en semaine 2.
 
+\newpage
+
+% ================================================================
+\section{Diagrammes de séquence --- Flux principaux}
+
+Cette section illustre les trois flux techniques les plus importants du système DHL, modélisés sous forme de diagrammes de séquence PlantUML.
+
+% ---- Flux 1 ----
+\subsection{Flux 1 --- Authentification Keycloak (OAuth2)}
+
+Ce diagramme décrit le flux complet de connexion d'un utilisateur via Keycloak, depuis le clic sur "Se connecter" jusqu'à l'affichage du tableau de bord. Il couvre la validation du JWT par l'API Gateway et le rafraîchissement automatique du token.
+
+\vspace{4pt}
+\begin{center}
+  \includegraphics[width=0.68\linewidth]{./flux/flux_keycloak.png}
+\end{center}
+{\tiny\color{muted} Flux d'authentification SSO --- Authorization Code Flow OAuth2/OIDC}
+
+\vspace{10pt}
+
+% ---- Flux 2 ----
+\subsection{Flux 2 --- Kafka : fin de maintenance et remise en disponibilité}
+
+Ce diagramme illustre le flux événementiel déclenché lorsqu'un technicien clôture une intervention. L'événement Kafka est consommé par le Service Véhicules (remise en statut \texttt{AVAILABLE}) et par le Service Événements (vérification d'anomalies).
+
+\vspace{4pt}
+\begin{center}
+  \includegraphics[width=\linewidth, height=0.36\textheight, keepaspectratio]{./flux/flux_kafka.png}
+\end{center}
+{\tiny\color{muted} Flux événementiel Kafka --- pattern publish/subscribe entre microservices}
+
+\vspace{10pt}
+
+% ---- Flux 3 ----
+\subsection{Flux 3 --- GPS temps réel et détection de géofencing}
+
+Ce diagramme présente le flux de streaming GPS depuis le boîtier embarqué jusqu'au dashboard. Il détaille la chaîne de traitement d'une alerte géofencing : détection par le Service Événements, publication sur \texttt{flotte.alertes.events}, et notification temps réel via GraphQL Subscription.
+
+\vspace{4pt}
+\begin{center}
+  \includegraphics[width=\linewidth, height=0.36\textheight, keepaspectratio]{./flux/flux_gps.png}
+\end{center}
+{\tiny\color{muted} Flux GPS temps réel --- streaming gRPC et alerte géofencing DHL}
+
 \end{document}

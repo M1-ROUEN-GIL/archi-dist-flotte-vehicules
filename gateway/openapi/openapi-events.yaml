@@ -1,0 +1,279 @@
+openapi: 3.0.3
+info:
+  title: API Service Événements
+  version: 1.0.0
+  description: Gestion des alertes et notifications du système DHL Fleet.
+  contact:
+    name: Équipe DHL Fleet
+servers:
+  - url: http://localhost:3004
+    description: Développement local
+  - url: https://api.dhl-fleet.internal/events
+    description: Production
+
+tags:
+  - name: Alertes
+    description: Consultation et gestion des alertes opérationnelles
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /alerts:
+    get:
+      tags: [Alertes]
+      summary: Lister les alertes
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AlertStatus'
+        - name: severity
+          in: query
+          schema:
+            $ref: '#/components/schemas/AlertSeverity'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/AlertType'
+        - name: vehicle_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Liste paginée des alertes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /alerts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Alertes]
+      summary: Récupérer une alerte par ID
+      responses:
+        '200':
+          description: Détail de l'alerte
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /alerts/{id}/acknowledge:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [Alertes]
+      summary: Accuser réception d'une alerte
+      description: |
+        Le manager indique qu'il a pris connaissance de l'alerte.
+        Rôle requis — admin ou manager.
+      responses:
+        '200':
+          description: Alerte acquittée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Alerte déjà acquittée ou résolue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /alerts/{id}/resolve:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [Alertes]
+      summary: Marquer une alerte comme résolue
+      description: |
+        Le manager confirme que le problème est résolu.
+        Rôle requis — admin ou manager.
+      responses:
+        '200':
+          description: Alerte résolue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Alerte déjà résolue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT émis par Keycloak (realm gestion-flotte)
+
+  responses:
+    Unauthorized:
+      description: Token JWT manquant ou invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Rôle insuffisant pour cette action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+
+    AlertStatus:
+      type: string
+      enum: [open, acknowledged, resolved, expired]
+
+    AlertSeverity:
+      type: string
+      enum: [low, medium, high, critical]
+
+    AlertType:
+      type: string
+      enum:
+        - geofencing_breach
+        - speed_exceeded
+        - vehicle_immobilized
+        - maintenance_overdue
+        - license_expiring
+        - delivery_tour_delayed
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/AlertType'
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        status:
+          $ref: '#/components/schemas/AlertStatus'
+        vehicle_id:
+          type: string
+          format: uuid
+          nullable: true
+        driver_id:
+          type: string
+          format: uuid
+          nullable: true
+        message:
+          type: string
+          example: "Le véhicule DH-076-LR a quitté la zone de tournée R12 (Rouen Nord)."
+        acknowledged_by:
+          type: string
+          format: uuid
+          nullable: true
+        acknowledged_at:
+          type: string
+          format: date-time
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AlertPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "ALERT_NOT_FOUND"
+        message:
+          type: string
+          example: "L'alerte demandée est introuvable."
+        timestamp:
+          type: string
+          format: date-time
