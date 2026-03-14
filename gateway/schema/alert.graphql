@@ -1,0 +1,45 @@
+# alert.graphql
+# Domaine Alertes — Service Événements (Spring Boot)
+# Consommé par le frontend via Subscription pour les notifications temps réel
+
+type Alert {
+  id: ID!
+  type: AlertType!
+  severity: AlertSeverity!
+  status: AlertStatus!
+  vehicle: Vehicle
+  driver: Driver
+  message: String!
+  acknowledged_by: ID
+  acknowledged_at: String
+  resolved_at: String
+  expires_at: String
+  created_at: String!
+}
+
+extend type Query {
+  alerts(
+    status: AlertStatus
+    severity: AlertSeverity
+    limit: Int = 20
+    offset: Int = 0
+  ): AlertPage!
+
+  alert(id: ID!): Alert
+}
+
+extend type Mutation {
+  # Le manager accuse réception d'une alerte
+  acknowledgeAlert(id: ID!): Alert!
+
+  # Le manager marque l'alerte comme résolue
+  resolveAlert(id: ID!): Alert!
+}
+
+extend type Subscription {
+  # Toutes les nouvelles alertes — cloche rouge du dashboard manager
+  alertCreated: Alert!
+
+  # Alertes filtrées par sévérité (ex: CRITICAL uniquement)
+  alertCreatedBySeverity(severity: AlertSeverity!): Alert!
+}

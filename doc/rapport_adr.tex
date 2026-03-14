@@ -13,25 +13,12 @@
 \usepackage{booktabs}
 \usepackage{microtype}
 \usepackage{helvet}
-\usepackage{listings}
 \renewcommand{\familydefault}{\sfdefault}
 
 \definecolor{accent}{RGB}{30, 80, 162}
 \definecolor{muted}{RGB}{120, 120, 120}
 \definecolor{rule}{RGB}{210, 215, 225}
 \definecolor{dhlred}{RGB}{212, 0, 42}
-\definecolor{codebg}{RGB}{245, 246, 250}
-
-\lstset{
-  basicstyle=\ttfamily\footnotesize,
-  backgroundcolor=\color{codebg},
-  frame=single,
-  rulecolor=\color{rule},
-  breaklines=true,
-  columns=fullflexible,
-  keepspaces=true,
-  showstringspaces=false
-}
 
 \setlength{\parskip}{3pt}
 \setlength{\parindent}{0pt}
@@ -91,17 +78,14 @@
 \ruledline
 
 {\small Ce document recense les décisions d'architecture prises en semaine 1 pour le système de \textbf{suivi en temps réel de la flotte de véhicules DHL Express}. Le système couvre la gestion des livreurs, l'affectation des véhicules aux tournées, la maintenance du parc et les alertes automatiques. Les utilisateurs sont les \textbf{administrateurs}, \textbf{managers}, \textbf{techniciens} et \textbf{utilisateurs}.}
-\vspace{4pt}
+\vspace{6pt}
 
-\begin{minipage}[t]{0.30\linewidth}
-  \includegraphics[width=0.95\linewidth]{C1.png}
-  \centering{\tiny\color{muted} Vue système (C1)}
-\end{minipage}
-\hfill
-\begin{minipage}[t]{0.65\linewidth}
-  \includegraphics[width=0.95\linewidth]{C2.png}
-  \centering{\tiny\color{muted} Architecture des conteneurs (C2)}
-\end{minipage}
+{\small\bfseries\color{accent} C1 --- Vue système}\\[4pt]
+\includegraphics[width=\linewidth]{./C4/C1.png}
+
+\vspace{10pt}
+{\small\bfseries\color{accent} C2 --- Architecture des conteneurs}\\[4pt]
+\includegraphics[width=\linewidth]{./C4/C2.png}
 
 \vspace{6pt}
 \ruledline
@@ -128,11 +112,10 @@ Le système est découpé en \textbf{5 microservices indépendants}, chacun prop
   \bottomrule
 \end{tabularx}
 
-\vspace{4pt}
 \subsection{Conséquences}
-\textbf{Avantages :} isolation des pannes (une panne du service GPS n'impacte pas la gestion des conducteurs), scalabilité ciblée, déploiements indépendants par service, technologie adaptée à chaque besoin (polyglotte).
+\textbf{Avantages :} isolation des pannes (une panne du service GPS n'impacte pas la gestion des conducteurs), scalabilité ciblée, déploiements indépendants par service, technologie adaptée à chaque besoin.
 
-\noindent\textbf{Inconvénients :} complexité opérationnelle accrue au démarrage, nécessité d'une API Gateway et d'un bus d'événements pour la communication inter-services. Surcoût acceptable au regard des bénéfices à long terme.
+\noindent\textbf{Inconvénients :} complexité opérationnelle accrue au démarrage, nécessité d'une API Gateway et d'un bus d'événements pour la communication inter-services.
 
 % ================================================================
 \section{ADR-002 --- gRPC pour le streaming GPS \adrstatus{Accepté}}
@@ -141,7 +124,7 @@ Le système est découpé en \textbf{5 microservices indépendants}, chacun prop
 Les boîtiers GPS embarqués dans les camionnettes DHL émettent leur position toutes les 5 secondes. Pour une flotte de 200 véhicules, cela représente environ 40 messages par seconde en continu. Le protocole REST/HTTP classique, basé sur un modèle requête-réponse, n'est pas adapté à ce flux unidirectionnel permanent et génèrerait une surcharge réseau importante.
 
 \subsection{Décision}
-Utiliser \textbf{gRPC (HTTP/2)} pour la communication entre les boîtiers GPS et le Service Localisation, ainsi qu'entre le Service Localisation et l'API Gateway pour l'affichage temps réel sur le dashboard manager. Les opérations classiques conservent REST ou GraphQL.
+Utiliser \textbf{gRPC (HTTP/2)} pour la communication entre les boîtiers GPS et le Service Localisation, ainsi qu'entre le Service Localisation et l'API Gateway pour l'affichage temps réel. Les opérations classiques conservent REST ou GraphQL.
 
 \vspace{4pt}
 \begin{tabularx}{\linewidth}{lX}
@@ -157,7 +140,7 @@ Utiliser \textbf{gRPC (HTTP/2)} pour la communication entre les boîtiers GPS et
 \subsection{Conséquences}
 \textbf{Avantages :} latence très faible grâce à la connexion persistante HTTP/2, sérialisation binaire (Protobuf) plus légère que JSON, adapté au streaming unidirectionnel continu.
 
-\noindent\textbf{Inconvénients :} les navigateurs web ne supportent pas gRPC nativement — une couche de traduction \texttt{grpc-web} ou un proxy Envoy est nécessaire entre le frontend et le service. Complexité légèrement supérieure à REST pour les développeurs moins familiers.
+\noindent\textbf{Inconvénients :} les navigateurs web ne supportent pas gRPC nativement --- une couche de traduction \texttt{grpc-web} ou un proxy Envoy est nécessaire entre le frontend et le service.
 
 % ================================================================
 \section{ADR-003 --- Apache Kafka pour la communication asynchrone \adrstatus{Accepté}}
@@ -166,7 +149,7 @@ Utiliser \textbf{gRPC (HTTP/2)} pour la communication entre les boîtiers GPS et
 Plusieurs actions dans le système DHL doivent déclencher des réactions dans d'autres services sans les bloquer : une alerte géofencing ne doit pas ralentir le traitement des positions GPS, et la fin d'une maintenance doit automatiquement remettre le véhicule en disponibilité. Une communication synchrone directe entre services créerait un couplage fort et des risques de cascade en cas de panne.
 
 \subsection{Décision}
-Utiliser \textbf{Apache Kafka} comme bus d'événements central. Chaque service publie des événements sur des topics dédiés et consomme ceux qui le concernent, sans rien savoir des autres services. Six topics sont définis pour le projet :
+Utiliser \textbf{Apache Kafka} comme bus d'événements central. Chaque service publie des événements sur des topics dédiés et consomme ceux qui le concernent, sans rien savoir des autres services. Six topics sont définis :
 
 \vspace{4pt}
 \begin{tabularx}{\linewidth}{lX}
@@ -185,13 +168,13 @@ Utiliser \textbf{Apache Kafka} comme bus d'événements central. Chaque service 
 \subsection{Conséquences}
 \textbf{Avantages :} découplage total entre services, aucune perte de message (rétention configurable), rejeu possible en cas d'erreur, scalabilité horizontale via les partitions.
 
-\noindent\textbf{Inconvénients :} un composant d'infrastructure supplémentaire à déployer et surveiller. La cohérence des données devient \textit{éventuelle} (eventual consistency) plutôt qu'immédiate, ce qui est acceptable pour les cas d'usage du projet.
+\noindent\textbf{Inconvénients :} composant d'infrastructure supplémentaire à déployer et surveiller. La cohérence des données devient éventuelle (\textit{eventual consistency}), ce qui est acceptable pour les cas d'usage du projet.
 
 % ================================================================
 \section{ADR-004 --- Bases de données spécialisées par service \adrstatus{Accepté}}
 
 \subsection{Contexte}
-Le système manipule trois catégories de données aux caractéristiques très différentes. Les positions GPS s'accumulent à très haute fréquence et nécessitent des requêtes temporelles efficaces. Les données métier (véhicules, livreurs, maintenances) sont relationnelles et transactionnelles. Certaines données très consultées (état courant d'un véhicule, session utilisateur) doivent être accessibles en quelques millisecondes.
+Le système manipule trois catégories de données aux caractéristiques très différentes. Les positions GPS s'accumulent à haute fréquence et nécessitent des requêtes temporelles efficaces. Les données métier sont relationnelles et transactionnelles. Certaines données très consultées doivent être accessibles en quelques millisecondes.
 
 \subsection{Décision}
 Appliquer le pattern \textbf{Database per Service} avec trois outils complémentaires :
@@ -201,38 +184,39 @@ Appliquer le pattern \textbf{Database per Service} avec trois outils complément
   \toprule
   \small\textbf{Outil} & \small\textbf{Type} & \small\textbf{Rôle dans le projet DHL} \\
   \midrule
-  PostgreSQL   & Relationnel       & Véhicules, livreurs, maintenances, alertes (données métier) \\
+  PostgreSQL   & Relationnel        & Véhicules, livreurs, maintenances, alertes \\
   TimescaleDB  & Séries temporelles & Historique des positions GPS (\texttt{location\_readings}) \\
-  Redis        & Cache en mémoire  & État courant des véhicules, sessions Keycloak, données fréquentes \\
+  Redis        & Cache en mémoire   & État courant des véhicules, sessions, données fréquentes \\
   \bottomrule
 \end{tabularx}
 
-\vspace{4pt}
-Le schéma PostgreSQL est composé de 6 tables principales : \texttt{vehicles}, \texttt{vehicle\_assignments}, \texttt{drivers}, \texttt{driver\_licenses}, \texttt{maintenance\_records} et \texttt{alerts}. Ce périmètre est volontairement limité pour garantir un MVP fonctionnel.
+\vspace{6pt}
+Le schéma PostgreSQL est composé de 6 tables : \texttt{vehicles}, \texttt{vehicle\_assignments}, \texttt{drivers}, \texttt{driver\_licenses}, \texttt{maintenance\_records} et \texttt{alerts}. Ce périmètre est volontairement limité pour garantir un MVP fonctionnel.
 
-\vspace{4pt}
+\vspace{8pt}
+{\small\color{muted} Schémas de base de données (PostgreSQL)}\\[6pt]
 \begin{minipage}[t]{0.48\linewidth}
   \centering
-  \includegraphics[width=0.80\linewidth]{b1.png}\\[6pt]
-  \includegraphics[width=0.80\linewidth]{b3.png}
+  \includegraphics[width=0.78\linewidth]{./bd/b1.png}\\[6pt]
+  \includegraphics[width=0.78\linewidth]{./bd/b3.png}
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.48\linewidth}
   \centering
-  \includegraphics[width=0.80\linewidth]{b2.png}\\[6pt]
-  \includegraphics[width=0.80\linewidth]{b4.png}
+  \includegraphics[width=0.78\linewidth]{./bd/b2.png}\\[6pt]
+  \includegraphics[width=0.78\linewidth]{./bd/b4.png}
 \end{minipage}
 
 \subsection{Conséquences}
-\textbf{Avantages :} chaque outil est optimisé pour son type de données, pas de contention entre charges différentes, TimescaleDB réduit considérablement la taille des données GPS grâce à la compression automatique.
+\textbf{Avantages :} chaque outil est optimisé pour son type de données, pas de contention entre charges différentes, TimescaleDB réduit la taille des données GPS grâce à la compression automatique.
 
-\noindent\textbf{Inconvénients :} trois systèmes à opérer et sauvegarder. Les jointures entre données de services différents ne sont pas possibles directement — elles sont réalisées au niveau applicatif (API Gateway / GraphQL).
+\noindent\textbf{Inconvénients :} trois systèmes à opérer et sauvegarder. Les jointures entre données de services différents sont réalisées au niveau applicatif via GraphQL.
 
 % ================================================================
 \section{ADR-005 --- Keycloak pour l'authentification et les droits \adrstatus{Accepté}}
 
 \subsection{Contexte}
-Les utilisateurs du système DHL n'ont pas tous accès aux mêmes fonctionnalités. Un manager peut affecter des tournées mais ne peut pas modifier les données de maintenance. Un technicien accède aux fiches d'intervention mais pas aux données des autres utilisateurs. Implémenter cette logique de droits dans chaque microservice serait coûteux à maintenir et source d'incohérences.
+Les utilisateurs du système DHL n'ont pas tous accès aux mêmes fonctionnalités. Un manager peut superviser le parc mais ne peut pas modifier les données de maintenance. Un technicien accède aux fiches d'intervention mais pas aux données des autres utilisateurs. Implémenter cette logique dans chaque microservice serait coûteux à maintenir et source d'incohérences.
 
 \subsection{Décision}
 Centraliser l'authentification et la gestion des droits dans \textbf{Keycloak} (SSO open-source). Chaque requête passe par l'API Gateway qui valide le \textbf{JWT} émis par Keycloak avant de router vers le bon service.
@@ -243,25 +227,25 @@ Centraliser l'authentification et la gestion des droits dans \textbf{Keycloak} (
   \small\textbf{Rôle Keycloak} & \small\textbf{Droits dans le système DHL} \\
   \midrule
   \texttt{admin}       & Accès complet à tous les services et données, gestion des comptes \\
-  \texttt{manager}     & Consultation globale, validation des maintenances, gestion des tournées et du parc \\
+  \texttt{manager}     & Supervision du parc, validation des maintenances, gestion des tournées \\
   \texttt{technicien}  & Lecture/écriture sur les fiches de maintenance, consultation des véhicules \\
-  \texttt{utilisateur} & Consultation de ses propres données (véhicule assigné, tournée en cours) \\
+  \texttt{utilisateur} & Consultation de ses propres données (véhicule assigné, informations personnelles) \\
   \bottomrule
 \end{tabularx}
 
 \vspace{4pt}
-Les microservices ne gèrent \textbf{aucun mot de passe} directement. Ils se contentent de vérifier la signature du JWT et d'extraire le rôle pour appliquer les autorisations (RBAC).
+Les microservices ne gèrent \textbf{aucun mot de passe} directement. Ils vérifient uniquement la signature du JWT et extraient le rôle pour appliquer les autorisations (RBAC).
 
 \subsection{Conséquences}
-\textbf{Avantages :} gestion des droits centralisée et cohérente, SSO (connexion unique pour toutes les parties du système), standard OAuth2/OIDC, interface d'administration Keycloak disponible pour les ops.
+\textbf{Avantages :} gestion des droits centralisée et cohérente, SSO (connexion unique pour toutes les parties du système), standard OAuth2/OIDC.
 
-\noindent\textbf{Inconvénients :} Keycloak est un point critique --- s'il est indisponible, aucune authentification n'est possible. Il doit donc être déployé en mode haute disponibilité (minimum 2 réplicas Kubernetes).
+\noindent\textbf{Inconvénients :} Keycloak est un point critique --- s'il est indisponible, aucune authentification n'est possible. Il doit être déployé en mode haute disponibilité (minimum 2 réplicas Kubernetes).
 
 % ================================================================
 \section{ADR-006 --- Observabilité avec OpenTelemetry \adrstatus{Accepté}}
 
 \subsection{Contexte}
-Dans une architecture microservices, une requête utilisateur traverse plusieurs services avant de retourner une réponse. En cas d'erreur ou de lenteur, il est très difficile d'identifier quel service est responsable sans outillage dédié. De plus, les métriques opérationnelles (CPU, mémoire, latence) et métier (nombre de véhicules actifs, alertes générées) sont indispensables au pilotage du système DHL.
+Dans une architecture microservices, une requête utilisateur traverse plusieurs services avant de retourner une réponse. En cas d'erreur ou de lenteur, il est très difficile d'identifier quel service est responsable sans outillage dédié. Les métriques opérationnelles et métier sont également indispensables au pilotage du système DHL.
 
 \subsection{Décision}
 Adopter \textbf{OpenTelemetry} comme standard unique d'instrumentation, couvrant les trois piliers de l'observabilité :
@@ -271,25 +255,119 @@ Adopter \textbf{OpenTelemetry} comme standard unique d'instrumentation, couvrant
   \toprule
   \small\textbf{Pilier} & \small\textbf{Outil} & \small\textbf{Usage dans le projet} \\
   \midrule
-  Traces   & Jaeger     & Suivi distribué d'une requête à travers tous les services \\
+  Traces    & Jaeger              & Suivi distribué d'une requête à travers tous les services \\
   Métriques & Prometheus + Grafana & Tableaux de bord opérationnels et métier (véhicules actifs, alertes) \\
-  Logs     & Loki       & Agrégation centralisée des logs structurés (JSON) de tous les services \\
+  Logs      & Loki                & Agrégation centralisée des logs structurés JSON de tous les services \\
   \bottomrule
 \end{tabularx}
 
 \vspace{4pt}
-Chaque service est instrumenté via le SDK OpenTelemetry de son langage et exporte vers un \textbf{OTel Collector} central, qui redistribue ensuite vers Jaeger, Prometheus et Loki. Un \texttt{correlation\_id} est propagé dans tous les messages Kafka et requêtes HTTP pour relier les traces bout-en-bout.
+Chaque service est instrumenté via le SDK OpenTelemetry et exporte vers un \textbf{OTel Collector} central. Un \texttt{correlation\_id} est propagé dans tous les messages Kafka et requêtes HTTP pour relier les traces bout-en-bout.
 
 \subsection{Conséquences}
-\textbf{Avantages :} standard ouvert (pas de vendor lock-in), instrumentation mutualisée entre tous les services, corrélation logs/traces/métriques facilitée, Grafana unifie la visualisation.
+\textbf{Avantages :} standard ouvert (pas de vendor lock-in), instrumentation mutualisée, corrélation logs/traces/métriques facilitée, Grafana unifie la visualisation.
 
-\noindent\textbf{Inconvénients :} légère surcharge mémoire et CPU liée à l'instrumentation. Configuration initiale du Collector et des exporters à prévoir en semaine 2.
+\noindent\textbf{Inconvénients :} légère surcharge mémoire et CPU liée à l'instrumentation. Configuration initiale du Collector à prévoir en semaine 2.
 
 % ================================================================
 \vspace{8pt}
 \ruledline
 {\small\color{muted}
-\textbf{Synthèse des décisions} --- Les 6 ADR ci-dessus définissent les fondations techniques du projet. L'approche retenue privilégie un \textbf{MVP fonctionnel} : périmètre de base de données volontairement simple (6 tables), stack éprouvée, et enrichissements progressifs semaine après semaine.
+\textbf{Synthèse des décisions} --- Les 6 ADR ci-dessus définissent les fondations techniques du projet. L'approche retenue privilégie un \textbf{MVP fonctionnel} : périmètre de base de données volontairement simple (6 tables), stack éprouvée, enrichissements progressifs semaine après semaine.
 }
+
+\newpage
+
+% ================================================================
+\section{Configuration Keycloak --- Semaine 1}
+
+Cette section documente les étapes de mise en place de Keycloak réalisées en semaine 1, constituant le livrable de sécurité du projet.
+
+% ---- 1. Déploiement ----
+\subsection{1. Déploiement du serveur Keycloak en local}
+
+Pour l'environnement de développement, Keycloak a été conteneurisé et lancé via Docker avec la création automatique d'un compte super-administrateur. La commande suivante démarre Keycloak en mode développement sur le port 8080 :
+
+\begin{verbatim}
+docker run -p 8080:8080
+  -e KEYCLOAK_ADMIN=admin
+  -e KEYCLOAK_ADMIN_PASSWORD=admin
+  quay.io/keycloak/keycloak:latest start-dev
+\end{verbatim}
+
+L'interface d'administration est ensuite accessible sur \texttt{http://localhost:8080}.
+
+% ---- 2. Realm ----
+\subsection{2. Création du Realm}
+
+Afin d'isoler notre environnement du realm \texttt{master} (réservé à l'administration de l'outil), un nouveau Realm dédié au projet a été créé :
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Nom du Realm :} \texttt{gestion-flotte}
+\end{itemize}
+
+% ---- 3. Rôles RBAC ----
+\subsection{3. Mise en place du contrôle d'accès (RBAC)}
+
+Les rôles métier suivants ont été définis dans la section \textit{Realm roles} :
+
+\vspace{4pt}
+\begin{tabularx}{\linewidth}{lX}
+  \toprule
+  \small\textbf{Rôle} & \small\textbf{Périmètre} \\
+  \midrule
+  \texttt{admin}       & Accès complet à tous les services et données \\
+  \texttt{manager}     & Supervision du parc, validation des maintenances \\
+  \texttt{technicien}  & Lecture/écriture sur les fiches de maintenance \\
+  \texttt{user}        & Consultation de ses propres données uniquement \\
+  \bottomrule
+\end{tabularx}
+
+\vspace{6pt}
+\includegraphics[width=\linewidth]{./keycloak/k2.png}\\
+{\tiny\color{muted} Liste des Realm roles créés dans le realm \texttt{gestion-flotte}}
+
+% ---- 4. Clients ----
+\subsection{4. Configuration des Clients}
+
+Deux clients ont été configurés pour interagir avec Keycloak :
+
+\textbf{Client 1 : \texttt{frontend-web} (Client Public)} --- Destiné à l'interface React/Vue. Configuration : Standard flow activé, redirection autorisée vers \texttt{*} pour le développement.
+
+\vspace{4pt}
+\textbf{Client 2 : \texttt{api-gateway} (Client Confidentiel)} --- Destiné à la communication serveur à serveur. Configuration : \textit{Client authentication} activée, \textit{Service accounts roles} activés, génération d'un \textit{Client Secret} pour sécuriser les échanges GraphQL.
+
+\vspace{6pt}
+\includegraphics[width=\linewidth]{./keycloak/k1.png}\\
+{\tiny\color{muted} Liste des clients configurés dans le realm \texttt{gestion-flotte}}
+
+\vspace{8pt}
+\includegraphics[width=0.75\linewidth]{./keycloak/k3.png}\\
+{\tiny\color{muted} Configuration du client \texttt{api-gateway} --- Client authentication ON, Service account roles activé}
+
+% ---- 5. Utilisateur de test ----
+\subsection{5. Création d'un utilisateur de test}
+
+Un utilisateur de test a été provisionné pour valider les futurs développements :
+
+\vspace{4pt}
+\begin{tabularx}{\linewidth}{lX}
+  \toprule
+  \small\textbf{Paramètre} & \small\textbf{Valeur} \\
+  \midrule
+  Identifiant   & \texttt{toto.admin} \\
+  Mot de passe  & Défini manuellement, \textit{Temporary = OFF} \\
+  Role mapping  & Rôle \texttt{admin} assigné \\
+  \bottomrule
+\end{tabularx}
+
+\vspace{6pt}
+\includegraphics[width=\linewidth]{./keycloak/k4.png}\\
+{\tiny\color{muted} Liste des utilisateurs du realm \texttt{gestion-flotte} --- utilisateur \texttt{toto.admin} créé avec le rôle \texttt{admin}}
+
+% ---- 6. Export ----
+\subsection{6. Exportation de la configuration (Livrable)}
+
+Pour garantir la reproductibilité de l'environnement (\textit{Infrastructure as Code}), l'intégralité de la configuration a été exportée via l'interface Keycloak (Include clients + Include groups and roles). Le fichier généré \texttt{realm-export.json} est versionné dans le dépôt Git du projet sous le chemin \texttt{infrastructure/keycloak/realm-export.json}, ce qui permet de reconstruire l'environnement Keycloak complet automatiquement lors du déploiement en semaine 2.
 
 \end{document}

@@ -1,0 +1,45 @@
+# maintenance.graphql
+# Domaine Maintenance — Service Maintenance (Spring Boot)
+
+type MaintenanceRecord {
+  id: ID!
+  vehicle: Vehicle!
+  type: MaintenanceType!
+  status: MaintenanceStatus!
+  scheduled_date: String!
+  completed_date: String
+  technician_id: ID
+  cost_eur: Float
+  mileage_at_service: Int
+  next_service_km: Int
+  description: String
+  notes: String
+  created_at: String!
+}
+
+extend type Query {
+  maintenanceRecords(
+    vehicle_id: ID
+    status: MaintenanceStatus
+    limit: Int = 20
+    offset: Int = 0
+  ): [MaintenanceRecord!]!
+
+  maintenanceRecord(id: ID!): MaintenanceRecord
+}
+
+extend type Mutation {
+  createMaintenanceRecord(
+    vehicle_id: ID!
+    type: MaintenanceType!
+    scheduled_date: String!
+    description: String
+  ): MaintenanceRecord!
+
+  updateMaintenanceStatus(
+    id: ID!
+    status: MaintenanceStatus!
+    cost_eur: Float
+    notes: String
+  ): MaintenanceRecord!
+}

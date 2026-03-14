@@ -1,0 +1,35 @@
+# location.graphql
+# Domaine Localisation — Service Localisation (Node.js)
+# Données temps réel issues de TimescaleDB
+
+type Location {
+  latitude: Float!
+  longitude: Float!
+  speed_kmh: Float
+  heading_deg: Float
+  accuracy_m: Float
+  recorded_at: String!
+}
+
+type LocationHistory {
+  vehicle_id: ID!
+  positions: [Location!]!
+  total: Int!
+}
+
+extend type Query {
+  # Position actuelle d'un véhicule (dernière position connue)
+  vehicleLocation(vehicle_id: ID!): Location
+
+  # Historique des positions sur une période donnée (stocké dans TimescaleDB)
+  locationHistory(
+    vehicle_id: ID!
+    from: String!
+    to: String!
+  ): LocationHistory!
+}
+
+extend type Subscription {
+  # Stream GPS temps réel pour la carte du dashboard
+  vehicleLocationUpdated(vehicle_id: ID!): Location!
+}

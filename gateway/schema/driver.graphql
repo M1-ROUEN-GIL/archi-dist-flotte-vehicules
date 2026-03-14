@@ -1,0 +1,51 @@
+# driver.graphql
+# Domaine Conducteurs — Service Conducteurs (Spring Boot)
+
+type Driver {
+  id: ID!
+  first_name: String!
+  last_name: String!
+  email: String!
+  phone: String
+  employee_id: String
+  status: DriverStatus!
+  # Résolu par le Service Conducteurs
+  license: DriverLicense
+  # Résolu par le Service Véhicules
+  current_assignment: Assignment
+  created_at: String!
+}
+
+type DriverLicense {
+  id: ID!
+  license_number: String!
+  category: String!
+  expiry_date: String!
+  is_valid: Boolean!
+  country: String!
+}
+
+extend type Query {
+  drivers(
+    status: DriverStatus
+    limit: Int = 20
+    offset: Int = 0
+  ): DriverPage!
+
+  driver(id: ID!): Driver
+}
+
+extend type Mutation {
+  createDriver(
+    first_name: String!
+    last_name: String!
+    email: String!
+    phone: String
+    employee_id: String
+  ): Driver!
+
+  updateDriverStatus(
+    id: ID!
+    status: DriverStatus!
+  ): Driver!
+}

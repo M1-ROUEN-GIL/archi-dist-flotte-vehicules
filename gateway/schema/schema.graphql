@@ -1,0 +1,13 @@
+# schema.graphql
+# Point d'entrée — déclare les types racines
+# Les domaines étendent ces types via "extend type Query / Mutation / Subscription"
+
+type Query
+type Mutation
+type Subscription
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

@@ -1,0 +1,88 @@
+# common.graphql
+# Enums et types partagés entre tous les domaines
+
+# ================================================================
+# ENUMS
+# ================================================================
+
+enum VehicleStatus {
+  AVAILABLE
+  ON_DELIVERY
+  IN_MAINTENANCE
+  OUT_OF_SERVICE
+}
+
+enum FuelType {
+  DIESEL
+  GASOLINE
+  ELECTRIC
+  HYBRID
+}
+
+enum DriverStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  INSPECTION
+}
+
+enum AlertType {
+  GEOFENCING_BREACH
+  SPEED_EXCEEDED
+  VEHICLE_IMMOBILIZED
+  MAINTENANCE_OVERDUE
+  LICENSE_EXPIRING
+  DELIVERY_TOUR_DELAYED
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+# ================================================================
+# PAGINATION
+# ================================================================
+
+type VehiclePage {
+  items: [Vehicle!]!
+  total: Int!
+  limit: Int!
+  offset: Int!
+}
+
+type DriverPage {
+  items: [Driver!]!
+  total: Int!
+  limit: Int!
+  offset: Int!
+}
+
+type AlertPage {
+  items: [Alert!]!
+  total: Int!
+  limit: Int!
+  offset: Int!
+}

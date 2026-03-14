@@ -1,0 +1,73 @@
+# vehicle.graphql
+# Domaine Véhicules — Service Véhicules (Spring Boot)
+
+type Vehicle {
+  id: ID!
+  plate_number: String!
+  brand: String!
+  model: String!
+  fuel_type: FuelType!
+  status: VehicleStatus!
+  mileage_km: Int!
+  vin: String
+  color: String
+  seats: Int
+  # Résolu par le Service Localisation via l'API Gateway
+  current_location: Location
+  # Résolu par le Service Conducteurs
+  current_assignment: Assignment
+  # Résolu par le Service Maintenance
+  maintenance_records(limit: Int = 5): [MaintenanceRecord!]!
+  created_at: String!
+  updated_at: String!
+}
+
+type Assignment {
+  id: ID!
+  vehicle: Vehicle!
+  driver: Driver!
+  started_at: String!
+  ended_at: String
+  notes: String
+}
+
+extend type Query {
+  vehicles(
+    status: VehicleStatus
+    limit: Int = 20
+    offset: Int = 0
+  ): VehiclePage!
+
+  vehicle(id: ID!): Vehicle
+}
+
+extend type Mutation {
+  createVehicle(
+    plate_number: String!
+    brand: String!
+    model: String!
+    fuel_type: FuelType!
+    mileage_km: Int!
+    vin: String
+    color: String
+  ): Vehicle!
+
+  updateVehicleStatus(
+    id: ID!
+    status: VehicleStatus!
+  ): Vehicle!
+
+  assignVehicle(
+    vehicle_id: ID!
+    driver_id: ID!
+    notes: String
+  ): Assignment!
+
+  unassignVehicle(
+    assignment_id: ID!
+  ): Assignment!
+}
+
+extend type Subscription {
+  vehicleStatusChanged(vehicle_id: ID): Vehicle!
+}
