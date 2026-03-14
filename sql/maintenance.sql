@@ -5,11 +5,16 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Valeurs alignées sur common.graphql (MaintenanceType) et les messages Kafka
+-- PREVENTIVE : entretien planifié (vidange, rotation pneus, etc.)
+-- CORRECTIVE  : réparation suite à une panne ou un incident
+-- INSPECTION  : contrôle réglementaire ou de sécurité
+-- RECALL      : rappel constructeur
+-- OTHER       : toute intervention ne rentrant pas dans les catégories précédentes
 CREATE TYPE maintenance_type AS ENUM (
-  'oil_change',
-  'tire_rotation',
+  'preventive',
+  'corrective',
   'inspection',
-  'repair',
   'recall',
   'other'
 );

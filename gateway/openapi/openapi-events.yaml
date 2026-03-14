@@ -189,11 +189,11 @@ components:
 
     AlertStatus:
       type: string
-      enum: [open, acknowledged, resolved, expired]
+      enum: [active, acknowledged, resolved, expired]
 
     AlertSeverity:
       type: string
-      enum: [low, medium, high, critical]
+      enum: [info, warning, high, critical]
 
     AlertType:
       type: string

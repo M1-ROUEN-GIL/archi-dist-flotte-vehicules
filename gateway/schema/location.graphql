@@ -3,6 +3,7 @@
 # Données temps réel issues de TimescaleDB
 
 type Location {
+  vehicle_id: ID!
   latitude: Float!
   longitude: Float!
   speed_kmh: Float

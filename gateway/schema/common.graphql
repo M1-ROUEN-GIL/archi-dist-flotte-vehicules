@@ -38,6 +38,15 @@ enum MaintenanceType {
   PREVENTIVE
   CORRECTIVE
   INSPECTION
+  RECALL
+  OTHER
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum AlertType {
@@ -50,16 +59,17 @@ enum AlertType {
 }
 
 enum AlertSeverity {
-  LOW
-  MEDIUM
+  INFO
+  WARNING
   HIGH
   CRITICAL
 }
 
 enum AlertStatus {
-  OPEN
+  ACTIVE
   ACKNOWLEDGED
   RESOLVED
+  EXPIRED
 }
 
 # ================================================================
@@ -82,6 +92,13 @@ type DriverPage {
 
 type AlertPage {
   items: [Alert!]!
+  total: Int!
+  limit: Int!
+  offset: Int!
+}
+
+type MaintenancePage {
+  items: [MaintenanceRecord!]!
   total: Int!
   limit: Int!
   offset: Int!

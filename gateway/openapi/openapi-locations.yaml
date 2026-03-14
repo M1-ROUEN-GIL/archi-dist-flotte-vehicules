@@ -1,0 +1,315 @@
+openapi: 3.0.3
+info:
+  title: API Service Localisation
+  version: 1.0.0
+  description: |
+    API REST du service Localisation pour la consultation de l'historique
+    et de la dernière position GPS des véhicules DHL Fleet.
+
+    **Note : le streaming temps réel est exposé via gRPC** (`LocationService`),
+    non via cette API REST. Se référer au contrat `.proto` dans `kafka_topics.md`
+    pour le protocole gRPC (StreamPositions, WatchVehicle).
+  contact:
+    name: Équipe DHL Fleet
+servers:
+  - url: http://localhost:3005
+    description: Développement local
+  - url: https://api.dhl-fleet.internal/locations
+    description: Production
+
+tags:
+  - name: Localisation
+    description: Historique et dernière position GPS des véhicules
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /locations/{vehicle_id}/latest:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+    get:
+      tags: [Localisation]
+      summary: Dernière position connue
+      description: Retourne la position GPS la plus récente enregistrée pour un véhicule.
+      responses:
+        '200':
+          description: Dernière position du véhicule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GpsPosition'
+              example:
+                vehicle_id: "550e8400-e29b-41d4-a716-446655440000"
+                latitude: 49.4431
+                longitude: 1.0993
+                speed_kmh: 48.5
+                heading_deg: 185.3
+                accuracy_m: 4.2
+                altitude_m: 35.0
+                source: "gps"
+                recorded_at: "2026-03-14T10:30:05Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /locations/{vehicle_id}/history:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+    get:
+      tags: [Localisation]
+      summary: Historique des positions GPS
+      description: |
+        Retourne la liste paginée des positions GPS d'un véhicule sur une période donnée.
+        Les données sont stockées dans PostgreSQL et conservées 90 jours.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Début de la période (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+            example: "2026-03-14T06:00:00Z"
+        - name: to
+          in: query
+          required: true
+          description: Fin de la période (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+            example: "2026-03-14T18:00:00Z"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Historique paginé des positions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationHistory'
+        '400':
+          description: Paramètres from/to manquants ou invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /locations/{vehicle_id}/stats:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+    get:
+      tags: [Localisation]
+      summary: Statistiques de déplacement
+      description: |
+        Retourne les statistiques agrégées (km parcourus, vitesse moyenne/max)
+        pour un véhicule sur une période donnée.
+        Rôle requis — admin ou manager.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Statistiques de déplacement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationStats'
+              example:
+                vehicle_id: "550e8400-e29b-41d4-a716-446655440000"
+                period_from: "2026-03-14T06:00:00Z"
+                period_to: "2026-03-14T18:00:00Z"
+                total_distance_km: 142.3
+                average_speed_kmh: 38.7
+                max_speed_kmh: 89.0
+                total_readings: 8532
+        '400':
+          description: Paramètres from/to manquants ou invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT émis par Keycloak (realm gestion-flotte)
+
+  parameters:
+    VehicleId:
+      name: vehicle_id
+      in: path
+      required: true
+      description: UUID du véhicule
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: Token JWT manquant ou invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Rôle insuffisant pour cette action
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Véhicule introuvable ou aucune donnée GPS disponible
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+
+    GpsPosition:
+      type: object
+      required: [vehicle_id, latitude, longitude, recorded_at, source]
+      properties:
+        vehicle_id:
+          type: string
+          format: uuid
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        speed_kmh:
+          type: number
+          format: float
+          minimum: 0
+          nullable: true
+        heading_deg:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 360
+          nullable: true
+        accuracy_m:
+          type: number
+          format: float
+          minimum: 0
+          nullable: true
+        altitude_m:
+          type: number
+          format: float
+          nullable: true
+        source:
+          type: string
+          enum: [gps, manual, simulated]
+          default: gps
+        recorded_at:
+          type: string
+          format: date-time
+
+    LocationHistory:
+      type: object
+      required: [vehicle_id, positions, total, limit, offset]
+      properties:
+        vehicle_id:
+          type: string
+          format: uuid
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GpsPosition'
+        total:
+          type: integer
+          description: Nombre total de points sur la période
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    LocationStats:
+      type: object
+      required: [vehicle_id, period_from, period_to, total_distance_km, total_readings]
+      properties:
+        vehicle_id:
+          type: string
+          format: uuid
+        period_from:
+          type: string
+          format: date-time
+        period_to:
+          type: string
+          format: date-time
+        total_distance_km:
+          type: number
+          format: double
+          minimum: 0
+        average_speed_kmh:
+          type: number
+          format: float
+          minimum: 0
+          nullable: true
+        max_speed_kmh:
+          type: number
+          format: float
+          minimum: 0
+          nullable: true
+        total_readings:
+          type: integer
+          minimum: 0
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "VEHICLE_NOT_FOUND"
+        message:
+          type: string
+          example: "Aucune donnée GPS disponible pour ce véhicule."
+        timestamp:
+          type: string
+          format: date-time

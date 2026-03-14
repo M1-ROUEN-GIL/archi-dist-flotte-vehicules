@@ -190,11 +190,11 @@ Seul le Service Événements produit sur ce topic.
 | `alert_type`              | Sévérité   | Topic source                   | Contexte DHL                              |
 |---------------------------|------------|--------------------------------|-------------------------------------------|
 | `GEOFENCING_BREACH`       | `HIGH`     | `flotte.localisation.gps`      | Véhicule hors zone de tournée assignée    |
-| `SPEED_EXCEEDED`          | `MEDIUM`   | `flotte.localisation.gps`      | Dépassement des limites de vitesse DHL    |
+| `SPEED_EXCEEDED`          | `WARNING`   | `flotte.localisation.gps`      | Dépassement des limites de vitesse DHL    |
 | `VEHICLE_IMMOBILIZED`     | `CRITICAL` | `flotte.localisation.gps`      | Arrêt anormal en cours de tournée         |
 | `MAINTENANCE_OVERDUE`     | `HIGH`     | `flotte.maintenance.events`    | Véhicule non entretenu, risque opérationnel |
-| `LICENSE_EXPIRING`        | `MEDIUM`   | `flotte.conducteurs.events`    | Permis C du livreur bientôt expiré        |
-| `DELIVERY_TOUR_DELAYED`   | `MEDIUM`   | `flotte.localisation.gps`      | Tournée en retard sur le planning         |
+| `LICENSE_EXPIRING`        | `WARNING`   | `flotte.conducteurs.events`    | Permis C du livreur bientôt expiré        |
+| `DELIVERY_TOUR_DELAYED`   | `WARNING`   | `flotte.localisation.gps`      | Tournée en retard sur le planning         |
 
 ```json
 {
@@ -236,3 +236,91 @@ Seul le Service Événements produit sur ce topic.
 [Svc Maintenance] ──► flotte.maintenance.events ──► Service Véhicules (→ AVAILABLE)
                                                 └──► Service Événements ──► flotte.alertes.events
 ```
+
+---
+
+## Contrat du Service Localisation (gRPC + REST)
+
+> Le service Localisation est le seul service **bi-protocolaire** du système.
+> Il expose deux interfaces complémentaires :
+> - **gRPC** : streaming temps réel des positions GPS (lecture depuis les boîtiers embarqués)
+> - **REST** : consultation de l'historique des positions (lecture depuis l'API Gateway)
+>
+> Il n'existe pas de fichier OpenAPI pour ce service car son interface principale est gRPC.
+> Le contrat REST complémentaire est décrit ci-dessous.
+
+### Interface gRPC — `LocationService`
+
+```protobuf
+syntax = "proto3";
+package flotte.localisation.v1;
+
+service LocationService {
+  // Streaming bidirectionnel : le boîtier GPS envoie des positions,
+  // le serveur accuse réception et peut envoyer des commandes.
+  rpc StreamPositions (stream GpsPosition) returns (stream Ack);
+
+  // Streaming serveur : le client s'abonne aux positions d'un véhicule en temps réel.
+  rpc WatchVehicle (WatchRequest) returns (stream GpsPosition);
+}
+
+message GpsPosition {
+  string  vehicle_id  = 1; // UUID
+  double  latitude    = 2; // -90 à 90
+  double  longitude   = 3; // -180 à 180
+  float   speed_kmh   = 4;
+  float   heading_deg = 5; // 0 à 360
+  float   accuracy_m  = 6;
+  float   altitude_m  = 7;
+  string  source      = 8; // "GPS_DEVICE" | "MANUAL" | "SIMULATED"
+  int64   timestamp   = 9; // Unix timestamp ms
+}
+
+message WatchRequest {
+  string vehicle_id = 1;
+}
+
+message Ack {
+  string event_id = 1;
+  bool   accepted = 2;
+}
+```
+
+### Interface REST — Historique des positions
+
+| Méthode | Endpoint | Description | Rôles autorisés |
+|---------|----------|-------------|-----------------|
+| `GET` | `/locations/{vehicle_id}/history` | Historique paginé des positions | admin, manager, user |
+| `GET` | `/locations/{vehicle_id}/latest` | Dernière position connue | admin, manager, user |
+| `GET` | `/locations/{vehicle_id}/stats` | Statistiques (km parcourus, vitesse moy.) | admin, manager |
+
+**Paramètres de `/history`** :
+
+| Paramètre | Type | Défaut | Description |
+|-----------|------|--------|-------------|
+| `from` | ISO 8601 | `-24h` | Début de la période |
+| `to` | ISO 8601 | `now` | Fin de la période |
+| `limit` | integer | `100` | Nombre max de points |
+| `offset` | integer | `0` | Pagination |
+
+**Exemple de réponse `/latest`** :
+```json
+{
+  "vehicle_id": "uuid-v4",
+  "latitude": 49.4431,
+  "longitude": 1.0993,
+  "speed_kmh": 48.5,
+  "heading_deg": 185.3,
+  "accuracy_m": 4.2,
+  "source": "GPS_DEVICE",
+  "timestamp": "2026-03-14T10:30:05Z"
+}
+```
+
+### Stockage — TimescaleDB
+
+- Table : `location_readings` (voir `location.sql`)
+- Partitionnement : par `time` (chunks de 1 jour)
+- Compression automatique : données > 7 jours
+- Rétention : 90 jours
+- Index principal : `(vehicle_id, time DESC)` pour les requêtes "dernière position"

@@ -34,7 +34,5 @@ ALTER TABLE location_readings SET (
   timescaledb.compress_orderby   = 'time DESC'
 );
 
-SELECT add_compression_policy('location_readings', INTERVAL '7 days');
-
 -- ── Rétention (suppression automatique des données > 90 jours) ──
 SELECT add_retention_policy('location_readings', INTERVAL '90 days');

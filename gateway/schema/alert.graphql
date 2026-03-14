@@ -21,6 +21,7 @@ extend type Query {
   alerts(
     status: AlertStatus
     severity: AlertSeverity
+    vehicle_id: ID
     limit: Int = 20
     offset: Int = 0
   ): AlertPage!

@@ -74,7 +74,7 @@ paths:
               $ref: '#/components/schemas/MaintenanceInput'
             example:
               vehicle_id: "550e8400-e29b-41d4-a716-446655440000"
-              type: "oil_change"
+              type: "preventive"
               priority: "medium"
               scheduled_date: "2026-04-01"
               description: "Vidange + filtre à huile"
@@ -241,7 +241,8 @@ components:
 
     MaintenanceType:
       type: string
-      enum: [oil_change, tire_rotation, inspection, repair, recall, other]
+      # Aligné sur common.graphql et les messages Kafka
+      enum: [preventive, corrective, inspection, recall, other]
 
     MaintenanceRecord:
       type: object

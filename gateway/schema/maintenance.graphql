@@ -6,12 +6,14 @@ type MaintenanceRecord {
   vehicle: Vehicle!
   type: MaintenanceType!
   status: MaintenanceStatus!
+  priority: MaintenancePriority!
   scheduled_date: String!
   completed_date: String
   technician_id: ID
   cost_eur: Float
   mileage_at_service: Int
   next_service_km: Int
+  parts_used: [String!]!
   description: String
   notes: String
   created_at: String!
@@ -21,9 +23,10 @@ extend type Query {
   maintenanceRecords(
     vehicle_id: ID
     status: MaintenanceStatus
+    priority: MaintenancePriority
     limit: Int = 20
     offset: Int = 0
-  ): [MaintenanceRecord!]!
+  ): MaintenancePage!
 
   maintenanceRecord(id: ID!): MaintenanceRecord
 }
@@ -32,6 +35,7 @@ extend type Mutation {
   createMaintenanceRecord(
     vehicle_id: ID!
     type: MaintenanceType!
+    priority: MaintenancePriority
     scheduled_date: String!
     description: String
   ): MaintenanceRecord!

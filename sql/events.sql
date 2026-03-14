@@ -6,15 +6,15 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TYPE alert_type AS ENUM (
-  'maintenance_due',    -- entretien à planifier
-  'vehicle_breakdown',  -- panne signalée
-  'accident',           -- accident
-  'license_expiring',   -- permis conducteur bientôt expiré
-  'geofence_violation', -- sortie de zone autorisée
-  'speed_exceeded'      -- dépassement de vitesse
+  'geofencing_breach',      -- sortie de zone de tournée autorisée
+  'speed_exceeded',         -- dépassement de vitesse
+  'vehicle_immobilized',    -- arrêt anormal en cours de tournée
+  'maintenance_overdue',    -- véhicule non entretenu après échéance
+  'license_expiring',       -- permis conducteur bientôt expiré
+  'delivery_tour_delayed'   -- tournée en retard sur le planning
 );
 
-CREATE TYPE alert_severity AS ENUM ('info', 'warning', 'high', 'critical');
+CREATE TYPE alert_severity AS ENUM ('info', 'warning', 'high', 'critical'); -- aligné avec GraphQL AlertSeverity : INFO/WARNING/HIGH/CRITICAL
 
 CREATE TYPE alert_status AS ENUM (
   'active',
