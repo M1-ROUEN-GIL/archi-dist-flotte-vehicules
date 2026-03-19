@@ -51,8 +51,13 @@ docker build -t vehicle-service:latest ./services/vehicle-service/
 
 ### Étape 3 : Déployer l'Infrastructure (Helm)
 ```bash
+# 1. Installer l'infra de base (PostgreSQL, Kafka, Redis)
 helm dependency update ./infra/helm/fleet-infra/
 helm upgrade --install fleet-infra ./infra/helm/fleet-infra/ \
+  -n flotte-namespace
+
+# 2. Installer la stack d'observabilité (LGTMe + OTel)
+helm upgrade --install fleet-obs ./infra/helm/fleet-observability/ \
   -n flotte-namespace
 ```
 

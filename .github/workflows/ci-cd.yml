@@ -92,6 +92,7 @@ jobs:
         run: |
           helm lint infra/helm/fleet-infra
           helm lint infra/helm/fleet-app
+          helm lint infra/helm/fleet-observability
 
   # 4. Construction et Publication des images Docker
   # Ce job ne s'exécute que si les tests passent et qu'on est sur la branche main

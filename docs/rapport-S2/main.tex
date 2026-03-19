@@ -490,21 +490,24 @@ des \textbf{Charts} -- des packages preconfigures et maintenus par la communaute
 
 \subsection{Strategie de deploiement unifiee}
 
-Le projet a migre vers une architecture **Full Helm**. Plutot que de separer les manifests des microservices de la configuration de l'infrastructure, nous avons cree deux Charts principaux :
+Le projet a migre vers une architecture **Full Helm**. Plutot que de separer les manifests des microservices de la configuration de l'infrastructure, nous avons cree trois Charts principaux :
 
 \begin{itemize}
-  \item \textbf{Infrastructure lourde} (\texttt{fleet-infra}) : PostgreSQL, Redis via Bitnami, Kafka (manifest KRaft), et toute la stack d'observabilite LGTMe (Loki, Grafana, Tempo, Prometheus).
+  \item \textbf{Infrastructure de base} (\texttt{fleet-infra}) : PostgreSQL, Redis via Bitnami, et Kafka (manifest KRaft).
+  \item \textbf{Stack d'observabilite} (\texttt{fleet-observability}) : Toute la stack LGTMe (Loki, Grafana, Tempo, Prometheus) et l'OTel Collector.
   \item \textbf{Application} (\texttt{fleet-app}) : Contient uniquement nos microservices metiers et les regles d'Ingress.
 \end{itemize}
 
-L'observabilite est integree comme un \textbf{sub-chart} dans \texttt{fleet-infra}. Cette approche permet de disposer d'une \textbf{source de verite unique} pour les fichiers de configuration (Prometheus, OTel Collector) qui sont partages entre Docker Compose (via volumes) et Kubernetes (via ConfigMaps generes par Helm).
+Cette separation en trois entites distinctes permet une gestion independante du cycle de vie des bases de donnees, du monitoring et du code metier. Les fichiers de configuration (Prometheus, OTel Collector) sont centralises dans le chart d'observabilite et partages entre Docker Compose (via volumes) et Kubernetes (via ConfigMaps generes par Helm).
 
-Cela permet a n'importe quel developpeur de lancer toute l'infrastructure en \textbf{2 commandes seulement} :
+Cela permet a n'importe quel developpeur de lancer toute l'infrastructure en \textbf{3 commandes seulement} :
 
 \begin{lstlisting}[language=bash, caption=Lancement complet de l'infrastructure]
-# 1. Installer l'infra (DBs, Kafka, Observabilite)
+# 1. Installer l'infra de base (DBs, Kafka)
 helm upgrade --install fleet-infra ./infra/helm/fleet-infra/ -n flotte-namespace
-# 2. Installer les microservices applicatifs
+# 2. Installer la stack d'observabilite (LGTMe + OTel)
+helm upgrade --install fleet-obs ./infra/helm/fleet-observability/ -n flotte-namespace
+# 3. Installer les microservices applicatifs
 helm upgrade --install fleet-app ./infra/helm/fleet-app/ -n flotte-namespace
 \end{lstlisting}
 
@@ -669,7 +672,7 @@ Pour ne pas surcharger le \texttt{compose.yaml} principal tout en facilitant le 
 docker compose up -d
 \end{lstlisting}
 
-Les fichiers de configuration (OTel Collector et Prometheus) sont centralises dans le dossier \texttt{infra/helm/fleet-infra/charts/observability/config/}. Ces fichiers servent a la fois pour les montages de volume Docker Compose et pour les ConfigMaps Kubernetes via la fonction \texttt{.Files.Get} de Helm.
+Les fichiers de configuration (OTel Collector et Prometheus) sont centralises dans le dossier \texttt{infra/helm/fleet-observability/config/}. Ces fichiers servent a la fois pour les montages de volume Docker Compose et pour les ConfigMaps Kubernetes via la fonction \texttt{.Files.Get} de Helm.
 
 \subsection{Deploiement Kubernetes -- Isolation et Ingress}
 
@@ -741,12 +744,12 @@ racine-du-projet/
 |-- compose.override.yaml           # Stack LGTMe (montage volumes config Helm)
 |-- infra/
 |   |-- helm/
-|   |   |-- fleet-infra/            # Chart INFRA (DBs, Kafka, Obs)
-|   |   |   |-- values.yaml         # Config de toute l'infra
-|   |   |   |-- templates/          # Kafka, Postgres (si custom)
-|   |   |   `-- charts/
-|   |   |       `-- observability/  # Sub-chart (Loki, Grafana, etc.)
-|   |   |           `-- config/     # SOURCE DE VERITE UNIQUE (OTel, Prom)
+|   |   |-- fleet-infra/            # Chart INFRA (DBs, Kafka)
+|   |   |   |-- values.yaml         # Config bases de donnees et bus
+|   |   |   `-- templates/          # Kafka, Postgres (si custom)
+|   |   |-- fleet-observability/    # Chart OBSERVABILITE (LGTMe + OTel)
+|   |   |   |-- values.yaml         # Config logs, traces et metriques
+|   |   |   `-- config/             # SOURCE DE VERITE UNIQUE (OTel, Prom)
 |   |   `-- fleet-app/              # Chart APPLICATIF (Microservices)
 |   |       |-- values.yaml         # Config des services metiers
 |   |       `-- templates/          # Microservices, Ingress
