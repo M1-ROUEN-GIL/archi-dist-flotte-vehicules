@@ -8,6 +8,7 @@
 \usepackage[french]{babel}
 \usepackage{geometry}
 \usepackage{graphicx}
+\graphicspath{{images/}}
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{booktabs}
@@ -577,7 +578,44 @@ kubectl get pods -n flotte-namespace | grep kafka
     \label{fig:login}
 \end{figure}
 % ------------------------------------------------------------
-% SECTION 5 - BILAN
+% SECTION 7 - KAFKA
+% ------------------------------------------------------------
+\section{Pipeline CI/CD -- Automatisation avec GitHub Actions}
+
+\begin{infobox}
+\textbf{Principe :} Le pipeline CI/CD assure la qualite du code et la validite de
+l'infrastructure a chaque modification. Il automatise les tests et le deploiement
+vers le registre d'images.
+\end{infobox}
+
+\vspace{0.3cm}
+
+Le projet utilise \textbf{GitHub Actions} pour orchestrer le cycle de vie du
+developpement. Le workflow est defini dans \texttt{.github/workflows/ci-cd.yml}
+et se decompose en quatre phases majeures :
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item \textbf{Tests des microservices Java :} Utilisation d'une matrice pour tester
+        en parallele les services (\texttt{driver}, \texttt{events}, \texttt{maintenance},
+        \texttt{vehicle}) via Maven et JDK 21.
+  \item \textbf{Tests du microservice Node.js :} Pipeline specifique pour le
+        \texttt{location-service} avec installation propre des dependances (\texttt{npm ci}).
+  \item \textbf{Validation de l'infrastructure (Linting) :} Verification syntaxique
+        des charts Helm pour prevenir toute erreur de configuration Kubernetes.
+  \item \textbf{Build \& Push Docker :} Phase executee uniquement sur la branche
+        \texttt{main}. Les images sont poussees vers \textbf{GHCR (GitHub Container Registry)}
+        avec un double tagging (\texttt{latest} et \texttt{SHA du commit}).
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pods.png}
+    \caption{Visualisation symbolique de l'infrastructure validee par le pipeline}
+    \label{fig:cicd}
+\end{figure}
+
+% ------------------------------------------------------------
+% SECTION 8 - BILAN
 % ------------------------------------------------------------
 \section{Bilan de la semaine 2}
 
@@ -587,7 +625,7 @@ kubectl get pods -n flotte-namespace | grep kafka
     \centering
     \includegraphics[width=0.8\textwidth]{pods.png}
     \caption{Etat final du cluster en fin de semaine 2}
-    \label{fig:login}
+    \label{fig:login_bilan}
 \end{figure}
 
 \begin{table}[H]
@@ -621,6 +659,7 @@ prete a les accueillir.
 
 \begin{lstlisting}[caption=Arborescence du projet en fin de semaine 2]
 racine-du-projet/
+|-- .github/workflows/ci-cd.yml     # Pipeline d'automatisation
 |-- docker-compose.yml              # Env. de dev rapide (local)
 |-- .env.example                    # Template variables d'environnement
 |-- .gitignore                      # Inclut values.secret.yaml, db-secrets.yaml
@@ -653,8 +692,8 @@ racine-du-projet/
 \begin{itemize}
   \item \textbf{Semaine 3 :} Coder le vehicle-service (CRUD REST, Kafka producer/consumer,
         tests unitaires $>$80\%, OpenTelemetry)
-  \item \textbf{CI/CD :} Finaliser le pipeline GitHub Actions (build Docker + tests
-        automatiques a chaque push)
+  \item \textbf{Automatisation :} Maintenir le pipeline GitHub Actions (tests unitaires
+        et linting a chaque Pull Request)
   \item \textbf{Observabilite :} Deployer la stack OpenTelemetry, Prometheus, Grafana,
         Jaeger et Loki
   \item \textbf{Semaine 7 :} Packager les microservices dans un Chart Helm pour le
