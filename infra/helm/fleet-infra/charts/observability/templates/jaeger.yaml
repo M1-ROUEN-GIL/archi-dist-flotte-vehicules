@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jaeger
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: jaeger
-        image: jaegertracing/all-in-one:1.55
+        image: {{ .Values.jaeger.image }}
         env:
         - name: QUERY_BASE_PATH
           value: /jaeger
@@ -28,7 +28,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: jaeger
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
 spec:
   selector:
     app: jaeger

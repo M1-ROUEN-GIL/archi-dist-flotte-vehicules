@@ -1,0 +1,47 @@
+namespace: flotte-namespace
+
+# 1. Configuration de PostgreSQL
+postgresql:
+  fullnameOverride: "postgres-service"
+
+  auth:
+    postgresUser: "admin"
+    # postgresPassword retiré → dans values.secret.yaml
+    database: "flotte_db"
+
+  primary:
+    persistence:
+      enabled: false
+
+# 2. Configuration de Redis
+redis:
+  fullnameOverride: "redis-service"
+
+  architecture: "standalone"
+
+  auth:
+    enabled: false
+  
+  master:
+    persistence:
+      enabled: false
+
+# 3. Configuration de Kafka (KRaft mode)
+kafka:
+  image: confluentinc/cp-kafka:7.5.0
+  port: 9092
+
+# 4. Configuration de l'Observabilité (LGTMe + OTel)
+observability:
+  namespace: flotte-namespace
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+  prometheus:
+    image: prom/prometheus:v2.51.0
+  loki:
+    image: grafana/loki:2.9.4
+  grafana:
+    image: grafana/grafana:10.4.1
+    adminPassword: admin
+  otelCollector:
+    image: otel/opentelemetry-collector-contrib:0.96.0

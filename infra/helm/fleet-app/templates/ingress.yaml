@@ -1,9 +1,8 @@
-# Ingress pour les APIs et Grafana (avec réécriture)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: flotte-ingress
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/use-regex: "true"
@@ -55,13 +54,12 @@ spec:
                 name: location-service
                 port:
                   number: 3000
-                  
-# Ingress dédié pour Jaeger (SANS réécriture)
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: jaeger-ingress
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
 spec:
   ingressClassName: nginx
   rules:

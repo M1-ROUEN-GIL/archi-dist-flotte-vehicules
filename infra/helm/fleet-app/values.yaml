@@ -1,0 +1,29 @@
+namespace: flotte-namespace
+
+# Configuration des Services Applicatifs
+services:
+  vehicle:
+    name: vehicle-service
+    image: vehicle-service:latest
+    port: 8080
+    replicas: 2
+  driver:
+    name: driver-service
+    image: driver-service:latest
+    port: 8081
+    replicas: 1
+  maintenance:
+    name: maintenance-service
+    image: maintenance-service:latest
+    port: 8082
+    replicas: 1
+  event:
+    name: event-service
+    image: event-service:latest
+    port: 8083
+    replicas: 1
+  location:
+    name: location-service
+    image: location-service:latest
+    port: 3000
+    replicas: 1

@@ -2,20 +2,19 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kafka-service
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
 spec:
   ports:
-    - port: 9092
+    - port: {{ .Values.kafka.port }}
       name: plaintext
   selector:
     app: kafka-broker
-
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kafka-deployment
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
 spec:
   replicas: 1
   selector:
@@ -28,11 +27,10 @@ spec:
     spec:
       containers:
         - name: kafka
-          image: confluentinc/cp-kafka:7.5.0  # Image officielle ultra-stable
+          image: {{ .Values.kafka.image }}
           ports:
-            - containerPort: 9092
+            - containerPort: {{ .Values.kafka.port }}
           env:
-            # Configuration KRaft (Sans Zookeeper) spéciale environnement local
             - name: KAFKA_NODE_ID
               value: "1"
             - name: KAFKA_PROCESS_ROLES
@@ -56,4 +54,4 @@ spec:
             - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
               value: "1"
             - name: CLUSTER_ID
-              value: "MkU3OEVBNTcwNTJENDM2Qk" # ID de cluster obligatoire pour KRaft
+              value: "MkU3OEVBNTcwNTJENDM2Qk"

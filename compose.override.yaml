@@ -12,7 +12,7 @@ services:
     image: prom/prometheus:v2.51.0
     container_name: flotte-prometheus
     volumes:
-      - ./infra/observability-config/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./infra/helm/fleet-infra/charts/observability/config/prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
     restart: unless-stopped
@@ -31,7 +31,7 @@ services:
     image: grafana/grafana:10.4.1
     container_name: flotte-grafana
     volumes:
-      - ./infra/observability-config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./infra/helm/fleet-infra/charts/observability/config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
     ports:
       - "3001:3000"
     environment:
@@ -48,7 +48,7 @@ services:
     container_name: flotte-otel-collector
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
-      - ./infra/observability-config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./infra/helm/fleet-infra/charts/observability/config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP

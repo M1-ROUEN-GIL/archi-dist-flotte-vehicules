@@ -140,7 +140,7 @@
   \vspace{1.5cm}
   \rule{\linewidth}{0.5mm}\\[0.4cm]
 
-  {\Huge\bfseries\color{primary} Projet Gestion de Flotte de véhicules\\[0.3cm]}
+  {\Huge\bfseries\color{primary} Projet Gestion de Flotte de vehicules\\[0.3cm]}
   {\LARGE\bfseries Rapport de Semaine 2}\\[0.3cm]
   {\large\color{darkgray} Infrastructure DevOps -- Conteneurisation \& Orchestration}
 
@@ -198,10 +198,9 @@ Les grandes etapes realisees sont les suivantes :
 \begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
   \item Conteneurisation des services avec \textbf{Docker} (Dockerfiles multi-stage)
   \item Orchestration locale avec \textbf{Kubernetes} via Minikube
-  \item Mise en place des manifests Kubernetes (Deployments, Services, Secrets, Ingress)
-  \item Deploiement de l'infrastructure lourde via \textbf{Helm} (PostgreSQL, Redis)
-  \item Resolution du probleme de deploiement de \textbf{Kafka}
-  \item Mise en place de la stack d'observabilite (\textbf{OpenTelemetry, Jaeger, Prometheus, Loki, Grafana})
+  \item Mise en place d'une architecture \textbf{Helm unifiee} pour l'integralite du cluster
+  \item Centralisation de la stack d'observabilite (\textbf{OpenTelemetry, Jaeger, Prometheus, Loki, Grafana})
+  \item Unification des configurations entre Docker Compose et Kubernetes via Helm
 \end{enumerate}
 
 % ------------------------------------------------------------
@@ -290,7 +289,7 @@ de la phase d'execution, reduisant ainsi la taille de l'image finale et ameliora
 securite en n'incluant pas les outils de build en production.
 
 
-\begin{lstlisting}[language=bash, caption=Dockerfile multi-stage – vehicle-service (Spring Boot)]
+\begin{lstlisting}[language=bash, caption=Dockerfile multi-stage - vehicle-service (Spring Boot)]
 # Etape 1 : Construction
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 
@@ -489,25 +488,24 @@ Helm est le gestionnaire de paquets de Kubernetes. Plutot que d'ecrire et mainte
 manuellement des dizaines de fichiers YAML pour des services tiers complexes, Helm utilise
 des \textbf{Charts} -- des packages preconfigures et maintenus par la communaute.
 
-\subsection{Strategie de deploiement}
+\subsection{Strategie de deploiement unifiee}
 
-Une separation stricte a ete mise en place entre :
+Le projet a migre vers une architecture **Full Helm**. Plutot que de separer les manifests des microservices de la configuration de l'infrastructure, nous avons cree deux Charts principaux :
 
 \begin{itemize}
-  \item \textbf{Infrastructure lourde} (PostgreSQL, Redis) : deployee via Helm Charts Bitnami
-  \item \textbf{Microservices applicatifs} : deployes via des manifests Kubernetes classiques
+  \item \textbf{Infrastructure lourde} (\texttt{fleet-infra}) : PostgreSQL, Redis via Bitnami, Kafka (manifest KRaft), et toute la stack d'observabilite LGTMe (Loki, Grafana, Tempo, Prometheus).
+  \item \textbf{Application} (\texttt{fleet-app}) : Contient uniquement nos microservices metiers et les regles d'Ingress.
 \end{itemize}
 
-Cela permet a n'importe quel developpeur de lancer toute l'infrastructure en
-\textbf{3 commandes seulement} :
+L'observabilite est integree comme un \textbf{sub-chart} dans \texttt{fleet-infra}. Cette approche permet de disposer d'une \textbf{source de verite unique} pour les fichiers de configuration (Prometheus, OTel Collector) qui sont partages entre Docker Compose (via volumes) et Kubernetes (via ConfigMaps generes par Helm).
+
+Cela permet a n'importe quel developpeur de lancer toute l'infrastructure en \textbf{2 commandes seulement} :
 
 \begin{lstlisting}[language=bash, caption=Lancement complet de l'infrastructure]
-helm dependency update ./infra/helm/dependencies/
-helm upgrade --install infra-stack ./infra/helm/dependencies/ \
-  --namespace flotte-namespace \
-  -f values.yaml \
-  -f values.secret.yaml
-kubectl apply -f infra/kubernetes/ -R
+# 1. Installer l'infra (DBs, Kafka, Observabilite)
+helm upgrade --install fleet-infra ./infra/helm/fleet-infra/ -n flotte-namespace
+# 2. Installer les microservices applicatifs
+helm upgrade --install fleet-app ./infra/helm/fleet-app/ -n flotte-namespace
 \end{lstlisting}
 
 \subsection{Separation des secrets Helm}
@@ -603,7 +601,7 @@ Le pipeline se decompose en quatre jobs principaux :
   \item \textbf{Tests des microservices Java (Spring Boot) :}
         \begin{itemize}
           \item Utilisation d'une \textbf{matrice de build} pour tester en parallele les services : \texttt{driver}, \texttt{events}, \texttt{maintenance} et \texttt{vehicle}.
-\item \textbf{Utilisation des services natifs GitHub :} des instances \textbf{PostgreSQL 15} et \textbf{Kafka 3.7.0} sont lancées dynamiquement pour chaque job afin de valider le contexte Spring Boot lors des tests d'intégration.
+\item \textbf{Utilisation des services natifs GitHub :} des instances \textbf{PostgreSQL 15} et \textbf{Kafka 3.7.0} sont lancees dynamiquement pour chaque job afin de valider le contexte Spring Boot lors des tests d'integration.
         \end{itemize}
 
   \item \textbf{Tests du microservice Node.js :}
@@ -625,7 +623,7 @@ Le pipeline se decompose en quatre jobs principaux :
         \end{itemize}
 \end{enumerate}
 
-\subsection{Améliorations futures de la CI/CD}
+\subsection{Ameliorations futures de la CI/CD}
 
 L'infrastructure actuelle se concentre sur la validation fonctionnelle. Pour la suite du projet, nous prevoyons de renforcer la qualite et la securite des livrables en ajoutant des etapes de controle supplementaires :
 
@@ -643,9 +641,9 @@ L'infrastructure actuelle se concentre sur la validation fonctionnelle. Pour la 
 \end{figure}
 
 % ------------------------------------------------------------
-% SECTION 8 - OBSERVABILITÉ
+% SECTION 8 - OBSERVABILITE
 % ------------------------------------------------------------
-\section{Observabilité -- Stack OpenTelemetry \& Supervision}
+\section{Observabilite -- Stack OpenTelemetry \& Supervision}
 
 \begin{infobox}
 \textbf{Principe :} L'observabilite repose sur les trois piliers : \textbf{Traces}, \textbf{Metriques} et \textbf{Logs}. Nous utilisons \textbf{OpenTelemetry (OTel)} comme standard d'ingestion unique pour decorreler la generation des donnees de leur stockage final.
@@ -671,7 +669,7 @@ Pour ne pas surcharger le \texttt{compose.yaml} principal tout en facilitant le 
 docker compose up -d
 \end{lstlisting}
 
-Les fichiers de configuration (OTel Collector et Prometheus) sont centralises dans le dossier \texttt{infra/observability-config/}.
+Les fichiers de configuration (OTel Collector et Prometheus) sont centralises dans le dossier \texttt{infra/helm/fleet-infra/charts/observability/config/}. Ces fichiers servent a la fois pour les montages de volume Docker Compose et pour les ConfigMaps Kubernetes via la fonction \texttt{.Files.Get} de Helm.
 
 \subsection{Deploiement Kubernetes -- Isolation et Ingress}
 
@@ -693,7 +691,7 @@ Afin d'eviter l'utilisation de \texttt{port-forward}, des regles d'Ingress ont e
   \caption{Acces externes aux outils d'observabilite}
 \end{table}
 
-Une configuration specifique (\texttt{root\_url} pour Grafana et \texttt{base-path} pour Jaeger) a ete appliquee pour permettre le fonctionnement correct derrière ces sous-chemins URLs.
+Une configuration specifique (\texttt{root\_url} pour Grafana et \texttt{base-path} pour Jaeger) a ete appliquee pour permettre le fonctionnement correct derriere ces sous-chemins URLs.
 
 % ------------------------------------------------------------
 % SECTION 9 - BILAN
@@ -715,17 +713,17 @@ Une configuration specifique (\texttt{root\_url} pour Grafana et \texttt{base-pa
     \toprule
     \textbf{Composant} & \textbf{Statut} & \textbf{Methode de deploiement} \\
     \midrule
-    PostgreSQL           & \textcolor{success}{\textbf{Running}} & Helm (Bitnami) \\
-    Redis                & \textcolor{success}{\textbf{Running}} & Helm (Bitnami) \\
-    Kafka  & \textcolor{success}{\textbf{Running}} & Manifest K8s (Confluent) \\
-    OTel Collector       & \textcolor{success}{\textbf{Running}} & Manifest K8s \\
-    Jaeger / Prometheus  & \textcolor{success}{\textbf{Running}} & Manifest K8s \\
-    Grafana / Loki       & \textcolor{success}{\textbf{Running}} & Manifest K8s \\
-    vehicle-service      & \textcolor{success}{\textbf{Running}} & Manifest K8s \\
-    Autres services      & \textcolor{warning}{\textbf{Pending}} & En attente de code (S3-S5) \\
+    PostgreSQL           & \textcolor{success}{\textbf{Running}} & Helm (\texttt{fleet-infra}) \\
+    Redis                & \textcolor{success}{\textbf{Running}} & Helm (\texttt{fleet-infra}) \\
+    Kafka                & \textcolor{success}{\textbf{Running}} & Helm (\texttt{fleet-infra}) \\
+    OTel Collector       & \textcolor{success}{\textbf{Running}} & Helm (\texttt{fleet-infra}) \\
+    Jaeger / Prometheus  & \textcolor{success}{\textbf{Running}} & Helm (\texttt{fleet-infra}) \\
+    Grafana / Loki       & \textcolor{success}{\textbf{Running}} & Helm (\texttt{fleet-infra}) \\
+    vehicle-service      & \textcolor{success}{\textbf{Running}} & Helm (\texttt{fleet-app}) \\
+    Autres services      & \textcolor{warning}{\textbf{Pending}} & Helm (\texttt{fleet-app}) \\
     \bottomrule
   \end{tabular}
-  \caption{Bilan de l'etat des composants incluant l'observabilite}
+  \caption{Bilan de l'etat des composants unifies sous Helm}
 \end{table}
 
 \begin{infobox}
@@ -739,14 +737,22 @@ prete a les accueillir.
 
 \begin{lstlisting}[caption=Arborescence des dossiers d'infrastructure]
 racine-du-projet/
-|-- compose.yaml                    # Env. de dev rapide (local)
-|-- compose.override.yaml           # Stack observabilite (fusion auto)
+|-- compose.yaml                    # Env. de dev (Postgres, Kafka, Keycloak)
+|-- compose.override.yaml           # Stack LGTMe (montage volumes config Helm)
 |-- infra/
-|   |-- observability-config/       # Config OTel et Prometheus
+|   |-- helm/
+|   |   |-- fleet-infra/            # Chart INFRA (DBs, Kafka, Obs)
+|   |   |   |-- values.yaml         # Config de toute l'infra
+|   |   |   |-- templates/          # Kafka, Postgres (si custom)
+|   |   |   `-- charts/
+|   |   |       `-- observability/  # Sub-chart (Loki, Grafana, etc.)
+|   |   |           `-- config/     # SOURCE DE VERITE UNIQUE (OTel, Prom)
+|   |   `-- fleet-app/              # Chart APPLICATIF (Microservices)
+|   |       |-- values.yaml         # Config des services metiers
+|   |       `-- templates/          # Microservices, Ingress
 |   `-- kubernetes/
-|       |-- observability/          # Manifests OTel, Jaeger, Grafana...
-|       |-- ingress/                # Ingress mis a jour (/grafana, /jaeger)
-|       `-- ...
+|       |-- namespaces/
+|       `-- secrets/
 \end{lstlisting}
 
 \subsection{Points d'attention pour la suite}

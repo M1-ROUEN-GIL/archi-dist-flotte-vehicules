@@ -49,18 +49,17 @@ eval $(minikube docker-env)
 docker build -t vehicle-service:latest ./services/vehicle-service/
 ```
 
-### Étape 3 : Déployer l'Infrastructure Lourde (Helm)
+### Étape 3 : Déployer l'Infrastructure (Helm)
 ```bash
-helm dependency update ./infra/helm/dependencies/
-helm upgrade --install infra-stack ./infra/helm/dependencies/ \
-  -n flotte-namespace \
-  -f ./infra/helm/dependencies/values.yaml \
-  -f ./infra/helm/dependencies/values.secret.yaml
+helm dependency update ./infra/helm/fleet-infra/
+helm upgrade --install fleet-infra ./infra/helm/fleet-infra/ \
+  -n flotte-namespace
 ```
 
-### Étape 4 : Déployer les Manifests K8s
+### Étape 4 : Déployer l'Application (Helm)
 ```bash
-kubectl apply -f infra/kubernetes/ -R
+helm upgrade --install fleet-app ./infra/helm/fleet-app/ \
+  -n flotte-namespace
 ```
 
 ### Étape 5 : Configuration Réseau
@@ -80,10 +79,3 @@ Le workflow `.github/workflows/ci-cd.yml` valide chaque commit :
 - Tests unitaires (Maven/NPM).
 - Linting Helm.
 - Build Docker & Push vers GHCR (branche main).
-
----
-
-## 5. Prochaines étapes (Semaine 3)
-- Développement du vehicle-service (CRUD & Events).
-- Instrumentation SDK OpenTelemetry dans les services Java.
-- Création des dashboards Grafana.
