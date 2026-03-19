@@ -577,35 +577,63 @@ kubectl get pods -n flotte-namespace | grep kafka
     \caption{Kafka deploye et Running via manifest Kubernetes -- image confluentinc/cp-kafka:7.5.0 (Kafka 3.5)}
     \label{fig:login}
 \end{figure}
+
+\newpage
+
 % ------------------------------------------------------------
-% SECTION 7 - KAFKA
+% SECTION 7 - CI/CD
 % ------------------------------------------------------------
 \section{Pipeline CI/CD -- Automatisation avec GitHub Actions}
 
 \begin{infobox}
 \textbf{Principe :} Le pipeline CI/CD assure la qualite du code et la validite de
 l'infrastructure a chaque modification. Il automatise les tests et le deploiement
-vers le registre d'images.
+vers le registre d'images GitHub (GHCR).
 \end{infobox}
-
+                      
 \vspace{0.3cm}
 
-Le projet utilise \textbf{GitHub Actions} pour orchestrer le cycle de vie du
-developpement. Le workflow est defini dans \texttt{.github/workflows/ci-cd.yml}
-et se decompose en quatre phases majeures :
+Le projet utilise \textbf{GitHub Actions} pour orchestrer le cycle de vie du developpement. Le workflow est defini dans \texttt{.github/workflows/ci-cd.yml}.
+  
+\subsection{Description des jobs de la CI/CD}
+                       
+Le pipeline se decompose en quatre jobs principaux :
 
 \begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
-  \item \textbf{Tests des microservices Java :} Utilisation d'une matrice pour tester
-        en parallele les services (\texttt{driver}, \texttt{events}, \texttt{maintenance},
-        \texttt{vehicle}) via Maven et JDK 21.
-  \item \textbf{Tests du microservice Node.js :} Pipeline specifique pour le
-        \texttt{location-service} avec installation propre des dependances (\texttt{npm ci}).
-  \item \textbf{Validation de l'infrastructure (Linting) :} Verification syntaxique
-        des charts Helm pour prevenir toute erreur de configuration Kubernetes.
-  \item \textbf{Build \& Push Docker :} Phase executee uniquement sur la branche
-        \texttt{main}. Les images sont poussees vers \textbf{GHCR (GitHub Container Registry)}
-        avec un double tagging (\texttt{latest} et \texttt{SHA du commit}).
+  \item \textbf{Tests des microservices Java (Spring Boot) :}
+        \begin{itemize}
+          \item Utilisation d'une \textbf{matrice de build} pour tester en parallele les services : \texttt{driver}, \texttt{events}, \texttt{maintenance} et \texttt{vehicle}.
+\item \textbf{Utilisation des services natifs GitHub :} des instances \textbf{PostgreSQL 15} et \textbf{Kafka 3.7.0} sont lancées dynamiquement pour chaque job afin de valider le contexte Spring Boot lors des tests d'intégration.
+        \end{itemize}
+
+  \item \textbf{Tests du microservice Node.js :}
+        \begin{itemize}
+          \item Pipeline dedie pour le \texttt{location-service} utilisant Node.js 20.
+          \item Installation propre via \texttt{npm ci} et execution des tests unitaires.
+        \end{itemize}
+
+  \item \textbf{Validation de l'infrastructure (Linting) :}
+        \begin{itemize}
+          \item Execution de \texttt{helm lint} sur les charts de dependances pour garantir la validite syntaxique des manifests Kubernetes generes.
+        \end{itemize}
+
+  \item \textbf{Build \& Push Docker (CD) :}
+        \begin{itemize}
+          \item Ce job ne s'execute que si les trois etapes precedentes sont en succes et uniquement lors d'un push sur la branche \texttt{main}.
+          \item Utilisation de \textbf{Docker Buildx} pour optimiser le cache de construction.
+          \item Publication sur \textbf{GitHub Container Registry (GHCR)} avec un double marquage : \texttt{:latest} et le \texttt{SHA} du commit pour la tracabilite.
+        \end{itemize}
 \end{enumerate}
+
+\subsection{Améliorations futures de la CI/CD}
+
+L'infrastructure actuelle se concentre sur la validation fonctionnelle. Pour la suite du projet, nous prevoyons de renforcer la qualite et la securite des livrables en ajoutant des etapes de controle supplementaires :
+
+\begin{itemize}
+  \item \textbf{Conformite des Dockerfiles :} Mise en place de \textbf{Hadolint} pour verifier que les Dockerfiles respectent les bonnes pratiques (optimisation des couches, suppression des caches, etc.).
+  \item \textbf{Securite des images (Vulnerability Scanning) :} Integration de \textbf{Trivy} ou \textbf{Snyk} pour detecter les vulnerabilites CVE dans les images de base et les dependances installees.
+  \item \textbf{Analyse statique de code (SAST) :} Ajout de \textbf{SonarCloud} ou \textbf{CodeQL} pour identifier les bugs potentiels et les failles de securite directement dans le code source Java et JavaScript.
+\end{itemize}
 
 \begin{figure}[H]
     \centering
