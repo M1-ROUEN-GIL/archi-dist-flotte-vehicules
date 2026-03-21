@@ -1,0 +1,45 @@
+# 2. Le "Deployment" : Il gère les conteneurs
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vehicle-deployment
+  namespace: flotte-namespace
+spec:
+  replicas: 2 # Kubernetes va faire tourner 2 instances de ton service en même temps !
+  selector:
+    matchLabels:
+      app: vehicle
+  template:
+    metadata:
+      labels:
+        app: vehicle
+    spec:
+      containers:
+        - name: vehicle-app
+          image: vehicle-service:latest # L'image qu'on a créée avec le Dockerfile
+          imagePullPolicy: Never         # ⚠️ OBLIGATOIRE EN LOCAL : Ne cherche pas sur internet
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: SPRING_DATASOURCE_URL
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: SPRING_DATASOURCE_PASSWORD
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                  secretKeyRef:
+                    name: db-secrets
+                    key: KAFKA_BROKER
+          resources:
+             requests:
+                    memory: "256Mi"
+                    cpu: "250m"
+             limits:
+                    memory: "512Mi"
+                    cpu: "500m"
