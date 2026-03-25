@@ -357,4 +357,142 @@ L'ensemble des 8 endpoints testés retournent les codes HTTP attendus. Le soft d
 est correctement implémenté et le filtrage des véhicules supprimés fonctionne comme
 prévu.
 
+\section{Résolveurs GraphQL}
+
+\begin{infobox}
+\textbf{Objectif :} Exposer les données du service Véhicules via une couche
+\textbf{GraphQL} portée par l'API Gateway, en séparant clairement les résolveurs
+fonctionnels des résolveurs non encore branchés aux microservices.
+\end{infobox}
+
+\vspace{0.5cm}
+
+L'API Gateway agrège les résolveurs de l'ensemble des microservices en un schéma
+GraphQL unifié. Pour la semaine 3, seuls les résolveurs liés au service Véhicules
+sont pleinement opérationnels. Les autres (conducteurs, alertes, localisation,
+maintenance) sont provisoirement remplacés par des \textbf{stubs} qui retournent
+une erreur explicite, évitant tout comportement silencieux.
+
+\subsection{Architecture des résolveurs}
+
+Les résolveurs sont organisés en trois fichiers distincts :
+
+\begin{itemize}
+  \item \texttt{vehicleResolvers.ts}: résolveurs actifs, branchés sur le service Véhicules.
+  \item \texttt{stubResolvers.ts}: résolveurs non encore implémentés, retournant une
+        erreur \texttt{NOT\_IMPLEMENTED}.
+  \item \texttt{index.ts}: point d'entrée fusionnant les deux via spread operator.
+\end{itemize}
+
+\vspace{0.3cm}
+Le fichier \texttt{index.ts} assemble les résolveurs de façon non destructive :
+les clés de \texttt{vehicleResolvers} écrasent celles des stubs pour les champs
+déjà implémentés, ce qui permet d'enrichir progressivement le schéma semaine
+après semaine sans modifier la structure d'agrégation.
+
+\newpage
+
+\subsection{Résolveurs Véhicules}
+
+\subsubsection*{Queries}
+
+Trois queries sont exposées et délèguent directement au contexte GraphQL
+(\texttt{ctx.vehicle}) :
+
+\begin{itemize}
+  \item \texttt{vehicles}: liste des véhicules avec filtrage optionnel
+        par statut (\texttt{status}, \texttt{limit}, \texttt{offset} avec valeurs
+        par défaut de 20 et 0).
+  \item \texttt{vehicle}: récupération d'un véhicule par son UUID.
+  \item \texttt{vehicleAssignments}: récupération de l'historique des assignations
+        d'un véhicule via son \texttt{vehicle\_id}.
+\end{itemize}
+
+\subsubsection*{Mutations}
+
+Six mutations sont implémentées :
+
+\begin{itemize}
+  \item \texttt{createVehicle}: création d'un véhicule avec ses champs obligatoires
+        (\texttt{plate\_number}, \texttt{brand}, \texttt{model}, \texttt{fuel\_type}, \texttt{mileage\_km}, \texttt{payload\_capacity\_kg}, \texttt{cargo\_volume\_m3}) et optionnels (\texttt{vin}, \texttt{color}).
+  \item \texttt{updateVehicle}: mise à jour complète des champs modifiables d'un véhicule
+        (\texttt{brand}, \texttt{model}, \texttt{mileage\_km}, \texttt{vin}, \texttt{color}).
+  \item \texttt{updateVehicleStatus}: mise à jour ciblée du seul statut d'un véhicule.
+  \item \texttt{deleteVehicle}: suppression logique d'un véhicule (soft delete),
+        retourne un booléen confirmant l'opération.
+  \item \texttt{assignVehicle}: assignation d'un conducteur à un véhicule via leurs UUIDs.
+  \item \texttt{unassignVehicle}: désassignation du conducteur actuel d'un véhicule.
+\end{itemize}
+
+\subsubsection*{Résolveurs de types}
+
+Le type \texttt{Vehicle} définit des résolveurs de champs pour les relations non
+encore implémentées (\texttt{current\_location}, \texttt{current\_assignment},
+\texttt{maintenance\_records}), retournant respectivement \texttt{null} ou un
+tableau vide. Cette approche permet au schéma de rester valide sans bloquer les
+requêtes côté client.
+
+Le type \texttt{Assignment} résout ses deux relations :
+
+\begin{itemize}
+  \item \texttt{vehicle}: récupère le véhicule lié via \texttt{ctx.vehicle.getVehicle()}
+        en validant la présence du \texttt{vehicle\_id}.
+  \item \texttt{driver}: récupère le conducteur lié via \texttt{ctx.driver.getDriver()}
+        en validant la présence du \texttt{driver\_id}.
+\end{itemize}
+
+Dans les deux cas, une \texttt{GraphQLError} avec le code \texttt{NOT\_FOUND} ou
+\texttt{INVALID\_UPSTREAM} est levée si la donnée est absente, garantissant des
+messages d'erreur explicites plutôt qu'un \texttt{null} silencieux.
+
+\newpage
+
+\subsection{Cohérence REST / GraphQL}
+
+L'ensemble des endpoints REST du service Véhicules dispose d'un équivalent GraphQL,
+assurant une parité complète entre les deux interfaces. Trois opérations
+(\texttt{updateVehicle}, \texttt{deleteVehicle}, \texttt{vehicleAssignments}) ont
+été ajoutées au schéma initial pour combler les écarts identifiés.
+
+\begin{center}
+\begin{tabular}{|l|l|l|c|}
+  \hline
+  \textbf{Méthode} & \textbf{Endpoint REST} & \textbf{Équivalent GraphQL} & \textbf{Statut} \\
+  \hline
+  POST   & /vehicles                     & mutation \texttt{createVehicle}       & \textcolor{green!60!black}{\textbf{OK}} \\
+  GET    & /vehicles                     & query \texttt{vehicles}               & \textcolor{green!60!black}{\textbf{OK}} \\
+  GET    & /vehicles/:id                 & query \texttt{vehicle}                & \textcolor{green!60!black}{\textbf{OK}} \\
+  PUT    & /vehicles/:id                 & mutation \texttt{updateVehicle}       & \textcolor{green!60!black}{\textbf{OK}} \\
+  PATCH  & /vehicles/:id/status          & mutation \texttt{updateVehicleStatus} & \textcolor{green!60!black}{\textbf{OK}} \\
+  DELETE & /vehicles/:id                 & mutation \texttt{deleteVehicle}       & \textcolor{green!60!black}{\textbf{OK}} \\
+  POST   & /vehicles/:id/assignments     & mutation \texttt{assignVehicle}       & \textcolor{green!60!black}{\textbf{OK}} \\
+  GET    & /vehicles/:id/assignments     & query \texttt{vehicleAssignments}     & \textcolor{green!60!black}{\textbf{OK}} \\
+  DELETE & /vehicles/:id/assignments/current & mutation \texttt{unassignVehicle} & \textcolor{green!60!black}{\textbf{OK}} \\
+  \hline
+\end{tabular}
+\end{center}
+
+\subsection{Gestion des stubs}
+
+Les résolveurs non encore branchés sont centralisés dans \texttt{stubResolvers.ts}.
+Deux comportements sont distingués :
+
+\begin{itemize}
+  \item \textbf{Queries et Mutations}: lèvent une \texttt{GraphQLError} avec le
+        code \texttt{NOT\_IMPLEMENTED} et un message indiquant le champ concerné.
+  \item \textbf{Subscriptions}: lèvent une erreur \texttt{SUBSCRIPTIONS\_DISABLED},
+        signalant que le transport WebSocket (\texttt{graphql-ws}) n'est pas encore
+        configuré sur le gateway.
+\end{itemize}
+
+\vspace{0.3cm}
+Les champs concernés par les stubs couvrent les services à venir : \texttt{drivers},
+\texttt{alerts}, \texttt{vehicleLocation}, \texttt{locationHistory} et
+\texttt{maintenanceRecords} pour les queries ; \texttt{createDriver},
+\texttt{acknowledgeAlert}, \texttt{createMaintenanceRecord} et leurs variantes
+pour les mutations.
+
+Cette approche \textbf{fail-fast} garantit qu'aucun appel à un service non
+implémenté ne passe silencieusement, facilitant le débogage lors des semaines
+suivantes.
 \end{document}

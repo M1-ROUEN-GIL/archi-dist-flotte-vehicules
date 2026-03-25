@@ -10,8 +10,8 @@ type Vehicle {
   status: VehicleStatus!
   mileage_km: Int!
   vin: String
-  color: String
-  seats: Int
+  payload_capacity_kg: Int!
+  cargo_volume_m3: Int!
   # Résolu par le Service Localisation via l'API Gateway
   current_location: Location
   # Résolu par le Service Conducteurs
@@ -32,13 +32,9 @@ type Assignment {
 }
 
 extend type Query {
-  vehicles(
-    status: VehicleStatus
-    limit: Int = 20
-    offset: Int = 0
-  ): VehiclePage!
-
+  vehicles(status: VehicleStatus, limit: Int = 20, offset: Int = 0): [Vehicle]
   vehicle(id: ID!): Vehicle
+  vehicleAssignments(vehicle_id: ID!): [Assignment!]!
 }
 
 extend type Mutation {
@@ -67,6 +63,23 @@ extend type Mutation {
   unassignVehicle(
     vehicle_id: ID!
   ): Assignment!
+
+  updateVehicle(
+    id: ID!
+    brand: String
+    model: String
+    mileage_km: Int
+    vin: String
+    color: String
+  ): Vehicle!
+
+  deleteVehicle(
+    id: ID!
+  ): Boolean!
+
+  vehicleAssignments(
+    vehicle_id: ID!
+  ): [Assignment!]!
 }
 
 extend type Subscription {

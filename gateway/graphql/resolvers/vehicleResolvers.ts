@@ -22,6 +22,14 @@ export const vehicleResolvers = {
     vehicle: async (_: unknown, args: { id: string }, ctx: GraphQLContext) => {
       return ctx.vehicle.getVehicle(args.id);
     },
+
+    vehicleAssignments: async (
+      _: unknown,
+      args: { vehicle_id: string },
+      ctx: GraphQLContext,
+    ) => {
+      return ctx.vehicle.getAssignments(args.vehicle_id);
+    },
   },
 
   Mutation: {
@@ -72,6 +80,31 @@ export const vehicleResolvers = {
     ) => {
       return ctx.vehicle.unassignVehicle(args.vehicle_id);
     },
+
+    updateVehicle: async (
+      _: unknown,
+      args: {
+        id: string;
+        brand?: string | null;
+        model?: string | null;
+        mileage_km?: number | null;
+        vin?: string | null;
+        color?: string | null;
+      },
+      ctx: GraphQLContext,
+    ) => {
+      return ctx.vehicle.updateVehicle(args.id, args);
+    },
+
+    deleteVehicle: async (
+      _: unknown,
+      args: { id: string },
+      ctx: GraphQLContext,
+    ) => {
+      await ctx.vehicle.deleteVehicle(args.id);
+      return true;
+    },
+    
   },
 
   Vehicle: {
@@ -121,4 +154,5 @@ export const vehicleResolvers = {
     license: () => null,
     current_assignment: () => null,
   },
+
 };

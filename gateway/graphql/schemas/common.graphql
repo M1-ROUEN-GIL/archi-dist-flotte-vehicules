@@ -71,35 +71,3 @@ enum AlertStatus {
   RESOLVED
   EXPIRED
 }
-
-# ================================================================
-# PAGINATION
-# ================================================================
-
-type VehiclePage {
-  items: [Vehicle!]!
-  total: Int!
-  limit: Int!
-  offset: Int!
-}
-
-type DriverPage {
-  items: [Driver!]!
-  total: Int!
-  limit: Int!
-  offset: Int!
-}
-
-type AlertPage {
-  items: [Alert!]!
-  total: Int!
-  limit: Int!
-  offset: Int!
-}
-
-type MaintenancePage {
-  items: [MaintenanceRecord!]!
-  total: Int!
-  limit: Int!
-  offset: Int!
-}
