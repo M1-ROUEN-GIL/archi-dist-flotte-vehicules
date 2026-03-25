@@ -1,0 +1,205 @@
+\documentclass[12pt,a4paper]{article}
+
+% ============================================================
+% PACKAGES
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\graphicspath{{images/}}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{mdframed}
+\usepackage{tikz}
+\usepackage{float}
+
+% ============================================================
+% MISE EN PAGE
+% ============================================================
+\geometry{
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm
+}
+
+% ============================================================
+% COULEURS
+% ============================================================
+\definecolor{primary}{RGB}{30, 100, 180}
+\definecolor{secondary}{RGB}{240, 245, 255}
+\definecolor{codebg}{RGB}{245, 245, 245}
+\definecolor{codeframe}{RGB}{200, 200, 200}
+\definecolor{success}{RGB}{39, 174, 96}
+\definecolor{warning}{RGB}{230, 126, 34}
+\definecolor{darkgray}{RGB}{60, 60, 60}
+
+% ============================================================
+% EN-TETE ET PIED DE PAGE
+% ============================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{primary}{\textbf{Projet M1 GIL -- Gestion de Flotte}}}
+\fancyhead[R]{\small\textcolor{darkgray}{Universite de Rouen | 2025--2026}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ============================================================
+% STYLE DES TITRES
+% ============================================================
+\titleformat{\section}
+  {\Large\bfseries\color{primary}}
+  {\thesection.}{0.8em}{}[\titlerule]
+
+\titleformat{\subsection}
+  {\large\bfseries\color{darkgray}}
+  {\thesubsection.}{0.6em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{darkgray}}
+  {\thesubsubsection.}{0.5em}{}
+
+% ============================================================
+% STYLE DU CODE
+% ============================================================
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{primary}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{success},
+  breaklines=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  tabsize=2,
+  captionpos=b
+}
+
+% ============================================================
+% BOITE INFO
+% ============================================================
+\newmdenv[
+  backgroundcolor=secondary,
+  linecolor=primary,
+  linewidth=1.5pt,
+  leftline=true,
+  rightline=false,
+  topline=false,
+  bottomline=false,
+  innerleftmargin=10pt,
+  innerrightmargin=10pt,
+  innertopmargin=8pt,
+  innerbottommargin=8pt
+]{infobox}
+
+% ============================================================
+% COMMANDE PLACEHOLDER SCREENSHOT
+% ============================================================
+\newcommand{\screenshot}[2]{%
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+      \draw[dashed, color=gray, line width=1pt]
+        (0,0) rectangle (14cm, 5cm);
+      \node[color=gray] at (7cm, 2.7cm)
+        {\large\textbf{[ CAPTURE D'ECRAN ]}};
+      \node[color=gray] at (7cm, 2.1cm)
+        {\normalsize #1};
+    \end{tikzpicture}
+    \caption{#2}
+  \end{figure}
+}
+
+% ============================================================
+% DOCUMENT
+% ============================================================
+\begin{document}
+
+% ------------------------------------------------------------
+% PAGE DE TITRE
+% ------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{1cm}
+
+  {\Large\textbf{Universite de Rouen Normandie}\\[0.3cm]
+  \large Master 1 -- Genie Informatique et Logiciel}
+
+  \vspace{1.5cm}
+  \rule{\linewidth}{0.5mm}\\[0.4cm]
+
+  {\Huge\bfseries\color{primary} Projet Gestion de Flotte de vehicules\\[0.3cm]}
+  {\LARGE\bfseries Rapport de Semaine 3}\\[0.3cm]
+  {\large\color{darkgray} Microservice Véhicules}
+
+  \rule{\linewidth}{0.5mm}\\[1.5cm]
+
+  \begin{minipage}{0.45\textwidth}
+    \begin{flushleft}
+      \textbf{Etudiant :}\\
+      Ahcene Amouchas \\
+      Florian Pepin \\[0.5cm]
+      \textbf{Encadrants :}\\
+      Lydia \& Luc
+    \end{flushleft}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.45\textwidth}
+    \begin{flushright}
+      \textbf{Annee universitaire :}\\
+      2025 -- 2026\\[0.5cm]
+      \textbf{Semaine :}\\
+      3 / 7
+    \end{flushright}
+  \end{minipage}
+
+  \vfill
+  {\large\today}
+\end{titlepage}
+
+% ------------------------------------------------------------
+% TABLE DES MATIERES
+% ------------------------------------------------------------
+\tableofcontents
+\newpage
+
+% ------------------------------------------------------------
+% INTRODUCTION
+% ------------------------------------------------------------
+\section{Introduction et objectifs de la semaine}
+
+\begin{infobox}
+\textbf{Objectif de la semaine 3 :} Développer le premier microservice fonctionnel du service véhicules en respectant les bonnes pratiques de
+qualité logicielle : tests, couverture de code, et observabilité intégrée dès le départ.
+\end{infobox}
+
+\vspace{0.5cm}
+
+La semaine 3 du projet marque le passage de l'infrastructure au développement métier.
+L'équipe s'est concentrée sur la conception et l'implémentation du service de véhicules qui est le socle du système de gestion de flotte.
+
+Les grandes étapes réalisées sont les suivantes :
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+  \item Développement de l'\textbf{API REST} complète (CRUD véhicules avec validation des données)
+  \item Intégration d'\textbf{Apache Kafka} en tant que producer/consumer pour les événements métier
+  \item Création des \textbf{résolveurs GraphQL} pour l'agrégation future entre services
+  \item \textbf{Tests unitaires (>80\% couverture) et d’intégration}
+  \item Instrumentation du service avec le \textbf{SDK OpenTelemetry} (traces, métriques, logs structurés)
+\end{enumerate}
+
+
+
+\end{document}
