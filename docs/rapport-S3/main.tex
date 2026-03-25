@@ -200,6 +200,161 @@ Les grandes étapes réalisées sont les suivantes :
   \item Instrumentation du service avec le \textbf{SDK OpenTelemetry} (traces, métriques, logs structurés)
 \end{enumerate}
 
-\section{Postman}
+\section{Tests de l'API REST avec Postman}
+
+\begin{infobox}
+\textbf{Objectif :} Valider le bon fonctionnement de l'ensemble des endpoints du service
+Véhicules via des tests manuels réalisés avec \textbf{Postman}, couvrant les opérations
+CRUD ainsi que la gestion des assignations.
+\end{infobox}
+
+\vspace{0.5cm}
+
+L'ensemble des routes exposées par le service Véhicules ont été testées manuellement
+à l'aide de Postman. Les tests couvrent les deux ressources principales : les
+\textbf{véhicules} et leurs \textbf{assignations}. Chaque requête a retourné le code
+HTTP attendu, confirmant la conformité de l'API aux standards REST.
+
+\subsection{CRUD Véhicules}
+
+\subsubsection*{POST /vehicles — Ajout d'un véhicule}
+
+La création d'un véhicule s'effectue via une requête \texttt{POST} sur
+\texttt{/vehicles}. Le corps de la requête contient les informations du véhicule
+(\texttt{plateNumber}, \texttt{brand}, \texttt{model}, \texttt{fuelType},
+\texttt{mileageKm}, \texttt{vin}, \texttt{payloadCapacityKg}, \texttt{cargoVolumeM3}).
+Le service retourne un \textbf{201 Created} avec l'objet créé, incluant l'UUID généré
+automatiquement et le statut par défaut \texttt{available}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-8.png}
+  \caption{POST /vehicles — Création d'un véhicule (201 Created)}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-9.png}
+  \caption{POST /vehicles — Détails}
+\end{figure}
+
+\subsubsection*{GET /vehicles — Liste de tous les véhicules}
+
+Une requête \texttt{GET} sur \texttt{/vehicles} retourne la liste des véhicules
+non supprimés. Le mécanisme de \textbf{soft delete} est ici mis en évidence : seuls
+les véhicules actifs sont retournés, même si la base de données en contient davantage.
+Le serveur répond avec un \textbf{200 OK}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-7.png}
+  \caption{GET /vehicles — Récupération de la liste des véhicules (200 OK)}
+\end{figure}
+
+\subsubsection*{GET /vehicles/:id — Récupération par identifiant}
+
+La récupération d'un véhicule précis s'effectue en passant son UUID en paramètre
+de chemin. Le service retourne un \textbf{200 OK} avec l'intégralité des champs
+du véhicule correspondant.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-6.png}
+  \caption{GET /vehicles/:id — Récupération d'un véhicule par UUID (200 OK)}
+\end{figure}
+
+\subsubsection*{PUT /vehicles/:id — Mise à jour complète}
+
+La mise à jour d'un véhicule via \texttt{PUT} remplace les champs modifiables
+(\texttt{mileageKm}, \texttt{brand}, \texttt{model}, etc.). Le service retourne
+un \textbf{200 OK} avec les données mises à jour et un \texttt{updatedAt} rafraîchi.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-5.png}
+  \caption{PUT /vehicles/:id — Mise à jour complète d'un véhicule (200 OK)}
+\end{figure}
+
+\newpage
+
+\subsubsection*{PATCH /vehicles/:id/status — Mise à jour du statut}
+
+Une route dédiée permet de modifier uniquement le statut d'un véhicule (ex.
+\texttt{available}, \texttt{in\_maintenance}, \texttt{on\_delivery}). Cette approche
+évite d'envoyer l'intégralité du corps pour un changement ponctuel. Le service
+répond avec un \textbf{200 OK} et retourne le véhicule avec son nouveau statut.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-4.png}
+  \caption{PATCH /vehicles/:id/status — Mise à jour du statut (200 OK)}
+\end{figure}
+
+\subsubsection*{DELETE /vehicles/:id — Suppression logique}
+
+La suppression d'un véhicule est implémentée en \textbf{soft delete} : le véhicule
+n'est pas physiquement retiré de la base de données mais marqué comme supprimé.
+Le service retourne un \textbf{204 No Content}, et le véhicule disparaît des
+résultats des requêtes \texttt{GET}. La base de données (visible via pgAdmin)
+conserve bien les deux entrées, confirmant ce comportement.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-3.png}
+  \caption{DELETE /vehicles/:id — Suppression logique (204 No Content)}
+\end{figure}
+
+\newpage
+
+\subsection{Gestion des assignations}
+
+\subsubsection*{POST /vehicles/:id/assignments — Ajout d'une assignation}
+
+L'assignation d'un conducteur à un véhicule s'effectue via une requête \texttt{POST}
+sur \texttt{/vehicles/:id/assignments}. Le corps contient le \texttt{driverId},
+des \texttt{notes} optionnelles et le \texttt{createdBy}. Le service répond avec
+un \textbf{201 Created} et retourne l'assignation créée avec sa date de début.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-2.png}
+  \caption{POST /vehicles/:id/assignments — Création d'une assignation (201 Created)}
+\end{figure}
+
+\subsubsection*{GET /vehicles/:id/assignments — Liste des assignations}
+
+La récupération des assignations d'un véhicule retourne l'historique complet des
+affectations de conducteurs. Le champ \texttt{endedAt} à \texttt{null} indique
+une assignation en cours. Le service répond avec un \textbf{200 OK}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{./images/postman-1.png}
+  \caption{GET /vehicles/:id/assignments — Liste des assignations (200 OK)}
+\end{figure}
+
+\subsection{Bilan des tests}
+
+\begin{center}
+\begin{tabular}{|l|l|l|c|}
+  \hline
+  \textbf{Requête} & \textbf{Endpoint} & \textbf{Code attendu} & \textbf{Résultat} \\
+  \hline
+  POST   & /vehicles                       & 201 Created    & \textcolor{green!60!black}{\textbf{OK}} \\
+  GET    & /vehicles                       & 200 OK         & \textcolor{green!60!black}{\textbf{OK}} \\
+  GET    & /vehicles/:id                   & 200 OK         & \textcolor{green!60!black}{\textbf{OK}} \\
+  PUT    & /vehicles/:id                   & 200 OK         & \textcolor{green!60!black}{\textbf{OK}} \\
+  PATCH  & /vehicles/:id/status            & 200 OK         & \textcolor{green!60!black}{\textbf{OK}} \\
+  DELETE & /vehicles/:id                   & 204 No Content & \textcolor{green!60!black}{\textbf{OK}} \\
+  POST   & /vehicles/:id/assignments       & 201 Created    & \textcolor{green!60!black}{\textbf{OK}} \\
+  GET    & /vehicles/:id/assignments       & 200 OK         & \textcolor{green!60!black}{\textbf{OK}} \\
+  \hline
+\end{tabular}
+\end{center}
+
+\vspace{0.3cm}
+L'ensemble des 8 endpoints testés retournent les codes HTTP attendus. Le soft delete
+est correctement implémenté et le filtrage des véhicules supprimés fonctionne comme
+prévu.
 
 \end{document}
