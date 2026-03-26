@@ -37,6 +37,21 @@ spec:
                   secretKeyRef:
                     name: db-secrets
                     key: KAFKA_BROKER
+            # Variables OpenTelemetry pour l'Agent Java
+            - name: OTEL_SERVICE_NAME
+              value: {{ $val.name }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.{{ $.Values.namespace }}.svc.cluster.local:4318"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "http/protobuf"
+            - name: OTEL_LOGS_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED
+              value: "true"
           resources:
              requests:
                     memory: "256Mi"
