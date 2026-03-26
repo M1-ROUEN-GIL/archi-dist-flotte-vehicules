@@ -73,6 +73,34 @@ services:
       - postgres
     restart: unless-stopped
 
+  # 6. Microservice Véhicules (Spring Boot)
+  vehicle:
+    build:
+      context: ./services/vehicle-service
+      dockerfile: Dockerfile
+    container_name: flotte-vehicle
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/flotte_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      # Configuration pour l'Agent Java OpenTelemetry
+      - OTEL_SERVICE_NAME=vehicle-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED=true
+      - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_EXPERIMENTAL_LOG_ATTRIBUTES=true
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - kafka
+      - otel-collector
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   kafka_data:

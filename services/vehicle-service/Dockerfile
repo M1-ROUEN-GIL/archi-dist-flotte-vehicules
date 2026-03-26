@@ -8,6 +8,9 @@ WORKDIR /build
 COPY pom.xml .
 RUN mvn dependency:go-offline
 
+# Télécharger l'agent OpenTelemetry
+RUN wget -O opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+
 # On copie tout le code source et on compile le projet
 COPY src ./src
 RUN mvn clean package -DskipTests
@@ -23,9 +26,10 @@ USER spring:spring
 
 # On récupère l'application compilée depuis l'étape 1
 COPY --from=builder /build/target/*.jar app.jar
+COPY --from=builder /build/opentelemetry-javaagent.jar opentelemetry-javaagent.jar
 
 # On expose le port de Spring Boot
 EXPOSE 8080
 
-# Commande de lancement
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Commande de lancement avec l'agent OpenTelemetry
+ENTRYPOINT ["java", "-javaagent:opentelemetry-javaagent.jar", "-jar", "app.jar"]

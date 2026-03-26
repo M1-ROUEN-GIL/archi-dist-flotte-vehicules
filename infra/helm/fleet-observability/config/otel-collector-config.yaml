@@ -8,30 +8,38 @@ receivers:
 
 processors:
   batch:
+  resource:
+    attributes:
+      - key: service_name
+        from_attribute: service.name
+        action: insert
 
 exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
-  logging:
-    verbosity: basic
+  debug:
+    verbosity: detailed
   otlp/jaeger:
     endpoint: jaeger:4317
     tls:
       insecure: true
   loki:
     endpoint: "http://loki:3100/loki/api/v1/push"
+    default_labels_enabled:
+      exporter: true
+      job: true
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/jaeger, logging]
+      exporters: [otlp/jaeger, debug]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [prometheus, logging]
+      exporters: [prometheus, debug]
     logs:
       receivers: [otlp]
-      processors: [batch]
-      exporters: [loki, logging]
+      processors: [batch, resource]
+      exporters: [loki, debug]

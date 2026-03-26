@@ -57,12 +57,16 @@ management:
       probability: 1.0 # Capture 100% des traces pour le démo/test
   otlp:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
     metrics:
       export:
-        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
-  logging:
-    export:
-      enabled: true
-    otlp:
-      endpoint: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:http://localhost:4318/v1/logs}
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
+    logging:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
+logging:
+  otlp:
+    enabled: true
+  level:
+    root: INFO
+    io.opentelemetry: INFO
+    io.micrometer: INFO

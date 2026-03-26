@@ -625,44 +625,48 @@ suivantes.
 % OBSERVABILITÉ ET INSTRUMENTATION
 % ------------------------------------------------------------
 \newpage
-\section{Instrumentation du code pour l'Observabilité}
+\section{Instrumentation et Observabilité Distribuée}
 
 \begin{infobox}
-\textbf{Objectif :} Garantir une visibilité complète sur l'état de santé et les performances du microservice en production via les trois piliers de l'observabilité : traces, métriques et logs.
+\textbf{Objectif :} Garantir une visibilité complète sur l'état de santé et les performances du microservice via les trois piliers de l'observabilité (Traces, Métriques, Logs) en utilisant l'instrumentation automatique.
 \end{infobox}
 
 \vspace{0.5cm}
 
-Faisant suite à l'installation de la stack d'observabilité (Loki, Grafana, Jaeger) la semaine précédente, cette semaine a été consacrée à l'instrumentation du code du microservice Véhicules. Le service a été nativement instrumenté en utilisant le standard industriel \textbf{OpenTelemetry}. Cette approche permet de suivre le cycle de vie d'une requête à travers l'ensemble du système distribué.
+Pour cette troisième semaine, nous avons migré vers une instrumentation basée sur l'\textbf{Agent Java OpenTelemetry}. Contrairement à l'instrumentation manuelle, l'agent s'attache à la JVM au démarrage et intercepte automatiquement les appels système, les requêtes HTTP (Tomcat), les requêtes SQL (PostgreSQL) et les flux de logs (Logback).
 
-\subsection{Collecte des données via OpenTelemetry SDK}
+\subsection{Collecte des données via l'Agent Java}
 
-L'instrumentation repose sur l'intégration de \textbf{Micrometer Tracing} et de l'exportateur \textbf{OTLP} (OpenTelemetry Protocol). Le service pousse ses données vers un collecteur centralisé qui les redistribue ensuite vers les outils spécialisés de notre stack :
+L'agent injecte du bytecode pour capturer la télémétrie sans modification intrusive du code source. Les données sont ensuite exportées via le protocole \textbf{OTLP} vers le collecteur centralisé :
 
 \begin{itemize}
-    \item \textbf{Traces (Jaeger)} : Chaque requête entrante génère un \texttt{Trace ID} unique. Cela permet de visualiser le temps passé dans chaque couche (Contrôleur, Service, Base de données) et de diagnostiquer les goulots d'étranglement.
-    \item \textbf{Métriques (Prometheus / Grafana)} : Le service expose un endpoint \texttt{/actuator/prometheus}. Nous collectons des métriques JVM (mémoire, CPU) ainsi que des indicateurs métier (nombre de véhicules créés, taux d'erreur HTTP).
-    \item \textbf{Logs structurés (Loki)} : Les logs ne sont plus de simples fichiers textes mais sont envoyés de manière structurée, facilitant la corrélation avec les traces grâce au \texttt{Trace ID} injecté automatiquement dans chaque ligne de log.
+    \item \textbf{Traces (Jaeger)} : L'agent capture l'intégralité du cycle de vie des requêtes. On peut ainsi visualiser précisément le temps passé dans les contrôleurs Spring, mais aussi les requêtes SQL générées par Hibernate.
+    \item \textbf{Logs (Loki)} : Grâce à l'instrumentation de Logback, chaque ligne de log est capturée et enrichie d'un \texttt{trace\_id}, permettant une corrélation immédiate entre un message d'erreur et une trace spécifique.
+    \item \textbf{Métriques (Prometheus)} : L'agent expose nativement des métriques critiques comme l'utilisation CPU, la mémoire JVM (Heap/Non-Heap) et les statistiques du pool de connexions HikariCP.
 \end{itemize}
 
-\subsection{Configuration de l'exportation}
+\subsection{Configuration de l'exportation (Docker Compose)}
 
-La configuration est centralisée dans le fichier \texttt{application.yaml}, permettant de basculer facilement entre un environnement de développement local et le cluster Kubernetes.
+La configuration est pilotée par des variables d'environnement dans le fichier \texttt{compose.yaml}, assurant la liaison avec le collecteur sur le port \texttt{4318} (HTTP/Protobuf).
 
-\begin{lstlisting}[caption=Configuration de l'exportateur OTLP dans Spring Boot]
-management:
-  tracing:
-    sampling:
-      probability: 1.0 # Capture de toutes les traces
-  otlp:
-    tracing:
-      endpoint: http://otel-collector:4318/v1/traces
-    metrics:
-      export:
-        url: http://otel-collector:4318/v1/metrics
+\begin{lstlisting}[language=bash, caption=Variables d'environnement pour l'Agent Java]
+# Configuration pour l'Agent Java OpenTelemetry
+- OTEL_SERVICE_NAME=vehicle-service
+- OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+- OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+- OTEL_LOGS_EXPORTER=otlp
+- OTEL_TRACES_EXPORTER=otlp
 \end{lstlisting}
 
-Cette instrumentation précoce garantit que nous pourrons monitorer l'impact des futurs services (comme la localisation en temps réel) sur les performances globales de l'application.
+\subsection{Visualisation et Diagnostic dans Grafana}
+
+L'exploitation des données se fait via l'interface **Explore** de Grafana. Voici les requêtes types utilisées pour valider le bon fonctionnement du service :
+
+\begin{itemize}
+    \item \textbf{Loki (Logs)} : \texttt{\{job="vehicle-service"\}} ou \texttt{\{service\_name="vehicle-service"\}} pour filtrer l'ensemble des logs applicatifs.
+    \item \textbf{Prometheus (Métriques)} : \texttt{jvm\_memory\_used\_bytes} pour suivre l'empreinte mémoire ou \texttt{http\_server\_requests\_seconds\_count} pour le volume de trafic.
+    \item \textbf{Jaeger (Traces)} : Sélection du service \texttt{vehicle-service} pour analyser les latences et les dépendances vers la base de données.
+\end{itemize}
 
 % ------------------------------------------------------------
 % TESTS ET COUVERTURE
