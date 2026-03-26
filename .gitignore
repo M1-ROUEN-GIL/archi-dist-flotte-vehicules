@@ -10,3 +10,5 @@
 infra/kubernetes/secrets/db-secrets.yaml
 infra/helm/dependencies/values.secret.yaml
 .idea
+.metals
+.vscode
