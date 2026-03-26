@@ -36,3 +36,33 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+
+# Configuration de l'observabilite (Micrometer + OpenTelemetry)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: [ "health", "info", "prometheus" ] # Expose les métriques Prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name} # Identifie le service dans Grafana
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0 # Capture 100% des traces pour le démo/test
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
+  logging:
+    export:
+      enabled: true
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:http://localhost:4318/v1/logs}

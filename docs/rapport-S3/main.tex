@@ -445,8 +445,43 @@ est correctement implémenté et le filtrage des véhicules supprimés fonctionn
 prévu.
 
 % ------------------------------------------------------------
-% IRESOLVEURS GRAPHQL
+% ARCHITECTURE ÉVÉNEMENTIELLE (KAFKA)
 % ------------------------------------------------------------
+\newpage
+\section{Architecture événementielle avec Apache Kafka}
+
+\begin{infobox}
+\textbf{Objectif :} Garantir que chaque action critique sur le parc automobile (création, mise à jour de statut, suppression) est diffusée en temps réel au reste du système via un bus d'événements.
+\end{infobox}
+
+\vspace{0.5cm}
+
+Le microservice véhicules fait office de \textbf{Producer} pour le topic \texttt{vehicle-events}. Cette approche événementielle permet un couplage faible : les futurs services (Alertes, Maintenance, Localisation) pourront réagir instantanément aux changements sans que le service véhicule ne connaisse leur existence.
+
+\subsection{Événements produits}
+Trois types d'événements sont actuellement émis par le service :
+\begin{itemize}
+    \item \texttt{VEHICLE\_CREATED} : Émis lors de l'ajout d'un nouveau véhicule.
+    \item \texttt{VEHICLE\_STATUS\_UPDATED} : Émis lors d'un changement de statut ou de l'affectation d'un chauffeur.
+    \item \texttt{VEHICLE\_DELETED} : Émis lors d'une suppression logique (Soft Delete).
+\end{itemize}
+
+\subsection{Consommation et validation des messages}
+Pour valider l'envoi correct des messages sur le bus, nous utilisons l'outil \texttt{kafka-console-consumer} intégré au conteneur Kafka. La commande suivante permet de visualiser en temps réel le flux des événements métier :
+
+\begin{lstlisting}[language=bash, caption=Commande de visualisation des événements Kafka]
+docker exec -it flotte-kafka /opt/kafka/bin/kafka-console-consumer.sh \
+  --topic vehicle-events \
+  --bootstrap-server localhost:9092 \
+  --from-beginning
+\end{lstlisting}
+
+Chaque message est sérialisé en \textbf{JSON} et contient l'identifiant du véhicule, le type d'événement, ainsi qu'un timestamp. Cette traçabilité est essentielle pour le débogage et l'audit du système.
+
+% ------------------------------------------------------------
+% RÉSOLVEURS GRAPHQL
+% ------------------------------------------------------------
+\newpage
 \section{Résolveurs GraphQL}
 
 \begin{infobox}
@@ -585,4 +620,93 @@ pour les mutations.
 Cette approche \textbf{fail-fast} garantit qu'aucun appel à un service non
 implémenté ne passe silencieusement, facilitant le débogage lors des semaines
 suivantes.
+
+% ------------------------------------------------------------
+% OBSERVABILITÉ ET INSTRUMENTATION
+% ------------------------------------------------------------
+\newpage
+\section{Instrumentation du code pour l'Observabilité}
+
+\begin{infobox}
+\textbf{Objectif :} Garantir une visibilité complète sur l'état de santé et les performances du microservice en production via les trois piliers de l'observabilité : traces, métriques et logs.
+\end{infobox}
+
+\vspace{0.5cm}
+
+Faisant suite à l'installation de la stack d'observabilité (Loki, Grafana, Jaeger) la semaine précédente, cette semaine a été consacrée à l'instrumentation du code du microservice Véhicules. Le service a été nativement instrumenté en utilisant le standard industriel \textbf{OpenTelemetry}. Cette approche permet de suivre le cycle de vie d'une requête à travers l'ensemble du système distribué.
+
+\subsection{Collecte des données via OpenTelemetry SDK}
+
+L'instrumentation repose sur l'intégration de \textbf{Micrometer Tracing} et de l'exportateur \textbf{OTLP} (OpenTelemetry Protocol). Le service pousse ses données vers un collecteur centralisé qui les redistribue ensuite vers les outils spécialisés de notre stack :
+
+\begin{itemize}
+    \item \textbf{Traces (Jaeger)} : Chaque requête entrante génère un \texttt{Trace ID} unique. Cela permet de visualiser le temps passé dans chaque couche (Contrôleur, Service, Base de données) et de diagnostiquer les goulots d'étranglement.
+    \item \textbf{Métriques (Prometheus / Grafana)} : Le service expose un endpoint \texttt{/actuator/prometheus}. Nous collectons des métriques JVM (mémoire, CPU) ainsi que des indicateurs métier (nombre de véhicules créés, taux d'erreur HTTP).
+    \item \textbf{Logs structurés (Loki)} : Les logs ne sont plus de simples fichiers textes mais sont envoyés de manière structurée, facilitant la corrélation avec les traces grâce au \texttt{Trace ID} injecté automatiquement dans chaque ligne de log.
+\end{itemize}
+
+\subsection{Configuration de l'exportation}
+
+La configuration est centralisée dans le fichier \texttt{application.yaml}, permettant de basculer facilement entre un environnement de développement local et le cluster Kubernetes.
+
+\begin{lstlisting}[caption=Configuration de l'exportateur OTLP dans Spring Boot]
+management:
+  tracing:
+    sampling:
+      probability: 1.0 # Capture de toutes les traces
+  otlp:
+    tracing:
+      endpoint: http://otel-collector:4318/v1/traces
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+\end{lstlisting}
+
+Cette instrumentation précoce garantit que nous pourrons monitorer l'impact des futurs services (comme la localisation en temps réel) sur les performances globales de l'application.
+
+% ------------------------------------------------------------
+% TESTS ET COUVERTURE
+% ------------------------------------------------------------
+\newpage
+\section{Tests automatisés et couverture de code}
+
+\begin{infobox}
+\textbf{Objectif :} Garantir la robustesse et la fiabilité du service véhicules via une suite de tests automatisés (unitaires et intégration) avec un objectif de couverture minimale de 80\%.
+\end{infobox}
+
+\vspace{0.5cm}
+
+La qualité logicielle est un pilier fondamental du projet. Pour assurer la non-régression et valider les règles métier (comme l'interdiction d'assigner un véhicule en maintenance), nous avons mis en place une stratégie de tests rigoureuse.
+
+\subsection{Stratégie de tests}
+
+L'approche adoptée combine deux niveaux de tests complémentaires :
+
+\begin{itemize}
+    \item \textbf{Tests Unitaires} : Basés sur \textbf{JUnit 5} et \textbf{Mockito}. Ils isolent la logique métier de la couche \texttt{Service} et des \texttt{Controllers} en simulant les dépendances (Repositories, Kafka).
+    \item \textbf{Tests d'Intégration} : Utilisent \textbf{MockMvc} et une base de données \textbf{H2} en mémoire pour valider le comportement réel de l'API, incluant la validation des données, les transactions JPA et le cycle de vie complet des requêtes.
+\end{itemize}
+
+\subsection{Mesure de la couverture avec JaCoCo}
+
+Pour piloter cette démarche, nous utilisons \textbf{JaCoCo}. L'outil est intégré au pipeline Maven et génère un rapport à chaque exécution de la commande \texttt{mvn test}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{jacoco.png}
+  \caption{Rapport de couverture JaCoCo — Service Véhicules}
+\end{figure}
+
+\subsection{Analyse des résultats}
+
+Comme illustré par la capture ci-dessus, les résultats obtenus sont excellents et dépassent largement nos engagements :
+
+\begin{itemize}
+    \item \textbf{Couverture globale (Instructions) : 91\%} (Objectif initial : 80\%).
+    \item \textbf{Couverture des contrôleurs et DTOs : 100\%} (Validation complète des endpoints).
+    \item \textbf{Couverture de la couche Service : 89\%}.
+\end{itemize}
+
+Le score de \textbf{62\% sur les branches} s'explique par la présence de nombreux contrôles de garde et validations d'erreurs (cas limites) dont certains chemins d'exception n'ont pas encore été sollicités. Néanmoins, l'intégralité du "chemin nominal" et des règles métier critiques est couverte et validée.
+
 \end{document}
