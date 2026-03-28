@@ -795,12 +795,14 @@ L'export du royaume (\texttt{realm-export.json}) utilisé pour l'automatisation 
 Un problème de gestion de version dans le \texttt{pom.xml} empêchait la compilation sur les agents de build CI/CD, car la dépendance \texttt{spring-boot-starter-kafka} ne récupérait pas de version par défaut.
 \textbf{Solution :} Alignement sur la dépendance \texttt{spring-kafka} (groupe \texttt{org.springframework.kafka}), permettant une gestion robuste des versions via le BOM (Bill of Materials) de Spring Boot 3.4.0.
 
-\subsection{Isolation de l'environnement de test}
-L'intégration de la sécurité OAuth2 et de l'observabilité a complexifié l'exécution des tests automatisés en environnement isolé :
-\begin{itemize}
-    \item \textbf{Sécurité} : Les tests tentaient de valider les jetons auprès d'un serveur Keycloak réel. Nous avons résolu cela en \textbf{mockant le JwtDecoder} et en utilisant l'annotation \texttt{@WithMockUser} pour simuler les rôles RBAC (\texttt{admin}, \texttt{technician}).
-    \item \textbf{Logging} : L'instrumentation OpenTelemetry pour les logs provoquait des erreurs \texttt{NoClassDefFoundError} en mode test.
-    \item \textbf{Solution} : Création d'un profil de logging spécifique (\texttt{logback-test.xml}) excluant l'appender OpenTelemetry durant la phase de test, garantissant ainsi un build fluide et rapide dans le pipeline GitHub Actions.
-\end{itemize}
+\subsection{Gestion des redirections Ingress et réécriture d'URL}
+L'utilisation d'une annotation globale \texttt{rewrite-target} provoquait une boucle de redirection infinie sur l'interface d'administration de Keycloak. En effet, Keycloak redirigeait la racine vers \texttt{/admin/}, et l'Ingress réécrivait cette URL en \texttt{/}, créant un cycle sans fin.
+
+\textbf{Solution :} Scinder l'Ingress en deux ressources distinctes : une pour les APIs microservices avec réécriture via des \textit{regex capture groups}, et une pour Keycloak sans réécriture, préservant ainsi l'intégrité des chemins profonds du SSO.
+
+\subsection{Synchronisation des secrets de base de données}
+Un conflit d'authentification est survenu entre Keycloak et PostgreSQL suite à l'utilisation de mots de passe générés aléatoirement par Helm lors du premier déploiement. Bien que des secrets aient été créés, ils n'étaient pas alignés avec l'état réel de la base de données après un redémarrage partiel.
+
+\textbf{Solution :} Harmonisation des identifiants en forçant l'utilisation du fichier \texttt{values.secret.yaml} lors de l'installation Helm et mise à jour de la configuration Keycloak pour utiliser l'utilisateur \texttt{postgres}, garantissant une connexion stable et prédictible dès le premier démarrage.
 
 \end{document}

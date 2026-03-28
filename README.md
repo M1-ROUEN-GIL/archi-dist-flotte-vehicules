@@ -74,19 +74,31 @@ kubectl create secret generic db-secrets \
 ### Étape 3 : Construire les images (Local Build)
 ```bash
 eval $(minikube docker-env)
+
+# Build de tous les services
 docker build -t vehicle-service:latest ./services/vehicle-service/
+docker build -t driver-service:latest ./services/driver-service/
+docker build -t maintenance-service:latest ./services/maintenance-service/
+docker build -t event-service:latest ./services/events-service/
+docker build -t location-service:latest ./services/location-service/
 ```
 
-### Étape 4 : Déployer l'Infrastructure (Helm)
+### Étape 4 : Déployer l'Infrastructure
 ```bash
-# 1. Installer l'infra de base (PostgreSQL, Kafka, Redis)
+# 1. Installer l'infra de base (PostgreSQL, Kafka, Redis) via Helm
 helm dependency update ./infra/helm/fleet-infra/
 helm upgrade --install fleet-infra ./infra/helm/fleet-infra/ \
-  -n flotte-namespace
+  -n flotte-namespace \
+  -f ./infra/helm/fleet-infra/values.secret.yaml
 
-# 2. Installer la stack d'observabilité (LGTMe + OTel)
+# 2. Installer la stack d'observabilité (LGTMe + OTel) via Helm
 helm upgrade --install fleet-obs ./infra/helm/fleet-observability/ \
   -n flotte-namespace
+
+# 3. Déployer Keycloak (SSO) via les fichiers YAML
+kubectl apply -f infra/kubernetes/keycloak/keycloak-configmap.yaml -n flotte-namespace
+kubectl apply -f infra/kubernetes/keycloak/keycloak-service.yaml -n flotte-namespace
+kubectl apply -f infra/kubernetes/keycloak/keycloak-deployment.yaml -n flotte-namespace
 ```
 
 ### Étape 5 : Déployer l'Application (Helm)
@@ -100,10 +112,12 @@ helm upgrade --install fleet-app ./infra/helm/fleet-app/ \
 echo "$(minikube ip) flotte.local" | sudo tee -a /etc/hosts
 ```
 
-Accès unifiés (Slash final obligatoire) :
+Accès unifiés :
 - **API Véhicules :** [http://flotte.local/api/vehicles/](http://flotte.local/api/vehicles/)
-- Grafana : [http://flotte.local/grafana/](http://flotte.local/grafana/)
-- Jaeger : [http://flotte.local/jaeger/](http://flotte.local/jaeger/)
+- **Keycloak Admin :** [http://flotte.local/admin](http://flotte.local/admin) (admin / admin)
+- **Grafana :** [http://flotte.local/grafana/](http://flotte.local/grafana/)
+- **Jaeger :** [http://flotte.local/jaeger/](http://flotte.local/jaeger/)
+
 
 ### Vérification du service sur Minikube
 Une fois déployé, vous pouvez tester le bon fonctionnement via l'Ingress :
