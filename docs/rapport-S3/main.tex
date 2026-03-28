@@ -622,6 +622,66 @@ implémenté ne passe silencieusement, facilitant le débogage lors des semaines
 suivantes.
 
 % ------------------------------------------------------------
+% SÉCURISATION AVEC KEYCLOAK
+% ------------------------------------------------------------
+\newpage
+\section{Sécurisation avec Keycloak et RBAC}
+
+\begin{infobox}
+\textbf{Objectif :} Mettre en place une authentification centralisée et un contrôle d'accès basé sur les rôles (RBAC) pour protéger les ressources du microservice véhicules.
+\end{infobox}
+
+\vspace{0.5cm}
+
+La sécurité a été intégrée cette semaine via \textbf{Keycloak}, agissant comme fournisseur d'identité (IdP) et serveur d'autorisation. Le microservice véhicule agit en tant que \textbf{Resource Server} OAuth2.
+
+\subsection{Configuration de Keycloak}
+Nous utilisons un royaume (\textit{realm}) nommé \texttt{gestion-flotte}. Les éléments suivants ont été configurés :
+\begin{itemize}
+    \item \textbf{Rôles} : \texttt{admin} (gestion totale) et \texttt{technician} (gestion des statuts).
+    \item \textbf{Import automatique} : Le royaume est exporté dans \texttt{realm-export.json} et importé automatiquement au démarrage du conteneur via la commande \texttt{--import-realm}.
+\end{itemize}
+
+\subsection{Intégration Spring Security}
+Le microservice utilise \texttt{spring-boot-starter-oauth2-resource-server} pour valider les jetons JWT émis par Keycloak. Une configuration spécifique a été mise en place pour faire correspondre les rôles Keycloak aux autorités Spring Security.
+
+\subsubsection{Mapping des rôles}
+Par défaut, Spring Security ne décode pas les rôles spécifiques à Keycloak (stockés dans le champ \texttt{realm\_access.roles} du jeton). Nous avons implémenté un \texttt{JwtAuthenticationConverter} personnalisé pour convertir ces rôles en \texttt{GrantedAuthority} avec le préfixe \texttt{ROLE\_}.
+
+\begin{lstlisting}[language=Java, caption=Convertisseur de rôles JWT personnalisé]
+@Bean
+public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
+    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+    converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        Collection<String> roles = (Collection<String>) realmAccess.get("roles");
+        return roles.stream()
+            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+            .collect(Collectors.toList());
+    });
+    return converter;
+}
+\end{lstlisting}
+
+\subsection{Contrôle d'accès (RBAC)}
+La sécurité est appliquée au niveau des méthodes du contrôleur grâce à l'annotation \texttt{@PreAuthorize}. Cela permet une gestion fine des permissions :
+
+\begin{itemize}
+    \item \textbf{Lecture (GET)} : Accessible à tout utilisateur authentifié.
+    \item \textbf{Création et suppression} : Réservé au rôle \texttt{admin}.
+    \item \textbf{Mise à jour du statut} : Accessible aux rôles \texttt{admin} et \texttt{technician}.
+\end{itemize}
+
+\begin{lstlisting}[language=Java, caption=Exemple de protection RBAC sur un endpoint]
+@DeleteMapping("/{id}")
+@PreAuthorize("hasRole('admin')")
+@ResponseStatus(HttpStatus.NO_CONTENT)
+public void deleteVehicle(@PathVariable UUID id) {
+    service.deleteVehicle(id);
+}
+\end{lstlisting}
+
+% ------------------------------------------------------------
 % OBSERVABILITÉ ET INSTRUMENTATION
 % ------------------------------------------------------------
 \newpage

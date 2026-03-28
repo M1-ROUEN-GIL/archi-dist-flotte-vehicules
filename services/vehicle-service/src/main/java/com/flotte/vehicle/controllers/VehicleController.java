@@ -1,9 +1,10 @@
-package com.flotte.vehicle.controller;
+package com.flotte.vehicle.controllers;
 
 import com.flotte.vehicle.dto.*;
 import com.flotte.vehicle.services.VehicleService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,15 +34,16 @@ public class VehicleController {
     }
 
     // 3. CRÉER UN VÉHICULE
-    // Le @Valid active les vérifications (@NotNull, @Positive, etc.) du DTO
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED) // Renvoie 201 Created au lieu de 200 OK
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('admin')")
     public VehicleResponse createVehicle(@Valid @RequestBody VehicleInput input) {
         return service.createVehicle(input);
     }
 
     // 4. METTRE À JOUR LES INFOS
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('admin')")
     public VehicleResponse updateVehicle(
             @PathVariable UUID id,
             @Valid @RequestBody VehicleUpdate update) {
@@ -50,6 +52,7 @@ public class VehicleController {
 
     // 5. CHANGER LE STATUT
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('admin', 'technician')")
     public VehicleResponse updateVehicleStatus(
             @PathVariable UUID id,
             @Valid @RequestBody VehicleStatusInput statusInput) {
@@ -58,7 +61,8 @@ public class VehicleController {
 
     // 6. SUPPRIMER UN VÉHICULE (Soft Delete)
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT) // Renvoie 204 No Content
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('admin')")
     public void deleteVehicle(@PathVariable UUID id) {
         service.deleteVehicle(id);
     }
@@ -72,6 +76,7 @@ public class VehicleController {
     // POST /vehicles/{id}/assignments
     @PostMapping("/{id}/assignments")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('admin')")
     public AssignmentResponse createAssignment(
             @PathVariable UUID id,
             @Valid @RequestBody AssignmentInput input) {
@@ -80,6 +85,7 @@ public class VehicleController {
 
     // DELETE /vehicles/{id}/assignments/current
     @DeleteMapping("/{id}/assignments/current")
+    @PreAuthorize("hasRole('admin')")
     public AssignmentResponse endCurrentAssignment(@PathVariable UUID id) {
         return service.endCurrentAssignment(id);
     }

@@ -46,7 +46,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.2
     container_name: flotte-keycloak
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/flotte_db
@@ -56,6 +56,8 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8180:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm.json
     depends_on:
       - postgres
     restart: unless-stopped
@@ -93,12 +95,15 @@ services:
       - OTEL_METRICS_EXPORTER=otlp
       - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED=true
       - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_EXPERIMENTAL_LOG_ATTRIBUTES=true
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/gestion-flotte
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/gestion-flotte/protocol/openid-connect/certs
     ports:
       - "8080:8080"
     depends_on:
       - postgres
       - kafka
       - otel-collector
+      - keycloak
     restart: unless-stopped
 
 volumes:

@@ -1,13 +1,14 @@
-package com.flotte.vehicle.controller;
+package com.flotte.vehicle.controllers;
 
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flotte.vehicle.dto.*;
 import com.flotte.vehicle.models.enums.FuelType;
 import com.flotte.vehicle.models.enums.VehicleStatus;
 import com.flotte.vehicle.services.VehicleService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(VehicleController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class VehicleControllerTest {
 
     @Autowired
