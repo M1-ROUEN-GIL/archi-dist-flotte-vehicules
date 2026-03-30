@@ -12,6 +12,11 @@ postgresql:
   primary:
     persistence:
       enabled: false
+    initdb:
+      scriptsConfigMap: "vehicle-sql-init"    # ← exécuté au 1er démarrage
+      scripts:
+        02-seed.sql: |                         # ← ou directement inline
+          \i /docker-entrypoint-initdb.d/02-seed.sql
 
 # 2. Configuration de Redis
 redis:
