@@ -10,7 +10,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./db:/docker-entrypoint-initdb.d
+      # --- 1. SCHÉMAS (01 à 10) ---
+      # On crée d'abord la structure de la base
+      - ./services/vehicle-service/db/migrations/01-vehicle.sql:/docker-entrypoint-initdb.d/01-vehicle.sql
+
+      # --- 2. DONNÉES / SEEDS (20 à 30) ---
+      # Ensuite, on insère les données de test
+      - ./services/vehicle-service/db/seeds/20-vehicle-seed.sql:/docker-entrypoint-initdb.d/20-vehicle-seed.sql
+
+      # Le volume de sauvegarde classique
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
@@ -39,7 +47,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-    
+
     restart: unless-stopped
 
   # 4. Keycloak (Latest)
@@ -113,4 +121,3 @@ volumes:
   postgres_data:
   kafka_data:
 
- 
