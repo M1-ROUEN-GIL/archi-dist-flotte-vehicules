@@ -1,20 +1,31 @@
 namespace: flotte-namespace
 
-# 1. Configuration de PostgreSQL
+# 1. Configuration de PostgreSQL principal (Vehicules)
 postgresql:
   fullnameOverride: "postgres-service"
-
   auth:
     postgresUser: "admin"
     database: "flotte_db"
-    # Utilisation de secrets pour les mots de passe
-
   primary:
     persistence:
       enabled: false
-
     initdb:
-      scriptsConfigMap: "flotte-db-init" # Le nouveau nom générique pour TOUS les scripts
+      scriptsConfigMap: "flotte-db-init"
+
+# 1b. Configuration de PostgreSQL pour la Maintenance
+postgresql-maintenance:
+  enabled: true
+  fullnameOverride: "postgres-maintenance-service"
+  image:
+    tag: "15-alpine"
+  auth:
+    postgresUser: "admin"
+    database: "maintenance_db"
+  primary:
+    persistence:
+      enabled: false
+    initdb:
+      scriptsConfigMap: "maintenance-db-init"
 
 # 2. Configuration de Redis
 redis:

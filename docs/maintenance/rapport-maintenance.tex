@@ -1,0 +1,320 @@
+\documentclass[12pt,a4paper]{article}
+
+% ============================================================
+% PACKAGES
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{mdframed}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage[table]{xcolor}
+
+% ============================================================
+% MISE EN PAGE
+% ============================================================
+\geometry{
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm
+}
+
+% ============================================================
+% COULEURS
+% ============================================================
+\definecolor{primary}{RGB}{30, 100, 180}
+\definecolor{secondary}{RGB}{240, 245, 255}
+\definecolor{codebg}{RGB}{245, 245, 245}
+\definecolor{codeframe}{RGB}{200, 200, 200}
+\definecolor{success}{RGB}{39, 174, 96}
+\definecolor{warning}{RGB}{230, 126, 34}
+\definecolor{darkgray}{RGB}{60, 60, 60}
+
+% ============================================================
+% EN-TETE ET PIED DE PAGE
+% ============================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{primary}{\textbf{Projet M1 GIL -- Gestion de Flotte}}}
+\fancyhead[R]{\small\textcolor{darkgray}{Universite de Rouen | 2025--2026}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ============================================================
+% STYLE DES TITRES
+% ============================================================
+\titleformat{\section}
+  {\Large\bfseries\color{primary}}
+  {\thesection.}{0.8em}{}[\titlerule]
+
+\titleformat{\subsection}
+  {\large\bfseries\color{darkgray}}
+  {\thesubsection.}{0.6em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{darkgray}}
+  {\thesubsubsection.}{0.5em}{}
+
+% ============================================================
+% STYLE DU CODE
+% ============================================================
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{primary}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{success},
+  breaklines=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  tabsize=2,
+  captionpos=b
+}
+
+% ============================================================
+% BOITE INFO
+% ============================================================
+\newmdenv[
+  backgroundcolor=secondary,
+  linecolor=primary,
+  linewidth=1.5pt,
+  leftline=true,
+  rightline=false,
+  topline=false,
+  bottomline=false,
+  innerleftmargin=10pt,
+  innerrightmargin=10pt,
+  innertopmargin=8pt,
+  innerbottommargin=8pt
+]{infobox}
+
+% ============================================================
+% DOCUMENT
+% ============================================================
+\begin{document}
+
+% ------------------------------------------------------------
+% PAGE DE TITRE
+% ------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{1cm}
+
+  {\Large\textbf{Universite de Rouen Normandie}\\[0.3cm]
+  \large Master 1 -- Genie Informatique et Logiciel}
+
+  \vspace{1.5cm}
+  \rule{\linewidth}{0.5mm}\\[0.4cm]
+
+  {\Huge\bfseries\color{primary} Projet Gestion de Flotte de vehicules\\[0.3cm]}
+  {\LARGE\bfseries Rapport de Mise en \oe{}uvre}\\[0.3cm]
+  {\large\color{darkgray} Microservice Maintenance}
+
+  \rule{\linewidth}{0.5mm}\\[1.5cm]
+
+  \begin{minipage}{0.45\textwidth}
+    \begin{flushleft}
+      \textbf{Etudiant :}\\
+      Florian Pepin \\[0.5cm]
+      \textbf{Encadrants :}\\
+      Lydia \& Luc
+    \end{flushleft}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.45\textwidth}
+    \begin{flushright}
+      \textbf{Annee universitaire :}\\
+      2025 -- 2026
+    \end{flushright}
+  \end{minipage}
+
+  \vfill
+  {\large\today}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ------------------------------------------------------------
+% INTRODUCTION
+% ------------------------------------------------------------
+\section{Objectifs du service Maintenance}
+
+\begin{infobox}
+\textbf{Objectif :} Implémenter le microservice de maintenance permettant la planification des interventions, le suivi de l'historique et la génération d'alertes préventives.
+\end{infobox}
+
+Le service Maintenance est responsable de la santé technique de la flotte. Ses fonctionnalités clés incluent :
+\begin{itemize}
+    \item \textbf{Planification} : Création et suivi des rendez-vous de maintenance.
+    \item \textbf{Historique} : Conservation de toutes les interventions passées pour chaque véhicule.
+    \item \textbf{Alertes Préventives} : Détection automatique des retards et des échéances kilométriques.
+\end{itemize}
+
+% ------------------------------------------------------------
+% MODELISATION
+% ------------------------------------------------------------
+\section{Modélisation et Persistance}
+
+Le service respecte le principe d'isolation des données : \textbf{un microservice = une base de données}. Il s'appuie sur une instance PostgreSQL dédiée (\texttt{postgres-maintenance}), dont le schéma est défini dans \texttt{db/03-maintenance.sql}.
+
+\subsection{Base de données dédiée}
+Contrairement aux autres services partageant l'instance principale, la maintenance dispose de sa propre base \texttt{maintenance\_db} tournant sur un conteneur isolé. Cette architecture garantit qu'une corruption ou une maintenance sur la base des véhicules n'impacte pas le suivi des entretiens.
+
+\subsection{Entité MaintenanceRecord}
+L'entité centrale \texttt{MaintenanceRecord} gère les cycles de vie des interventions via plusieurs énumérations (\texttt{Type}, \texttt{Status}, \texttt{Priority}).
+
+\begin{lstlisting}[language=Java, caption=Entité MaintenanceRecord]
+@Entity
+@Table(name = "maintenance_records")
+public class MaintenanceRecord {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    
+    private UUID vehicleId; // Lien logique vers le Service Vehicules
+    
+    @Enumerated(EnumType.STRING)
+    private MaintenanceStatus status = MaintenanceStatus.SCHEDULED;
+    
+    private LocalDate scheduledDate;
+    private Integer nextServiceKm; // Seuil pour les alertes preventives
+}
+\end{lstlisting}
+
+% ------------------------------------------------------------
+% LOGIQUE METIER
+% ------------------------------------------------------------
+\section{Logique Métier et Alertes}
+
+Le service implémente des mécanismes proactifs pour assurer le suivi de la maintenance.
+
+\subsection{Gestion des retards (Overdue)}
+Une tâche planifiée (\texttt{@Scheduled}) s'exécute quotidiennement pour identifier les maintenances prévues dont la date est dépassée.
+
+L'expression Cron utilisée est \texttt{"0 0 1 * * ?"}. Elle se décompose comme suit :
+\begin{itemize}
+    \item \texttt{0} (1er) : 0 seconde.
+    \item \texttt{0} (2e) : 0 minute.
+    \item \texttt{1} (3e) : 1 heure du matin.
+    \item \texttt{*} (4e) : Chaque jour du mois.
+    \item \texttt{*} (5e) : Chaque mois.
+    \item \texttt{?} (6e) : N'importe quel jour de la semaine.
+\end{itemize}
+Ainsi, le système vérifie automatiquement les retards chaque nuit à 01h00.
+
+\begin{lstlisting}[language=Java, caption=Tâche de vérification des retards]
+@Scheduled(cron = "0 0 1 * * ?")
+@Transactional
+public void checkOverdueMaintenance() {
+    List<MaintenanceRecord> scheduledRecords = repository.findByStatus(MaintenanceStatus.SCHEDULED);
+    LocalDate today = LocalDate.now();
+    for (MaintenanceRecord record : scheduledRecords) {
+        if (record.getScheduledDate().isBefore(today)) {
+            record.setStatus(MaintenanceStatus.OVERDUE);
+            repository.save(record);
+            eventProducer.publishAlert(AlertEvent.overdue(
+                record.getVehicleId(), "Maintenance en retard"));
+        }
+    }
+}
+\end{lstlisting}
+
+% ------------------------------------------------------------
+% INTEGRATION
+% ------------------------------------------------------------
+\section{Intégration et Communication}
+
+\subsection{Architecture Événementielle}
+Le service produit des messages sur le topic Kafka \texttt{alerts-topic}. Ces événements (\texttt{AlertEvent}) sont consommés par le service d'événements pour être notifiés aux gestionnaires.
+
+\subsection{Exposition REST}
+Une API complète a été développée pour permettre au Gateway de gérer les interventions :
+\begin{center}
+\begin{tabular}{|l|l|l|}
+  \hline
+  \rowcolor{primary!10}
+  \textbf{Méthode} & \textbf{Endpoint} & \textbf{Action} \\
+  \hline
+  POST   & \texttt{/api/maintenance} & Planifier une intervention \\
+  GET    & \texttt{/api/maintenance/vehicle/\{id\}} & Historique par véhicule \\
+  PATCH  & \texttt{/api/maintenance/\{id\}/status} & Mettre à jour le statut \\
+  \hline
+\end{tabular}
+\end{center}
+
+\subsection{Exposition via le Gateway GraphQL}
+Le service est pleinement intégré à l'API Gateway via GraphQL.
+
+\subsubsection{Agrégation multi-services}
+L'agrégation permet de croiser les données de trois services distincts :
+\begin{itemize}
+    \item \textbf{Maintenance $\rightarrow$ Véhicule} : Récupération des caractéristiques techniques (Service Véhicules).
+    \item \textbf{Maintenance $\rightarrow$ Technicien} : Résolution de l'objet \texttt{Driver} lié au \texttt{technician\_id} (Service Conducteurs).
+    \item \textbf{Véhicule $\rightarrow$ Maintenance} : Affichage de l'historique depuis la fiche véhicule.
+\end{itemize}
+
+\begin{lstlisting}[language=SQL, caption=Cohérence des types SQL/GraphQL]
+-- Le champ JSONB parts_used en SQL est expose comme [String!]! en GraphQL
+CREATE TABLE maintenance_records (
+  ...
+  parts_used JSONB NOT NULL DEFAULT '[]',
+  ...
+);
+\end{lstlisting}
+
+% ------------------------------------------------------------
+% SAGA PATTERN
+% ------------------------------------------------------------
+\section{Architecture Événementielle (Saga Pattern)}
+
+Le service participe au cycle de vie global via Kafka :
+\begin{itemize}
+    \item \textbf{Producers} : Publication sur \texttt{maintenance-topic} (\texttt{scheduled}, \texttt{started}, \texttt{completed}, \texttt{cancelled}).
+    \item \textbf{Consumers} : Écoute du topic \texttt{vehicle-events} pour réagir aux mises à jour de kilométrage.
+\end{itemize}
+
+% ------------------------------------------------------------
+% TESTS
+% ------------------------------------------------------------
+\section{Tests automatisés et couverture de code}
+
+\begin{infobox}
+\textbf{Objectif :} Garantir la robustesse via une couverture minimale de 80\%.
+\end{infobox}
+
+\subsection{Stratégie et Résultats}
+\begin{itemize}
+    \item \textbf{Tests Unitaires} : JUnit 5 + Mockito pour isoler la logique métier.
+    \item \textbf{Tests d'Intégration} : MockMvc + base H2 pour valider l'API et le RBAC.
+    \item \textbf{Couverture JaCoCo} : Supérieure à 80\% sur l'ensemble du périmètre métier.
+\end{itemize}
+
+% ------------------------------------------------------------
+% DEPLOIEMENT
+% ------------------------------------------------------------
+\section{Déploiement Kubernetes et Helm}
+
+\subsection{Isolation de l'infrastructure (Helm)}
+\begin{itemize}
+    \item \textbf{Chart fleet-infra} : Alias pour déployer un second StatefulSet (\texttt{postgres-maintenance-service}).
+    \item \textbf{Initialisation} : ConfigMap \texttt{maintenance-db-init} injectant \texttt{03-maintenance.sql}.
+\end{itemize}
+
+\end{document}

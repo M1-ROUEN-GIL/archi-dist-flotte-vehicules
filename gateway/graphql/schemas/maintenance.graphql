@@ -4,6 +4,7 @@
 type MaintenanceRecord {
   id: ID!
   vehicle: Vehicle!
+  technician: Driver
   type: MaintenanceType!
   status: MaintenanceStatus!
   priority: MaintenancePriority!
@@ -17,6 +18,11 @@ type MaintenanceRecord {
   description: String
   notes: String
   created_at: String!
+}
+
+type MaintenancePage {
+  items: [MaintenanceRecord!]!
+  total_count: Int!
 }
 
 extend type Query {

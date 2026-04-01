@@ -110,7 +110,17 @@ export const vehicleResolvers = {
   Vehicle: {
     current_location: () => null,
     current_assignment: () => null,
-    maintenance_records: () => [],
+    maintenance_records: async (
+      parent: { id: string },
+      args: { limit?: number | null },
+      ctx: GraphQLContext,
+    ) => {
+      const { items } = await ctx.maintenance.listRecords({
+        vehicle_id: parent.id,
+        limit: args.limit ?? 5,
+      });
+      return items;
+    },
   },
 
   Assignment: {

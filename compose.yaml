@@ -1,5 +1,5 @@
 services:
-  # 1. Base de données PostgreSQL + TimescaleDB (Version 2.14 avec PG15)
+  # 1. Base de données PostgreSQL + TimescaleDB pour le service Véhicules
   postgres:
     image: timescale/timescaledb:2.14.2-pg15
     container_name: flotte-postgres
@@ -11,15 +11,27 @@ services:
       - "5432:5432"
     volumes:
       # --- 1. SCHÉMAS (01 à 10) ---
-      # On crée d'abord la structure de la base
       - ./services/vehicle-service/db/migrations/01-vehicle.sql:/docker-entrypoint-initdb.d/01-vehicle.sql
 
       # --- 2. DONNÉES / SEEDS (20 à 30) ---
-      # Ensuite, on insère les données de test
       - ./services/vehicle-service/db/seeds/20-vehicle-seed.sql:/docker-entrypoint-initdb.d/20-vehicle-seed.sql
 
-      # Le volume de sauvegarde classique
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # 1b. Base de données PostgreSQL pour le service Maintenance
+  postgres-maintenance:
+    image: postgres:15-alpine
+    container_name: flotte-postgres-maintenance
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: maintenance_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./db/03-maintenance.sql:/docker-entrypoint-initdb.d/01-maintenance.sql
+      - postgres_maintenance_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   # 2. Redis (Version 7.2)
@@ -117,7 +129,28 @@ services:
       - keycloak
     restart: unless-stopped
 
+  # 7. Microservice Maintenance (Spring Boot)
+  maintenance:
+    build:
+      context: ./services/maintenance-service
+      dockerfile: Dockerfile
+    container_name: flotte-maintenance
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-maintenance:5432/maintenance_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/gestion-flotte
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/gestion-flotte/protocol/openid-connect/certs
+    ports:
+      - "8083:8080"
+    depends_on:
+      - postgres-maintenance
+      - kafka
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  postgres_maintenance_data:
   kafka_data:
 

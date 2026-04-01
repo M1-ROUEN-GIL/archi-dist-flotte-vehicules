@@ -10,6 +10,12 @@ dependencies:
     version: "18.5.6"
     repository: "https://charts.bitnami.com/bitnami"
 
+  - name: postgresql
+    alias: postgresql-maintenance
+    version: "18.5.6"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql-maintenance.enabled
+
   - name: redis
     version: "25.3.2"
     repository: "https://charts.bitnami.com/bitnami"

@@ -15,8 +15,9 @@ services:
   maintenance:
     name: maintenance-service
     image: maintenance-service:latest
-    port: 8082
+    port: 8080
     replicas: 1
+    dbUrlKey: MAINTENANCE_DATASOURCE_URL
   event:
     name: event-service
     image: event-service:latest

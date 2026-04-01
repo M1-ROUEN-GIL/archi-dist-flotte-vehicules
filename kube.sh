@@ -8,13 +8,24 @@ minikube addons enable ingress
 kubectl delete namespace flotte-namespace --ignore-not-found
 kubectl create namespace flotte-namespace
 
-# 3. Création des Secrets
+# 3. Création des Secrets et ConfigMaps
 # Utilisation de l'utilisateur 'admin' défini dans la configuration Helm
 kubectl create secret generic db-secrets \
   --from-literal=SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-service:5432/flotte_db \
-  --from-literal=SPRING_DATASOURCE_USERNAME=postgres \
+  --from-literal=MAINTENANCE_DATASOURCE_URL=jdbc:postgresql://postgres-maintenance-service:5432/maintenance_db \
+  --from-literal=SPRING_DATASOURCE_USERNAME=admin \
   --from-literal=SPRING_DATASOURCE_PASSWORD=password \
   --from-literal=KAFKA_BROKER=kafka-service:9092 \
+  -n flotte-namespace
+
+# Scripts d'initialisation pour les bases de données
+kubectl create configmap flotte-db-init \
+  --from-file=01-vehicle.sql=./services/vehicle-service/db/migrations/01-vehicle.sql \
+  --from-file=20-vehicle-seed.sql=./services/vehicle-service/db/seeds/20-vehicle-seed.sql \
+  -n flotte-namespace
+
+kubectl create configmap maintenance-db-init \
+  --from-file=03-maintenance.sql=./db/03-maintenance.sql \
   -n flotte-namespace
 
 # 4. Build des Images dans le Docker daemon de Minikube
@@ -47,6 +58,7 @@ kubectl apply -f infra/kubernetes/keycloak/keycloak-deployment.yaml -n flotte-na
 # On attend un peu que l'infra soit prête
 echo "Waiting for infrastructure to be ready..."
 kubectl wait --for=condition=ready --timeout=300s pod/postgres-service-0 -n flotte-namespace
+kubectl wait --for=condition=ready --timeout=300s pod/postgres-maintenance-service-0 -n flotte-namespace
 
 helm upgrade --install fleet-app ./infra/helm/fleet-app/ \
   -n flotte-namespace
