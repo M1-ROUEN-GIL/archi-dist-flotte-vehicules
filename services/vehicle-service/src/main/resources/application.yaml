@@ -4,7 +4,8 @@ server:
 spring:
   application:
     name: vehicle-service
-
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   security:
     oauth2:
       resourceserver:

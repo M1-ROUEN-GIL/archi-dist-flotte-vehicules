@@ -1,7 +1,7 @@
 package com.flotte.vehicle.services;
 
 import com.flotte.vehicle.dto.*;
-import com.flotte.vehicle.events.VehicleEvent;
+import com.flotte.vehicle.events.VehicleEventFactory;
 import com.flotte.vehicle.events.producers.VehicleEventProducer;
 import com.flotte.vehicle.models.Vehicle;
 import com.flotte.vehicle.models.VehicleAssignment;
@@ -68,13 +68,20 @@ public class VehicleService {
 
         // Le status par défaut est géré par l'entité (available)
         Vehicle savedVehicle = repository.save(vehicle);
-        eventProducer.publish(VehicleEvent.created(
+
+        // 1. On fabrique le nouvel événement structuré
+        var event = VehicleEventFactory.vehicleCreated(
                 savedVehicle.getId(),
                 savedVehicle.getPlateNumber(),
                 savedVehicle.getBrand(),
                 savedVehicle.getModel(),
-                savedVehicle.getStatus().name()
-        ));
+                savedVehicle.getFuelType().name(),
+                savedVehicle.getStatus().name(),
+                savedVehicle.getMileageKm()
+        );
+        // 2. On utilise ton Producer abstrait
+        eventProducer.publishVehicleEvent(event);
+
         return mapToResponse(savedVehicle);
     }
 
@@ -103,11 +110,14 @@ public class VehicleService {
 
         vehicle.setStatus(newStatus);
         Vehicle updatedVehicle = repository.save(vehicle);
-        eventProducer.publish(VehicleEvent.statusChanged(
+
+        var event = VehicleEventFactory.vehicleStatusChanged(
                 updatedVehicle.getId(),
                 updatedVehicle.getPlateNumber(),
-                updatedVehicle.getStatus().name()
-        ));
+                vehicle.getStatus().name(), // Ancien statut
+                newStatus.name() // Nouveau statut
+        );
+        eventProducer.publishVehicleEvent(event);
         return mapToResponse(updatedVehicle);
     }
 
@@ -121,10 +131,11 @@ public class VehicleService {
         // Au lieu de faire repository.delete(vehicle), on renseigne la date de suppression
         vehicle.setDeletedAt(OffsetDateTime.now());
         repository.save(vehicle);
-        eventProducer.publish(VehicleEvent.deleted(
+        var event = VehicleEventFactory.vehicleDeleted(
                 vehicle.getId(),
                 vehicle.getPlateNumber()
-        ));
+        );
+        eventProducer.publishVehicleEvent(event);
     }
 
     // ==========================================
@@ -173,11 +184,15 @@ public class VehicleService {
         // Passer le véhicule en mission automatiquement
         vehicle.setStatus(VehicleStatus.on_delivery);
         repository.save(vehicle);
-        eventProducer.publish(VehicleEvent.assigned(
+
+        var event = VehicleEventFactory.vehicleAssigned(
+                assignment.getId(),
                 vehicle.getId(),
-                vehicle.getPlateNumber(),
-                assignment.getDriverId()
-        ));
+                assignment.getDriverId(),
+                assignment.getNotes()
+        );
+        eventProducer.publishAssignmentEvent(event);
+
         return AssignmentResponse.fromEntity(assignmentRepository.save(assignment));
     }
 
@@ -197,11 +212,12 @@ public class VehicleService {
         assignment.setEndedAt(OffsetDateTime.now());
         assignmentRepository.save(assignment);
 
-        eventProducer.publish(VehicleEvent.unassigned(
+        var event = VehicleEventFactory.vehicleUnassigned(
+                assignment.getId(),
                 vehicle.getId(),
-                vehicle.getPlateNumber(),
                 assignment.getDriverId()
-        ));
+        );
+        eventProducer.publishAssignmentEvent(event);
         // Remettre le véhicule disponible automatiquement
         vehicle.setStatus(VehicleStatus.available);
             repository.save(vehicle);

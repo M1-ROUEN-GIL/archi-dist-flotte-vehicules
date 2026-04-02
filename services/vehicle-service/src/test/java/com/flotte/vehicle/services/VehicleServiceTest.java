@@ -1,7 +1,7 @@
 package com.flotte.vehicle.services;
 
 import com.flotte.vehicle.dto.*;
-import com.flotte.vehicle.events.VehicleEvent;
+import com.flotte.vehicle.events.KafkaEventEnvelope; // 👈 Nouvel import
 import com.flotte.vehicle.events.producers.VehicleEventProducer;
 import com.flotte.vehicle.models.Vehicle;
 import com.flotte.vehicle.models.VehicleAssignment;
@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -98,7 +97,8 @@ class VehicleServiceTest {
 
         assertThat(response.plateNumber()).isEqualTo("AB-123-CD");
         verify(repository).save(any(Vehicle.class));
-        verify(eventProducer).publish(any(VehicleEvent.class));
+        // 👈 Changement ici : publishVehicleEvent au lieu de publish
+        verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
     }
 
     @Test
@@ -124,7 +124,8 @@ class VehicleServiceTest {
 
         assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.in_maintenance);
         verify(repository).save(vehicle);
-        verify(eventProducer).publish(any(VehicleEvent.class));
+        // 👈 Changement ici
+        verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
     }
 
     @Test
@@ -135,7 +136,8 @@ class VehicleServiceTest {
 
         assertThat(vehicle.getDeletedAt()).isNotNull();
         verify(repository).save(vehicle);
-        verify(eventProducer).publish(any(VehicleEvent.class));
+        // 👈 Changement ici
+        verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
     }
 
     @Test
@@ -143,7 +145,7 @@ class VehicleServiceTest {
         VehicleAssignment assignment = new VehicleAssignment();
         assignment.setVehicleId(vehicleId);
         assignment.setDriverId(UUID.randomUUID());
-        
+
         when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
         when(assignmentRepository.findByVehicleIdOrderByStartedAtDesc(vehicleId)).thenReturn(List.of(assignment));
 
@@ -158,7 +160,7 @@ class VehicleServiceTest {
         UUID driverId = UUID.randomUUID();
         UUID createdBy = UUID.randomUUID();
         AssignmentInput input = new AssignmentInput(driverId, "Notes", createdBy);
-        
+
         when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
         when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.empty());
         when(assignmentRepository.save(any(VehicleAssignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -168,13 +170,14 @@ class VehicleServiceTest {
         assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.on_delivery);
         verify(repository).save(vehicle);
         verify(assignmentRepository).save(any(VehicleAssignment.class));
-        verify(eventProducer).publish(any(VehicleEvent.class));
+        // 👈 Changement ici : publishAssignmentEvent pour la partie assignation !
+        verify(eventProducer).publishAssignmentEvent(any(KafkaEventEnvelope.class));
     }
 
     @Test
     void createAssignment_WhenAlreadyAssigned_ShouldThrowConflict() {
         AssignmentInput input = new AssignmentInput(UUID.randomUUID(), "Notes", UUID.randomUUID());
-        
+
         when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
         when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.of(new VehicleAssignment()));
 
@@ -187,7 +190,7 @@ class VehicleServiceTest {
     void createAssignment_WhenNotAvailable_ShouldThrowConflict() {
         vehicle.setStatus(VehicleStatus.in_maintenance);
         AssignmentInput input = new AssignmentInput(UUID.randomUUID(), "Notes", UUID.randomUUID());
-        
+
         when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
         when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.empty());
 
@@ -211,6 +214,7 @@ class VehicleServiceTest {
         assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.available);
         verify(assignmentRepository).save(assignment);
         verify(repository).save(vehicle);
-        verify(eventProducer).publish(any(VehicleEvent.class));
+        // 👈 Changement ici : publication de la fin d'assignation
+        verify(eventProducer).publishAssignmentEvent(any(KafkaEventEnvelope.class));
     }
 }
