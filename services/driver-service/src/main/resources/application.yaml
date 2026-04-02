@@ -1,11 +1,10 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
-    name: vehicle-service
-  jackson:
-    property-naming-strategy: SNAKE_CASE
+    name: driver-service
+
   security:
     oauth2:
       resourceserver:
@@ -38,7 +37,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
-      group-id: vehicle-group
+      group-id: driver-group # Modifié pour le service driver
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer

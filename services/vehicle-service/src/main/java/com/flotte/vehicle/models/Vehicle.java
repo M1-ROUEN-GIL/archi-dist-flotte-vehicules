@@ -30,6 +30,7 @@ public class Vehicle {
     private String model;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name= "fuel_type", nullable = false)
     private FuelType fuelType;
 
@@ -37,6 +38,7 @@ public class Vehicle {
     private Integer mileageKm;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false)
     private VehicleStatus status = VehicleStatus.available;
 
@@ -50,6 +52,7 @@ public class Vehicle {
     private Double cargoVolumeM3 = 10.0;
 
     // Pour le JSONB, on utilise columnDefinition pour que Hibernate ne râle pas
+    @JdbcTypeCode(SqlTypes.JSON) //  Indique à Hibernate de convertir ça en JSONB pour Postgres
     @Column(name = "metadata")
     private String metadata = "{}";
 

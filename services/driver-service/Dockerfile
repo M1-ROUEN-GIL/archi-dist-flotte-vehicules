@@ -29,7 +29,7 @@ USER spring:spring
 COPY --from=builder /build/target/*.jar app.jar
 
 # On expose le port de Spring Boot
-EXPOSE 8080
+EXPOSE 8081
 
 # Commande de lancement
 ENTRYPOINT ["java", "-jar", "app.jar"]
