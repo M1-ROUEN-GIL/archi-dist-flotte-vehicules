@@ -31,23 +31,23 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: driver-service
+                name: {{ .Values.services.driver.name }}
                 port:
-                  number: 8081
+                  number: {{ .Values.services.driver.port }}
           - path: /api/maintenance(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: maintenance-service
+                name: {{ .Values.services.maintenance.name }}
                 port:
-                  number: 8082
+                  number: {{ .Values.services.maintenance.port }}
           - path: /api/events(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: event-service
+                name: {{ .Values.services.event.name }}
                 port:
-                  number: 8083
+                  number: {{ .Values.services.event.port }}
           - path: /api/location(/|$)(.*)
             pathType: ImplementationSpecific
             backend:

@@ -42,7 +42,7 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
-  # 3. Apache Kafka (Image officielle - Version 3.7.0 - Mode KRaft)
+  # 3. Apache Kafka (Configuration robuste pour Docker)
   kafka:
     image: apache/kafka:3.7.0
     container_name: flotte-kafka
@@ -51,18 +51,16 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-
     restart: unless-stopped
 
-  # 4. Keycloak (Latest)
+  # 4. Keycloak (Avec chemin /auth pour cohérence Kube)
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: flotte-keycloak
@@ -77,6 +75,7 @@ services:
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: "xforwarded"
+      KC_HTTP_RELATIVE_PATH: "/auth"
     ports:
       - "8180:8080"
     volumes:
@@ -85,7 +84,7 @@ services:
       - postgres
     restart: unless-stopped
 
-     # 5. Interface d'administration web pour PostgreSQL (Façon phpMyAdmin)
+  # 5. Interface d'administration web pour PostgreSQL (Façon phpMyAdmin)
   pgadmin:
     image: dpage/pgadmin4
     container_name: flotte-pgadmin
@@ -108,24 +107,18 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/flotte_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       # Configuration pour l'Agent Java OpenTelemetry
       - OTEL_SERVICE_NAME=vehicle-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-      - OTEL_LOGS_EXPORTER=otlp
-      - OTEL_TRACES_EXPORTER=otlp
-      - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED=true
-      - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_EXPERIMENTAL_LOG_ATTRIBUTES=true
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/gestion-flotte
-      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/gestion-flotte/protocol/openid-connect/certs
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/auth/realms/gestion-flotte
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
     ports:
       - "8080:8080"
     depends_on:
       - postgres
       - kafka
-      - otel-collector
       - keycloak
     restart: unless-stopped
 
@@ -139,18 +132,21 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-maintenance:5432/maintenance_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/gestion-flotte
-      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/gestion-flotte/protocol/openid-connect/certs
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/auth/realms/gestion-flotte
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
+      - OTEL_SERVICE_NAME=maintenance-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     ports:
-      - "8083:8080"
+      - "8082:8080"
     depends_on:
       - postgres-maintenance
       - kafka
+      - keycloak
     restart: unless-stopped
 
 volumes:
   postgres_data:
   postgres_maintenance_data:
   kafka_data:
-

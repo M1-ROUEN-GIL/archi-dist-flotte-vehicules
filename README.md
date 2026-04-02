@@ -163,3 +163,14 @@ Pour suivre le cheminement d'une requête de bout en bout :
 - Accédez à Jaeger ([http://localhost:16686](http://localhost:16686)).
 - Sélectionnez le service **vehicle-service** dans la liste déroulante.
 - Cliquez sur **Find Traces** pour visualiser les appels API et les requêtes SQL (PostgreSQL).
+
+## 🧪 Tests et Authentification (Postman)
+
+Pour tester les APIs via Postman, vous devez d'abord obtenir un jeton (token) d'accès.
+
+| Environnement | URL pour le Token dans Postman | Configuration Body (x-www-form-urlencoded) |
+| :--- | :--- | :--- |
+| **Kubernetes (flotte.local)** | `https://flotte.local/auth/realms/gestion-flotte/protocol/openid-connect/token` | client_id: `admin-cli`, grant_type: `password`, username/password |
+| **Docker Local (localhost)** | `http://localhost:8180/realms/gestion-flotte/protocol/openid-connect/token` | client_id: `admin-cli`, grant_type: `password`, username/password |
+
+> **Note importante :** Pour l'environnement Kubernetes, assurez-vous de désactiver la vérification SSL dans les réglages de Postman (*Settings > General > SSL certificate verification: OFF*).

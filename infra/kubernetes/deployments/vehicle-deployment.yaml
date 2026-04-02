@@ -37,9 +37,9 @@ spec:
                     name: db-secrets
                     key: KAFKA_BROKER
             - name: KEYCLOAK_ISSUER_URI
-              value: "http://keycloak-service:8080/realms/gestion-flotte"
+              value: "https://flotte.local/auth/realms/gestion-flotte"
             - name: KEYCLOAK_JWK_SET_URI
-              value: "http://keycloak-service:8080/realms/gestion-flotte/protocol/openid-connect/certs"
+              value: "https://flotte.local/auth/realms/gestion-flotte/protocol/openid-connect/certs"
           resources:
              requests:
                     memory: "256Mi"

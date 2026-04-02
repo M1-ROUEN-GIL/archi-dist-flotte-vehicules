@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class MaintenanceEventProducer {
     private static final Logger logger = LoggerFactory.getLogger(MaintenanceEventProducer.class);
-    private static final String ALERTS_TOPIC = "alerts-topic";
-    private static final String MAINTENANCE_TOPIC = "maintenance-topic";
+    private static final String ALERTS_TOPIC = "flotte.alertes.events";
+    private static final String MAINTENANCE_TOPIC = "flotte.maintenance.events";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 

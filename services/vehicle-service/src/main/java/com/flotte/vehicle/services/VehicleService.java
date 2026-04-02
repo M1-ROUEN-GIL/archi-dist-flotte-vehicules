@@ -73,7 +73,8 @@ public class VehicleService {
                 savedVehicle.getPlateNumber(),
                 savedVehicle.getBrand(),
                 savedVehicle.getModel(),
-                savedVehicle.getStatus().name()
+                savedVehicle.getStatus().name(),
+                savedVehicle.getMileageKm()
         ));
         return mapToResponse(savedVehicle);
     }
@@ -91,6 +92,14 @@ public class VehicleService {
         if (update.mileageKm() != null) vehicle.setMileageKm(update.mileageKm());
 
         Vehicle updatedVehicle = repository.save(vehicle);
+        
+        // Publier un événement de mise à jour (notamment pour le kilométrage)
+        eventProducer.publish(VehicleEvent.updated(
+                updatedVehicle.getId(),
+                updatedVehicle.getPlateNumber(),
+                updatedVehicle.getMileageKm()
+        ));
+        
         return mapToResponse(updatedVehicle);
     }
 

@@ -10,7 +10,7 @@ services:
   driver:
     name: driver-service
     image: driver-service:latest
-    port: 8081
+    port: 8080
     replicas: 1
   maintenance:
     name: maintenance-service
@@ -21,10 +21,14 @@ services:
   event:
     name: event-service
     image: event-service:latest
-    port: 8083
+    port: 8080
     replicas: 1
   location:
     name: location-service
     image: location-service:latest
     port: 3000
     replicas: 1
+
+# Configuration Keycloak (SSO)
+keycloak_issuer: "https://flotte.local/auth/realms/gestion-flotte"
+keycloak_jwk_set_uri: "https://flotte.local/auth/realms/gestion-flotte/protocol/openid-connect/certs"

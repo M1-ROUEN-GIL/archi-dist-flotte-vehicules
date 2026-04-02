@@ -16,7 +16,7 @@ public class MaintenanceEventConsumer {
         this.maintenanceService = maintenanceService;
     }
 
-    @KafkaListener(topics = "vehicle-events", groupId = "maintenance-group")
+    @KafkaListener(topics = "flotte.vehicules.events", groupId = "maintenance-group")
     public void consumeVehicleEvent(VehicleEvent event) {
         logger.info("Received vehicle event: {}", event);
         if (event.mileageKm() != null) {

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class VehicleEventProducer {
 
     private static final Logger log = LoggerFactory.getLogger(VehicleEventProducer.class);
-    private static final String TOPIC = "vehicle-events";
+    private static final String TOPIC = "flotte.vehicules.events";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 

@@ -44,9 +44,9 @@ spec:
                     key: KAFKA_BROKER
             # Configuration Keycloak (SSO)
             - name: KEYCLOAK_ISSUER_URI
-              value: "http://keycloak-service:8080/realms/gestion-flotte"
+              value: {{ $.Values.keycloak_issuer | default "http://keycloak-service:8080/realms/gestion-flotte" | quote }}
             - name: KEYCLOAK_JWK_SET_URI
-              value: "http://keycloak-service:8080/realms/gestion-flotte/protocol/openid-connect/certs"
+              value: {{ $.Values.keycloak_jwk_set_uri | default "http://keycloak-service:8080/realms/gestion-flotte/protocol/openid-connect/certs" | quote }}
             # Variables OpenTelemetry pour l'Agent Java
             - name: OTEL_SERVICE_NAME
               value: {{ $val.name }}
