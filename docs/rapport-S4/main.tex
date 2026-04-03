@@ -380,21 +380,22 @@ Ce topic notifie les créations et mises à jour de conducteurs, ainsi que les a
 \subsection{Corrections Techniques Apportées}
 L'implémentation a nécessité la résolution de plusieurs défis techniques majeurs rencontrés lors des tests d'intégration :
 \begin{itemize}
-    \item \textbf{Routage et redirection (405 Method Not Allowed)} : Identification et correction d'une erreur 405 lors des requêtes \texttt{PUT}. Le problème provenait d'un conflit de port entre l'Ingress et le service Kubernetes, ainsi que d'une gestion ambiguë des slashes finaux dans les contrôleurs Spring Boot.
-    \item \textbf{Désérialisation Kafka (ClassCastException)} : Résolution d'une erreur où les événements reçus étaient interprétés comme des \texttt{LinkedHashMap} au lieu des types Records attendus. La solution a consisté à configurer explicitement le \texttt{spring.json.type.mapping} dans les propriétés Kafka.
-    \item \textbf{Cohérence des Schémas GraphQL} : Correction du crash du Gateway au démarrage dû à l'absence des types de pagination (\texttt{DriverPage}, \texttt{AlertPage}) dans les fichiers de définition du schéma.
-    \item \textbf{Contraintes de base de données} : Gestion des erreurs 500 liées à la contrainte \texttt{chk\_completed\_date} (vérifiant que la fin d'une maintenance ne précède pas sa date prévue).
+    \item \textbf{Standardisation des ports (8080)} : Harmonisation de tous les microservices sur le port standard 8080, supprimant les erreurs 502/504 dues aux conflits de ports entre Docker, Kubernetes et le code Java.
+    \item \textbf{Harmonisation des Énumérations} : Alignement complet des types ENUM en majuscules (\texttt{SCREAMING\_SNAKE\_CASE}) sur toute la chaîne (PostgreSQL, Java, GraphQL) pour éviter les erreurs de sérialisation.
+    \item \textbf{Routage Ingress et Réécriture} : Correction des règles de réécriture (\texttt{rewrite-target}) pour éviter les problèmes de "double slashes" et assurer que le préfixe d'API est correctement géré.
+    \item \textbf{Transfert de Contexte Sécurité} : Mise à jour de la Gateway GraphQL pour capturer et transférer automatiquement le header \texttt{Authorization} (JWT) vers les services backend.
+    \item \textbf{Contraintes de Données} : Extension de la taille du champ \texttt{country} (de 2 à 50 caractères) et correction du mapping JDBC pour les types ENUM natifs PostgreSQL.
 \end{itemize}
 
 \subsection{Exposition via le Gateway GraphQL}
 L'ensemble des services (Véhicule, Driver, Maintenance) est fédéré par une passerelle GraphQL implémentée avec Apollo Server.
 
 \subsubsection{Implémentation du Gateway (Apollo Server)}
-Une application Node.js dédiée centralise et expose le schéma GraphQL. Les requêtes sont résolues via un \texttt{Context} instanciant des clients REST (Axios) pour chaque microservice :
+Une application Node.js dédiée centralise et expose le schéma GraphQL. Les requêtes sont résolues via un \texttt{Context} instanciant des clients REST (Axios) qui injectent systématiquement le jeton d'authentification reçu :
 \begin{itemize}
     \item \textbf{VehicleClient} : requêtes vers \texttt{http://vehicle-service:8080}
     \item \textbf{DriverClient} : requêtes vers \texttt{http://driver-service:8080}
-    \item \textbf{MaintenanceClient} : requêtes vers \texttt{http://maintenance-service:8082}
+    \item \textbf{MaintenanceClient} : requêtes vers \texttt{http://maintenance-service:8080}
 \end{itemize}
 
 \subsubsection{Agrégation multi-services}

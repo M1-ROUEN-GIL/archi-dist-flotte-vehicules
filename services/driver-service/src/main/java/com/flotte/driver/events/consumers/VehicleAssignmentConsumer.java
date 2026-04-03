@@ -42,13 +42,13 @@ public class VehicleAssignmentConsumer {
                 log.info("-> 🚚 Le chauffeur {} part en tournée (Véhicule: {}) !",
                         event.payload().driverId(), event.payload().vehicleId());
 
-                DriverStatusInput statusInput = new DriverStatusInput(DriverStatus.on_tour);
+                DriverStatusInput statusInput = new DriverStatusInput(DriverStatus.ON_TOUR);
                 driverService.updateDriverStatus(event.payload().driverId(), statusInput);
 
             } else if ("VEHICLE_UNASSIGNED".equals(event.eventType())) {
                 log.info("-> 🏠 Le chauffeur {} a fini sa tournée.", event.payload().driverId());
 
-                DriverStatusInput statusInput = new DriverStatusInput(DriverStatus.active);
+                DriverStatusInput statusInput = new DriverStatusInput(DriverStatus.ACTIVE);
                 driverService.updateDriverStatus(event.payload().driverId(), statusInput);
 
             }

@@ -44,7 +44,7 @@ public class Driver {
 	@Enumerated(EnumType.STRING)
 	@JdbcTypeCode(SqlTypes.NAMED_ENUM)
 	@Column(name = "status", nullable = false)
-	private DriverStatus status = DriverStatus.active;
+	private DriverStatus status = DriverStatus.ACTIVE;
 
 	// Relation 1-à-N : Un chauffeur peut avoir plusieurs permis
 	@OneToMany(mappedBy = "driver", cascade = CascadeType.ALL, orphanRemoval = true)

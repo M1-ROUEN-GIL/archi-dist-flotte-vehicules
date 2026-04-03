@@ -1,10 +1,9 @@
 package com.flotte.driver.models.enums;
 
 public enum DriverStatus {
-	active,
-	on_tour,
-	on_leave,
-	suspended,
-	inactive
-
+	ACTIVE,
+	ON_TOUR,
+	ON_LEAVE,
+	SUSPENDED,
+	INACTIVE
 }

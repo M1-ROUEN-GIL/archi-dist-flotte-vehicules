@@ -58,7 +58,7 @@ public class DriverService {
 		driver.setEmail(input.email());
 		driver.setPhone(input.phone());
 		driver.setEmployeeId(input.employeeId());
-		// status est active par defaut dans l'entité
+		// status est ACTIVE par defaut dans l'entité
 
 		Driver savedDriver = driverRepository.save(driver);
 
@@ -123,20 +123,12 @@ public class DriverService {
 		driverRepository.delete(driver);
 	}
 
-	//////////////////////////////////////////
-	/// gestion des permis///////////////////
-	/// /////////////////////////////////
-
 	public List<LicenseResponse> getDriverLicenses(UUID driverId){
-		// On vérifie que le chauffeur existe avant de chercher ses permis
 		findDriverEntityById(driverId);
-
 		List<DriverLicense> licenses = licenseRepository.findByDriverId(driverId);
-
 		return licenses.stream()
 				.map(this::mapToLicenseResponse)
 				.collect(Collectors.toList());
-
 	}
 
 	public LicenseResponse addLicenseToDriver(UUID driverId, LicenseInput request){
@@ -152,16 +144,12 @@ public class DriverService {
 		license.setExpiryDate(request.expiryDate());
 		license.setCountry(request.country());
 
-		// On utilise la méthode utilitaire de l'entité Driver pour gérer la relation bidirectionnelle
 		driver.addLicense(license);
 		Driver savedDriver = driverRepository.save(driver);
-		DriverLicense savedLicense = savedDriver.getLicenses().get(savedDriver.getLicenses().size() - 1); // Récupère le dernier permis ajouté
+		DriverLicense savedLicense = savedDriver.getLicenses().get(savedDriver.getLicenses().size() - 1);
 
 		return mapToLicenseResponse(savedLicense);
 	}
-
-
-	// MÉTHODES PRIVÉES UTILITAIRES (MAPPERS)
 
 	private DriverResponse mapToDriverResponse(Driver driver) {
 		return new DriverResponse(
@@ -179,7 +167,8 @@ public class DriverService {
 	}
 
 	private Driver findDriverEntityById(UUID id) {
-		 return driverRepository.findById(id)
+		return driverRepository.findById(id)
+				.or(() -> driverRepository.findByKeycloakUserId(id))
 				.orElseThrow(() -> new EntityNotFoundException("Conducteur introuvable avec l'ID : " + id));
 	}
 
@@ -192,7 +181,7 @@ public class DriverService {
 				license.getIssuedDate(),
 				license.getExpiryDate(),
 				license.getCountry(),
-				license.getIsValid() // Ce champ est calculé par la base de données via @Formula
+				license.getIsValid()
 		);
 	}
 }

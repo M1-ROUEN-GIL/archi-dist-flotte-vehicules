@@ -4,6 +4,8 @@ import com.flotte.driver.models.enums.LicenseCategory;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -21,6 +23,7 @@ public class DriverLicense {
 	private String licenseNumber;
 
 	@Enumerated(EnumType.STRING)
+	@JdbcTypeCode(SqlTypes.NAMED_ENUM)
 	@Column(nullable = false)
 	private LicenseCategory category;
 
@@ -30,7 +33,7 @@ public class DriverLicense {
 	@Column(name = "expiry_date", nullable = false)
 	private LocalDate expiryDate;
 
-	@Column(nullable = false, length = 2)
+	@Column(nullable = false, length = 50)
 	private String country = "FR";
 
 	// Hibernate va exécuter ce SQL en temps réel quand tu récupères le permis

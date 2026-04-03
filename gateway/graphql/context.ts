@@ -1,8 +1,9 @@
 import axios, { AxiosInstance } from 'axios';
+import { IncomingMessage } from 'http';
 
 const VEHICLE_SERVICE_URL = process.env.VEHICLE_SERVICE_URL || 'http://vehicle-service:8080';
 const DRIVER_SERVICE_URL = process.env.DRIVER_SERVICE_URL || 'http://driver-service:8080';
-const MAINTENANCE_SERVICE_URL = process.env.MAINTENANCE_SERVICE_URL || 'http://maintenance-service:8082';
+const MAINTENANCE_SERVICE_URL = process.env.MAINTENANCE_SERVICE_URL || 'http://maintenance-service:8080';
 
 export interface GraphQLContext {
   vehicle: VehicleClient;
@@ -12,46 +13,49 @@ export interface GraphQLContext {
 
 class BaseClient {
   protected http: AxiosInstance;
-  constructor(baseURL: string) {
-    this.http = axios.create({ baseURL });
+  constructor(baseURL: string, authHeader?: string) {
+    this.http = axios.create({ 
+      baseURL,
+      headers: authHeader ? { Authorization: authHeader } : {}
+    });
   }
 }
 
 class VehicleClient extends BaseClient {
   async listVehicles(params: any) {
-    const { data } = await this.http.get('/api/vehicles', { params });
+    const { data } = await this.http.get('/vehicles', { params });
     return data;
   }
   async getVehicle(id: string) {
-    const { data } = await this.http.get(`/api/vehicles/${id}`);
+    const { data } = await this.http.get(`/vehicles/${id}`);
     return data;
   }
   async createVehicle(input: any) {
-    const { data } = await this.http.post('/api/vehicles', input);
+    const { data } = await this.http.post('/vehicles', input);
     return data;
   }
   async updateVehicle(id: string, input: any) {
-    const { data } = await this.http.put(`/api/vehicles/${id}`, input);
+    const { data } = await this.http.put(`/vehicles/${id}`, input);
     return data;
   }
   async updateVehicleStatus(id: string, status: string) {
-    const { data } = await this.http.patch(`/api/vehicles/${id}/status`, { status });
+    const { data } = await this.http.patch(`/vehicles/${id}/status`, { status });
     return data;
   }
   async deleteVehicle(id: string) {
-    await this.http.delete(`/api/vehicles/${id}`);
+    await this.http.delete(`/vehicles/${id}`);
     return true;
   }
   async assignVehicle(vehicleId: string, driverId: string, notes?: string) {
-    const { data } = await this.http.post(`/api/vehicles/${vehicleId}/assignments`, { driver_id: driverId, notes });
+    const { data } = await this.http.post(`/vehicles/${vehicleId}/assignments`, { driver_id: driverId, notes });
     return data;
   }
   async unassignVehicle(vehicleId: string) {
-    const { data } = await this.http.delete(`/api/vehicles/${vehicleId}/assignments/current`);
+    const { data } = await this.http.delete(`/vehicles/${vehicleId}/assignments/current`);
     return data;
   }
   async getAssignments(vehicleId: string) {
-    const { data } = await this.http.get(`/api/vehicles/${vehicleId}/assignments`);
+    const { data } = await this.http.get(`/vehicles/${vehicleId}/assignments`);
     return data;
   }
 }
@@ -81,25 +85,28 @@ class DriverClient extends BaseClient {
 
 class MaintenanceClient extends BaseClient {
   async listRecords(params: any) {
-    const { data } = await this.http.get('/api/maintenance', { params });
+    const { data } = await this.http.get('/maintenance', { params });
     return data;
   }
   async getRecord(id: string) {
-    const { data } = await this.http.get(`/api/maintenance/${id}`);
+    const { data } = await this.http.get(`/maintenance/${id}`);
     return data;
   }
   async createRecord(input: any) {
-    const { data } = await this.http.post('/api/maintenance', input);
+    const { data } = await this.http.post('/maintenance', input);
     return data;
   }
   async updateStatus(id: string, input: any) {
-    const { data } = await this.http.patch(`/api/maintenance/${id}/status`, input);
+    const { data } = await this.http.patch(`/maintenance/${id}/status`, input);
     return data;
   }
 }
 
-export const createContext = (): GraphQLContext => ({
-  vehicle: new VehicleClient(VEHICLE_SERVICE_URL),
-  driver: new DriverClient(DRIVER_SERVICE_URL),
-  maintenance: new MaintenanceClient(MAINTENANCE_SERVICE_URL),
-});
+export const createContext = async ({ req }: { req: IncomingMessage }): Promise<GraphQLContext> => {
+  const authHeader = req.headers.authorization;
+  return {
+    vehicle: new VehicleClient(VEHICLE_SERVICE_URL, authHeader),
+    driver: new DriverClient(DRIVER_SERVICE_URL, authHeader),
+    maintenance: new MaintenanceClient(MAINTENANCE_SERVICE_URL, authHeader),
+  };
+};

@@ -46,7 +46,10 @@ export const vehicleResolvers = {
       },
       ctx: GraphQLContext,
     ) => {
-      return ctx.vehicle.createVehicle(args);
+      return ctx.vehicle.createVehicle({
+        ...args,
+        fuel_type: args.fuel_type.toLowerCase()
+      });
     },
 
     updateVehicleStatus: async (
@@ -54,7 +57,7 @@ export const vehicleResolvers = {
       args: { id: string; status: string },
       ctx: GraphQLContext,
     ) => {
-      return ctx.vehicle.updateVehicleStatus(args.id, args.status);
+      return ctx.vehicle.updateVehicleStatus(args.id, args.status.toLowerCase());
     },
 
     assignVehicle: async (
@@ -164,5 +167,4 @@ export const vehicleResolvers = {
     license: () => null,
     current_assignment: () => null,
   },
-
 };

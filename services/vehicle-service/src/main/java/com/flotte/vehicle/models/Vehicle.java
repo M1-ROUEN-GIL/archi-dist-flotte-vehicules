@@ -40,8 +40,7 @@ public class Vehicle {
 	@Enumerated(EnumType.STRING)
 	@JdbcTypeCode(SqlTypes.NAMED_ENUM)
 	@Column(name = "status", nullable = false)
-	private VehicleStatus status = VehicleStatus.available;
-
+	private VehicleStatus status = VehicleStatus.AVAILABLE;
 	@Column(unique = true, length = 17)
 	private String vin;
 

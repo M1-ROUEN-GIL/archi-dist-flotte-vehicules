@@ -21,6 +21,7 @@ enum FuelType {
 
 enum DriverStatus {
   ACTIVE
+  ON_TOUR
   ON_LEAVE
   SUSPENDED
   INACTIVE

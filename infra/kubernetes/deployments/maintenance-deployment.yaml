@@ -22,7 +22,7 @@ spec:
           image: maintenance-service:latest
           imagePullPolicy: Never
           ports:
-            - containerPort: 8080 # Le service écoute sur 8080 en interne
+            - containerPort: 8082 # Le service écoute sur 8082 en interne
           env:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://postgres-maintenance-service:5432/maintenance_db"

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/maintenance")
+@RequestMapping({"/maintenance", "/maintenance/"})
 public class MaintenanceController {
 
 	private final MaintenanceService service;

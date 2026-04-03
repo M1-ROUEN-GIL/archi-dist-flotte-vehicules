@@ -5,6 +5,7 @@ metadata:
   namespace: {{ .Values.namespace }}
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1$2
 spec:
   ingressClassName: nginx
   rules:
@@ -19,36 +20,44 @@ spec:
                 port:
                   number: 3000
 
-          - path: /api/vehicles
-            pathType: Prefix
+          - path: /(graphql)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: graphql-gateway-service
+                port:
+                  number: 4000
+
+          - path: /api/(vehicles)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: vehicle-service
                 port:
                   number: 8080
-          - path: /api/drivers
-            pathType: Prefix
+          - path: /api/(drivers)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: {{ .Values.services.driver.name }}
                 port:
                   number: {{ .Values.services.driver.port }}
-          - path: /api/maintenance
-            pathType: Prefix
+          - path: /api/(maintenance)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: {{ .Values.services.maintenance.name }}
                 port:
                   number: {{ .Values.services.maintenance.port }}
-          - path: /api/events
-            pathType: Prefix
+          - path: /api/(events)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: {{ .Values.services.event.name }}
                 port:
                   number: {{ .Values.services.event.port }}
-          - path: /api/location
-            pathType: Prefix
+          - path: /api/(location)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: location-service
@@ -67,7 +76,7 @@ spec:
       http:
         paths:
           - path: /jaeger
-            pathType: Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: jaeger
@@ -90,7 +99,7 @@ spec:
       http:
         paths:
           - path: /auth
-            pathType: Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: keycloak-service

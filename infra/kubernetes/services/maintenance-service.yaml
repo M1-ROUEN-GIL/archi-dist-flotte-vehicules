@@ -8,6 +8,6 @@ spec:
     app: maintenance # Doit correspondre exactement au label du pod
   ports:
     - name: http
-      port: 8082
+      port: 8080
       targetPort: 8080
   type: ClusterIP

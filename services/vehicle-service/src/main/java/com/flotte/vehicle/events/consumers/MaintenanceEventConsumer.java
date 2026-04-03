@@ -31,13 +31,13 @@ public class MaintenanceEventConsumer {
 		try {
 			switch (event.eventType()) {
 				case "MAINTENANCE_STARTED":
-					updateVehicleStatus(event.payload().vehicleId(), VehicleStatus.in_maintenance);
+					updateVehicleStatus(event.payload().vehicleId(), VehicleStatus.IN_MAINTENANCE);
 					break;
 				case "MAINTENANCE_COMPLETED":
-					updateVehicleStatus(event.payload().vehicleId(), VehicleStatus.available);
+					updateVehicleStatus(event.payload().vehicleId(), VehicleStatus.AVAILABLE);
 					break;
 				case "MAINTENANCE_CANCELLED":
-					updateVehicleStatus(event.payload().vehicleId(), VehicleStatus.available);
+					updateVehicleStatus(event.payload().vehicleId(), VehicleStatus.AVAILABLE);
 					break;
 				case "MAINTENANCE_UPDATED":
 					handleStatusUpdate(event.payload());
@@ -60,9 +60,9 @@ public class MaintenanceEventConsumer {
 				payload.vehicleId(), newStatus);
 		
 		if ("IN_PROGRESS".equals(newStatus)) {
-			updateVehicleStatus(payload.vehicleId(), VehicleStatus.in_maintenance);
+			updateVehicleStatus(payload.vehicleId(), VehicleStatus.IN_MAINTENANCE);
 		} else if ("COMPLETED".equals(newStatus) || "CANCELLED".equals(newStatus)) {
-			updateVehicleStatus(payload.vehicleId(), VehicleStatus.available);
+			updateVehicleStatus(payload.vehicleId(), VehicleStatus.AVAILABLE);
 		}
 	}
 

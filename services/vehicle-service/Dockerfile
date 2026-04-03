@@ -13,7 +13,7 @@ RUN wget -O opentelemetry-javaagent.jar https://github.com/open-telemetry/opente
 
 # On copie tout le code source et on compile le projet
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true
 
 # Étape 2 : Production
 FROM eclipse-temurin:21-jre-alpine

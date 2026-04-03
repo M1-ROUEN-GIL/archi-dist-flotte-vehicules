@@ -1,6 +1,7 @@
 package com.flotte.vehicle.repositories;
 
 import com.flotte.vehicle.models.Vehicle;
+import com.flotte.vehicle.models.enums.VehicleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -18,4 +19,8 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
 
 	@Query("SELECT v FROM Vehicle v WHERE v.id = :id AND v.deletedAt IS NULL")
 	Optional<Vehicle> findByIdActive(UUID id);
+
+	List<Vehicle> findByStatus(VehicleStatus status);
+
+	boolean existsByPlateNumber(String plateNumber);
 }

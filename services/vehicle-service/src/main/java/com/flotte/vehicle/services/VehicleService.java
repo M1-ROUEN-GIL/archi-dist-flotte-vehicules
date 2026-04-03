@@ -8,7 +8,6 @@ import com.flotte.vehicle.models.VehicleAssignment;
 import com.flotte.vehicle.models.enums.VehicleStatus;
 import com.flotte.vehicle.repositories.VehicleAssignmentRepository;
 import com.flotte.vehicle.repositories.VehicleRepository;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,38 +23,48 @@ public class VehicleService {
 	private final VehicleRepository repository;
 	private final VehicleAssignmentRepository assignmentRepository;
 	private final VehicleEventProducer eventProducer;
-	// Injection du Repository via le constructeur
-	public VehicleService(VehicleRepository repository, VehicleAssignmentRepository assignmentRepository, VehicleEventProducer eventProducer) {
+
+	public VehicleService(VehicleRepository repository, 
+						  VehicleAssignmentRepository assignmentRepository, 
+						  VehicleEventProducer eventProducer) {
 		this.repository = repository;
 		this.assignmentRepository = assignmentRepository;
 		this.eventProducer = eventProducer;
 	}
 
 	// ==========================================
-	// 1. LIRE (Tous les véhicules)
+	// 1. LISTER TOUS LES VÉHICULES
 	// ==========================================
-	public List<VehicleResponse> getAllVehicles() {
-		// On récupère uniquement ceux qui ne sont pas supprimés (deletedAt IS NULL)
-		return repository.findAllActive()
-				.stream()
-				.map(this::mapToResponse) // On transforme chaque Entité en DTO
+	public List<VehicleResponse> getAllVehicles(VehicleStatus status) {
+		List<Vehicle> list;
+		if (status != null) {
+			list = repository.findByStatus(status);
+		} else {
+			list = repository.findAllActive();
+		}
+
+		return list.stream()
+				.map(this::mapToResponse)
 				.collect(Collectors.toList());
 	}
 
 	// ==========================================
-	// 2. LIRE (Un seul véhicule)
+	// 2. RÉCUPÉRER UN VÉHICULE PAR SON ID
 	// ==========================================
 	public VehicleResponse getVehicleById(UUID id) {
 		Vehicle vehicle = repository.findByIdActive(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Véhicule introuvable"));
-
 		return mapToResponse(vehicle);
 	}
 
 	// ==========================================
-	// 3. CRÉER
+	// 3. CRÉER UN VÉHICULE
 	// ==========================================
 	public VehicleResponse createVehicle(VehicleInput input) {
+		if (repository.existsByPlateNumber(input.plateNumber())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cette plaque est déjà enregistrée");
+		}
+
 		Vehicle vehicle = new Vehicle();
 		vehicle.setPlateNumber(input.plateNumber());
 		vehicle.setBrand(input.brand());
@@ -66,10 +75,8 @@ public class VehicleService {
 		vehicle.setPayloadCapacityKg(input.payloadCapacityKg());
 		vehicle.setCargoVolumeM3(input.cargoVolumeM3());
 
-		// Le status par défaut est géré par l'entité (available)
 		Vehicle savedVehicle = repository.save(vehicle);
 
-		// 1. On fabrique le nouvel événement structuré
 		var event = VehicleEventFactory.vehicleCreated(
 				savedVehicle.getId(),
 				savedVehicle.getPlateNumber(),
@@ -79,27 +86,24 @@ public class VehicleService {
 				savedVehicle.getStatus().name(),
 				savedVehicle.getMileageKm()
 		);
-		// 2. On utilise ton Producer abstrait
 		eventProducer.publishVehicleEvent(event);
 
 		return mapToResponse(savedVehicle);
 	}
 
 	// ==========================================
-	// 4. METTRE À JOUR (Infos générales)
+	// 4. METTRE À JOUR UN VÉHICULE
 	// ==========================================
-	public VehicleResponse updateVehicle(UUID id, VehicleUpdate update) {
+	public VehicleResponse updateVehicle(UUID id, VehicleUpdate input) {
 		Vehicle vehicle = repository.findByIdActive(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Véhicule introuvable"));
 
-		// On met à jour uniquement si la valeur est fournie
-		if (update.brand() != null) vehicle.setBrand(update.brand());
-		if (update.model() != null) vehicle.setModel(update.model());
-		if (update.mileageKm() != null) vehicle.setMileageKm(update.mileageKm());
+		if (input.brand() != null) vehicle.setBrand(input.brand());
+		if (input.model() != null) vehicle.setModel(input.model());
+		if (input.mileageKm() != null) vehicle.setMileageKm(input.mileageKm());
 
 		Vehicle updatedVehicle = repository.save(vehicle);
 
-		// Publication de l'événement de mise à jour (pour Kafka)
 		var event = VehicleEventFactory.vehicleUpdated(
 				updatedVehicle.getId(),
 				updatedVehicle.getPlateNumber(),
@@ -127,8 +131,8 @@ public class VehicleService {
 		var event = VehicleEventFactory.vehicleStatusChanged(
 				updatedVehicle.getId(),
 				updatedVehicle.getPlateNumber(),
-				vehicle.getStatus().name(), // Ancien statut
-				newStatus.name() // Nouveau statut
+				vehicle.getStatus().name(), 
+				newStatus.name()
 		);
 		eventProducer.publishVehicleEvent(event);
 		return mapToResponse(updatedVehicle);
@@ -141,7 +145,6 @@ public class VehicleService {
 		Vehicle vehicle = repository.findByIdActive(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Véhicule introuvable"));
 
-		// Au lieu de faire repository.delete(vehicle), on renseigne la date de suppression
 		vehicle.setDeletedAt(OffsetDateTime.now());
 		repository.save(vehicle);
 		var event = VehicleEventFactory.vehicleDeleted(
@@ -155,7 +158,6 @@ public class VehicleService {
 // 7. LISTER LES ASSIGNATIONS D'UN VÉHICULE
 // ==========================================
 	public List<AssignmentResponse> getAssignments(UUID vehicleId) {
-		// Vérifier que le véhicule existe
 		repository.findByIdActive(vehicleId)
 				.orElseThrow(() -> new ResponseStatusException(
 						HttpStatus.NOT_FOUND, "Véhicule introuvable"));
@@ -174,19 +176,16 @@ public class VehicleService {
 				.orElseThrow(() -> new ResponseStatusException(
 						HttpStatus.NOT_FOUND, "Véhicule introuvable"));
 
-		// Vérifier qu'il n'y a pas déjà une assignation active
 		assignmentRepository.findActiveByVehicleId(vehicleId).ifPresent(a -> {
 			throw new ResponseStatusException(
 					HttpStatus.CONFLICT, "Ce véhicule a déjà une assignation active");
 		});
 
-		// Vérifier que le véhicule est disponible
-		if (vehicle.getStatus() != VehicleStatus.available) {
+		if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
 			throw new ResponseStatusException(
 					HttpStatus.CONFLICT, "Le véhicule n'est pas disponible");
 		}
 
-		// Créer l'assignation
 		VehicleAssignment assignment = new VehicleAssignment();
 		assignment.setVehicleId(vehicleId);
 		assignment.setDriverId(input.driverId());
@@ -194,8 +193,9 @@ public class VehicleService {
 		assignment.setCreatedBy(input.createdBy());
 		assignment.setStartedAt(OffsetDateTime.now());
 
-		// Passer le véhicule en mission automatiquement
-		vehicle.setStatus(VehicleStatus.on_delivery);
+		assignment = assignmentRepository.save(assignment);
+
+		vehicle.setStatus(VehicleStatus.ON_DELIVERY);
 		repository.save(vehicle);
 
 		var event = VehicleEventFactory.vehicleAssigned(
@@ -206,7 +206,7 @@ public class VehicleService {
 		);
 		eventProducer.publishAssignmentEvent(event);
 
-		return AssignmentResponse.fromEntity(assignmentRepository.save(assignment));
+		return AssignmentResponse.fromEntity(assignment);
 	}
 
 	// ==========================================
@@ -221,7 +221,6 @@ public class VehicleService {
 				.orElseThrow(() -> new ResponseStatusException(
 						HttpStatus.NOT_FOUND, "Aucune assignation active pour ce véhicule"));
 
-		// Terminer l'assignation
 		assignment.setEndedAt(OffsetDateTime.now());
 		assignmentRepository.save(assignment);
 
@@ -231,16 +230,13 @@ public class VehicleService {
 				assignment.getDriverId()
 		);
 		eventProducer.publishAssignmentEvent(event);
-		// Remettre le véhicule disponible automatiquement
-		vehicle.setStatus(VehicleStatus.available);
-			repository.save(vehicle);
+		
+		vehicle.setStatus(VehicleStatus.AVAILABLE);
+		repository.save(vehicle);
 
 		return AssignmentResponse.fromEntity(assignment);
 	}
 
-	// ==========================================
-	// FONCTION UTILITAIRE (Mapping)
-	// ==========================================
 	private VehicleResponse mapToResponse(Vehicle entity) {
 		return new VehicleResponse(
 				entity.getId(),

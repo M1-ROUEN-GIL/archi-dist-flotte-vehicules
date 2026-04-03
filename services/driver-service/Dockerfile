@@ -12,7 +12,7 @@ RUN mvn dependency:go-offline
 
 # On copie tout le code source et on compile le projet
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true
 
 # ==========================================
 # Étape 2 : Production (Exécution)

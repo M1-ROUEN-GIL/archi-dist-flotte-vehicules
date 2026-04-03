@@ -11,7 +11,6 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/gestion-flotte}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/gestion-flotte/protocol/openid-connect/certs}
 
   # Configuration de la base de donnees (PostgreSQL)

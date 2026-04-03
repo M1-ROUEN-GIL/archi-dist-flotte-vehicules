@@ -32,7 +32,7 @@ COPY --from=builder /app/graphql/schemas ./dist/graphql/schemas
 ENV PORT=4000
 ENV VEHICLE_SERVICE_URL=http://vehicle-service:8080
 ENV DRIVER_SERVICE_URL=http://driver-service:8080
-ENV MAINTENANCE_SERVICE_URL=http://maintenance-service:8082
+ENV MAINTENANCE_SERVICE_URL=http://maintenance-service:8080
 
 EXPOSE 4000
 

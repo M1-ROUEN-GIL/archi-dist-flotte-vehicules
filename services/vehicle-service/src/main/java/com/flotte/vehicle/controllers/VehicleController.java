@@ -1,6 +1,7 @@
 package com.flotte.vehicle.controllers;
 
 import com.flotte.vehicle.dto.*;
+import com.flotte.vehicle.models.enums.VehicleStatus;
 import com.flotte.vehicle.services.VehicleService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping({"/api/vehicles", "/api/vehicles/"})
+@RequestMapping({"/vehicles", "/vehicles/"})
 public class VehicleController {
 
 	private final VehicleService service;
@@ -23,8 +24,8 @@ public class VehicleController {
 
 	// 1. LISTER TOUS LES VÉHICULES
 	@GetMapping
-	public List<VehicleResponse> getAllVehicles() {
-		return service.getAllVehicles();
+	public List<VehicleResponse> getAllVehicles(@RequestParam(required = false) VehicleStatus status) {
+		return service.getAllVehicles(status);
 	}
 
 	// 2. RÉCUPÉRER UN VÉHICULE PAR ID

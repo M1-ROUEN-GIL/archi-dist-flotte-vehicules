@@ -28,7 +28,7 @@ USER spring:spring
 # On récupère le fichier .jar généré à l'étape 1
 COPY --from=builder /build/target/*.jar app.jar
 
-# On expose le port sur lequel Spring Boot va tourner (par défaut 8080)
+# On expose le port sur lequel Spring Boot va tourner (ici 8080)
 EXPOSE 8080
 
 # Commande de démarrage
