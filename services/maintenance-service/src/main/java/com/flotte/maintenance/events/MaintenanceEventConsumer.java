@@ -27,4 +27,13 @@ public class MaintenanceEventConsumer {
 			maintenanceService.processMileageUpdate(payload.vehicleId(), payload.mileageKm());
 		}
 	}
+
+	@KafkaListener(topics = "flotte.maintenance.events", groupId = "maintenance-compensation-group")
+	public void consumeMaintenanceEvent(KafkaEventEnvelope<MaintenancePayload> event) {
+		if ("MAINTENANCE_REJECTED".equals(event.eventType())) {
+			logger.warn("REÇU MAINTENANCE_REJECTED pour record {}. Annulation en cours (Saga compensation).", 
+					event.payload().recordId());
+			maintenanceService.cancelRecord(event.payload().recordId(), "Le service véhicule a rejeté la mise à jour.");
+		}
+	}
 }

@@ -2,6 +2,8 @@ package com.flotte.vehicle.events.consumers;
 
 import com.flotte.maintenance.events.MaintenancePayload;
 import com.flotte.vehicle.events.KafkaEventEnvelope;
+import com.flotte.vehicle.events.VehicleEventFactory;
+import com.flotte.vehicle.events.producers.VehicleEventProducer;
 import com.flotte.vehicle.models.enums.VehicleStatus;
 import com.flotte.vehicle.services.VehicleService;
 import org.slf4j.Logger;
@@ -14,9 +16,11 @@ public class MaintenanceEventConsumer {
 
 	private static final Logger log = LoggerFactory.getLogger(MaintenanceEventConsumer.class);
 	private final VehicleService vehicleService;
+	private final VehicleEventProducer eventProducer;
 
-	public MaintenanceEventConsumer(VehicleService vehicleService) {
+	public MaintenanceEventConsumer(VehicleService vehicleService, VehicleEventProducer eventProducer) {
 		this.vehicleService = vehicleService;
+		this.eventProducer = eventProducer;
 	}
 
 	@KafkaListener(topics = "flotte.maintenance.events", groupId = "vehicle-maintenance-group")
@@ -38,11 +42,15 @@ public class MaintenanceEventConsumer {
 				case "MAINTENANCE_UPDATED":
 					handleStatusUpdate(event.payload());
 					break;
+				case "MAINTENANCE_REJECTED":
+					log.debug("MAINTENANCE_REJECTED ignoré par le consommateur (boucle possible)");
+					break;
 				default:
 					log.debug("Type d'événement ignoré par le service véhicule : {}", event.eventType());
 			}
 		} catch (Exception e) {
-			log.error("Erreur lors du traitement de l'événement de maintenance pour le véhicule {}", event.payload().vehicleId(), e);
+			log.error("Erreur lors du traitement de l'événement de maintenance pour le véhicule {}. Déclenchement de la compensation.", event.payload().vehicleId(), e);
+			eventProducer.publishMaintenanceEvent(VehicleEventFactory.maintenanceRejected(event.payload()));
 		}
 	}
 

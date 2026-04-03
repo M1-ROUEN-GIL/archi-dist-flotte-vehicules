@@ -366,11 +366,18 @@ Le Gateway est buildé dans une image Docker \texttt{graphql-gateway:latest} et 
 % ------------------------------------------------------------
 \section{Architecture Événementielle (Saga Pattern)}
 
-Les services participent au cycle de vie global via Kafka :
-\begin{itemize}
-    \item \textbf{Producers} : Publication sur \texttt{flotte.maintenance.events} et \texttt{flotte.driver.events}.
-    \item \textbf{Consumers} : Le service Maintenance écoute \texttt{flotte.vehicules.events} pour le kilométrage ; le service Driver écoute les assignations de véhicules.
-\end{itemize}
+Le système implémente le pattern Saga par \textbf{Chorégraphie}, assurant la cohérence éventuelle entre les services distribués.
+
+\subsection{Transactions Compensatoires}
+Pour garantir l'intégrité des données, un mécanisme de compensation a été mis en \oe{}uvre sur le flux de maintenance :
+\begin{enumerate}
+    \item \textbf{T1 (Action)} : Le service Maintenance crée ou démarre une intervention (\texttt{MAINTENANCE\_STARTED}).
+    \item \textbf{T2 (Réaction)} : Le service Véhicule tente de passer le véhicule en \texttt{in\_maintenance}.
+    \item \textbf{C1 (Compensation)} : En cas d'échec de T2, le service Véhicule publie un événement \texttt{MAINTENANCE\_REJECTED}. Le service Maintenance consomme cet événement et \textbf{annule} automatiquement la fiche d'intervention (\texttt{cancelRecord}) pour restaurer l'état initial.
+\end{enumerate}
+
+\subsection{Flux de données}
+...
 
 % ------------------------------------------------------------
 % TESTS

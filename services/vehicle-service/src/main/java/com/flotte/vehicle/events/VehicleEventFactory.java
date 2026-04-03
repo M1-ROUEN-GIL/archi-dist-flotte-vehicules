@@ -1,5 +1,6 @@
 package com.flotte.vehicle.events;
 
+import com.flotte.maintenance.events.MaintenancePayload;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -40,6 +41,12 @@ public class VehicleEventFactory {
 	public static KafkaEventEnvelope<AssignmentPayload> vehicleUnassigned(UUID assignmentId, UUID vehicleId, UUID driverId) {
 		AssignmentPayload payload = new AssignmentPayload(assignmentId, vehicleId, driverId, null, OffsetDateTime.now(), null);
 		return buildEnvelope("VEHICLE_UNASSIGNED", payload);
+	}
+
+	// --- REJECTION (Saga compensation) ---
+
+	public static KafkaEventEnvelope<MaintenancePayload> maintenanceRejected(MaintenancePayload originalPayload) {
+		return buildEnvelope("MAINTENANCE_REJECTED", originalPayload);
 	}
 
 	// --- MÉTHODE UTILITAIRE INTERNE ---

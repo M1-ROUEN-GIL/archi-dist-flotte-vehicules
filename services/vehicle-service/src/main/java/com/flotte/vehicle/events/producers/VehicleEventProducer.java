@@ -16,6 +16,7 @@ public class VehicleEventProducer {
 	// Définition des DEUX topics selon le contrat
 	private static final String VEHICLE_TOPIC = "flotte.vehicules.events";
 	private static final String ASSIGNMENT_TOPIC = "flotte.assignments.events";
+	private static final String MAINTENANCE_TOPIC = "flotte.maintenance.events";
 
 	private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -36,5 +37,10 @@ public class VehicleEventProducer {
 		kafkaTemplate.send(ASSIGNMENT_TOPIC, key, event);
 		log.info("Kafka event publié sur {} → type={} vehicleId={} driverId={}",
 				ASSIGNMENT_TOPIC, event.eventType(), key, event.payload().driverId());
+	}
+
+	public void publishMaintenanceEvent(KafkaEventEnvelope<?> event) {
+		kafkaTemplate.send(MAINTENANCE_TOPIC, event);
+		log.info("Kafka event publié sur {} → type={}", MAINTENANCE_TOPIC, event.eventType());
 	}
 }

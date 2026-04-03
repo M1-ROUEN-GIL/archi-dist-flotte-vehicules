@@ -91,6 +91,21 @@ public class MaintenanceService {
 		return repository.save(record);
 	}
 
+	@Transactional
+	public void cancelRecord(UUID id, String reason) {
+		MaintenanceRecord record = repository.findById(id).orElse(null);
+		if (record != null && record.getStatus() != MaintenanceStatus.CANCELLED) {
+			MaintenanceStatus oldStatus = record.getStatus();
+			record.setStatus(MaintenanceStatus.CANCELLED);
+			if (reason != null) {
+				String newNotes = (record.getNotes() != null ? record.getNotes() + " | " : "") + "ANNULATION SAGA: " + reason;
+				record.setNotes(newNotes);
+			}
+			repository.save(record);
+			eventProducer.publishMaintenanceEvent(MaintenanceEventFactory.cancelled(record, oldStatus));
+		}
+	}
+
 	private void publishStatusChangeEvent(MaintenanceRecord record, MaintenanceStatus oldStatus) {
 		if (record.getStatus() == MaintenanceStatus.COMPLETED) {
 			record.setCompletedDate(LocalDate.now());
