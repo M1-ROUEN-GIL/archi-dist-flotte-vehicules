@@ -30,5 +30,5 @@ services:
     replicas: 1
 
 # Configuration Keycloak (SSO)
-keycloak_issuer: "https://flotte.local/auth/realms/gestion-flotte"
-keycloak_jwk_set_uri: "https://flotte.local/auth/realms/gestion-flotte/protocol/openid-connect/certs"
+keycloak_issuer: "http://keycloak-service:8080/auth/realms/gestion-flotte"
+keycloak_jwk_set_uri: "http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs"

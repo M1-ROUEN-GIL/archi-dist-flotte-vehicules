@@ -4,7 +4,7 @@ metadata:
   name: maintenance-deployment
   namespace: flotte-namespace
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: maintenance
@@ -13,32 +13,27 @@ spec:
       labels:
         app: maintenance
     spec:
+      hostAliases:
+      - ip: "10.96.221.20"
+        hostnames:
+        - "flotte.local"
       containers:
         - name: maintenance-app
           image: maintenance-service:latest
           imagePullPolicy: Never
           ports:
-            - containerPort: 8082
+            - containerPort: 8080 # Le service écoute sur 8080 en interne
           env:
             - name: SPRING_DATASOURCE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: db-secrets
-                  key: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-maintenance-service:5432/maintenance_db"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "postgres"
             - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: db-secrets
-                  key: SPRING_DATASOURCE_PASSWORD
+              value: "pK4v3YrwTZ"
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              valueFrom:
-                secretKeyRef:
-                  name: db-secrets
-                  key: KAFKA_BROKER
-            - name: KEYCLOAK_ISSUER_URI
-              value: "https://flotte.local/auth/realms/gestion-flotte"
+              value: "kafka-service:9092"
             - name: KEYCLOAK_JWK_SET_URI
-              value: "https://flotte.local/auth/realms/gestion-flotte/protocol/openid-connect/certs"
+              value: "http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs"
           resources:
             requests:
               memory: "256Mi"
@@ -46,4 +41,3 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
-

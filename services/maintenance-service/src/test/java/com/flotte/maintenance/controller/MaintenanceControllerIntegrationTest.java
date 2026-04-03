@@ -26,51 +26,51 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @org.springframework.test.context.ActiveProfiles("test")
 class MaintenanceControllerIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+	@Autowired
+	private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+	@Autowired
+	private ObjectMapper objectMapper;
 
-    @MockBean
-    private MaintenanceService service;
+	@MockBean
+	private MaintenanceService service;
 
-    @Test
-    @WithMockUser(roles = "admin")
-    void createRecord_WhenAdmin_ShouldReturnCreated() throws Exception {
-        MaintenanceCreateRequest request = new MaintenanceCreateRequest(
-                UUID.randomUUID(), MaintenanceType.PREVENTIVE, MaintenancePriority.MEDIUM,
-                LocalDate.now().plusDays(10), "Test description");
+	@Test
+	@WithMockUser(roles = "admin")
+	void createRecord_WhenAdmin_ShouldReturnCreated() throws Exception {
+		MaintenanceCreateRequest request = new MaintenanceCreateRequest(
+				UUID.randomUUID(), MaintenanceType.PREVENTIVE, MaintenancePriority.MEDIUM,
+				LocalDate.now().plusDays(10), "Test description");
 
-        mockMvc.perform(post("/api/maintenance")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
-    }
+		mockMvc.perform(post("/api/maintenance")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isCreated());
+	}
 
-    @Test
-    @WithMockUser(roles = "technician")
-    void createRecord_WhenTechnician_ShouldReturnForbidden() throws Exception {
-        MaintenanceCreateRequest request = new MaintenanceCreateRequest(
-                UUID.randomUUID(), MaintenanceType.PREVENTIVE, MaintenancePriority.MEDIUM,
-                LocalDate.now().plusDays(10), "Test description");
+	@Test
+	@WithMockUser(roles = "technician")
+	void createRecord_WhenTechnician_ShouldReturnForbidden() throws Exception {
+		MaintenanceCreateRequest request = new MaintenanceCreateRequest(
+				UUID.randomUUID(), MaintenanceType.PREVENTIVE, MaintenancePriority.MEDIUM,
+				LocalDate.now().plusDays(10), "Test description");
 
-        mockMvc.perform(post("/api/maintenance")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
-    }
+		mockMvc.perform(post("/api/maintenance")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isForbidden());
+	}
 
-    @Test
-    @WithMockUser(roles = "technician")
-    void getVehicleHistory_WhenTechnician_ShouldReturnOk() throws Exception {
-        mockMvc.perform(get("/api/maintenance/vehicle/" + UUID.randomUUID()))
-                .andExpect(status().isOk());
-    }
+	@Test
+	@WithMockUser(roles = "technician")
+	void getVehicleHistory_WhenTechnician_ShouldReturnOk() throws Exception {
+		mockMvc.perform(get("/api/maintenance/vehicle/" + UUID.randomUUID()))
+				.andExpect(status().isOk());
+	}
 
-    @Test
-    void getVehicleHistory_WhenNotAuthenticated_ShouldReturnUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/maintenance/vehicle/" + UUID.randomUUID()))
-                .andExpect(status().isUnauthorized());
-    }
+	@Test
+	void getVehicleHistory_WhenNotAuthenticated_ShouldReturnUnauthorized() throws Exception {
+		mockMvc.perform(get("/api/maintenance/vehicle/" + UUID.randomUUID()))
+				.andExpect(status().isUnauthorized());
+	}
 }

@@ -9,9 +9,9 @@ import java.util.UUID;
 
 @Repository
 public interface DriverRepository extends JpaRepository<Driver, UUID> {
-    Optional<Driver> findByEmail(String email);
+	Optional<Driver> findByEmail(String email);
 
-    Optional<Driver> findByKeycloakUserId(UUID keycloakUserId);
+	Optional<Driver> findByKeycloakUserId(UUID keycloakUserId);
 
-    boolean existsByEmail(String email);
+	boolean existsByEmail(String email);
 }

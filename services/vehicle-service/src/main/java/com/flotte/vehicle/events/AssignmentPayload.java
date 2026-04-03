@@ -4,10 +4,10 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record AssignmentPayload(
-        UUID assignmentId,
-        UUID vehicleId,
-        UUID driverId,
-        OffsetDateTime startedAt,
-        OffsetDateTime endedAt,
-        String notes
+		UUID assignmentId,
+		UUID vehicleId,
+		UUID driverId,
+		OffsetDateTime startedAt,
+		OffsetDateTime endedAt,
+		String notes
 ) {}

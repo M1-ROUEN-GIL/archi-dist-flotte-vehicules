@@ -7,9 +7,9 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record MaintenanceCreateRequest(
-        UUID vehicleId,
-        MaintenanceType type,
-        MaintenancePriority priority,
-        LocalDate scheduledDate,
-        String description
+		UUID vehicleId,
+		MaintenanceType type,
+		MaintenancePriority priority,
+		LocalDate scheduledDate,
+		String description
 ) {}

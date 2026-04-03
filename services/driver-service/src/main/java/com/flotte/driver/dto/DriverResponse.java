@@ -5,15 +5,15 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record DriverResponse(
-        UUID id,
-        UUID keycloakUserId,
-        String firstName,
-        String lastName,
-        String email,
-        String phone,
-        String employeeId,
-        DriverStatus status,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
+		UUID id,
+		UUID keycloakUserId,
+		String firstName,
+		String lastName,
+		String email,
+		String phone,
+		String employeeId,
+		DriverStatus status,
+		OffsetDateTime createdAt,
+		OffsetDateTime updatedAt
 ) {
 }

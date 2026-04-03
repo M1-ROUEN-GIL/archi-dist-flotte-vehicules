@@ -4,15 +4,19 @@ metadata:
   name: driver-deployment
   namespace: flotte-namespace
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: event
+      app: driver
   template:
     metadata:
       labels:
-        app: event
+        app: driver
     spec:
+      hostAliases:
+      - ip: "10.96.221.20"
+        hostnames:
+        - "flotte.local"
       containers:
         - name: driver-app
           image: driver-service:latest
@@ -25,6 +29,11 @@ spec:
                   secretKeyRef:
                     name: db-secrets
                     key: SPRING_DATASOURCE_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                  secretKeyRef:
+                    name: db-secrets
+                    key: SPRING_DATASOURCE_USERNAME
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                   secretKeyRef:
@@ -35,6 +44,10 @@ spec:
                 secretKeyRef:
                    name: db-secrets
                    key: KAFKA_BROKER
+            - name: KEYCLOAK_ISSUER_URI
+              value: "https://flotte.local/auth/realms/gestion-flotte"
+            - name: KEYCLOAK_JWK_SET_URI
+              value: "http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs"
           resources:
             requests:
               memory: "256Mi"
@@ -42,4 +55,3 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
-

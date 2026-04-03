@@ -27,116 +27,116 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class MaintenanceServiceTest {
 
-    @Mock
-    private MaintenanceRepository repository;
+	@Mock
+	private MaintenanceRepository repository;
 
-    @Mock
-    private MaintenanceEventProducer eventProducer;
+	@Mock
+	private MaintenanceEventProducer eventProducer;
 
-    @InjectMocks
-    private MaintenanceService service;
+	@InjectMocks
+	private MaintenanceService service;
 
-    private UUID vehicleId;
-    private MaintenanceRecord record;
+	private UUID vehicleId;
+	private MaintenanceRecord record;
 
-    @BeforeEach
-    void setUp() {
-        vehicleId = UUID.randomUUID();
-        record = new MaintenanceRecord();
-        record.setId(UUID.randomUUID());
-        record.setVehicleId(vehicleId);
-        record.setType(MaintenanceType.PREVENTIVE);
-        record.setStatus(MaintenanceStatus.SCHEDULED);
-        record.setScheduledDate(LocalDate.now().plusDays(7));
-    }
+	@BeforeEach
+	void setUp() {
+		vehicleId = UUID.randomUUID();
+		record = new MaintenanceRecord();
+		record.setId(UUID.randomUUID());
+		record.setVehicleId(vehicleId);
+		record.setType(MaintenanceType.PREVENTIVE);
+		record.setStatus(MaintenanceStatus.SCHEDULED);
+		record.setScheduledDate(LocalDate.now().plusDays(7));
+	}
 
-    @Test
-    void createRecord_ShouldSaveAndPublishEvent() {
-        MaintenanceCreateRequest request = new MaintenanceCreateRequest(
-                vehicleId, MaintenanceType.PREVENTIVE, MaintenancePriority.MEDIUM,
-                LocalDate.now().plusDays(7), "Description");
+	@Test
+	void createRecord_ShouldSaveAndPublishEvent() {
+		MaintenanceCreateRequest request = new MaintenanceCreateRequest(
+				vehicleId, MaintenanceType.PREVENTIVE, MaintenancePriority.MEDIUM,
+				LocalDate.now().plusDays(7), "Description");
 
-        when(repository.save(any(MaintenanceRecord.class))).thenReturn(record);
+		when(repository.save(any(MaintenanceRecord.class))).thenReturn(record);
 
-        MaintenanceRecord saved = service.createRecord(request);
+		MaintenanceRecord saved = service.createRecord(request);
 
-        assertNotNull(saved);
-        assertEquals(vehicleId, saved.getVehicleId());
-        verify(repository).save(any(MaintenanceRecord.class));
-        verify(eventProducer).publishMaintenanceEvent(any());
-    }
+		assertNotNull(saved);
+		assertEquals(vehicleId, saved.getVehicleId());
+		verify(repository).save(any(MaintenanceRecord.class));
+		verify(eventProducer).publishMaintenanceEvent(any());
+	}
 
-    @Test
-    void updateStatus_ToCompleted_ShouldSetDateAndPublishEvent() {
-        MaintenanceStatusUpdate update = new MaintenanceStatusUpdate(
-                MaintenanceStatus.COMPLETED, null, "Notes", 10000, 20000);
+	@Test
+	void updateStatus_ToCompleted_ShouldSetDateAndPublishEvent() {
+		MaintenanceStatusUpdate update = new MaintenanceStatusUpdate(
+				MaintenanceStatus.COMPLETED, null, "Notes", 10000, 20000);
 
-        when(repository.findById(record.getId())).thenReturn(Optional.of(record));
-        when(repository.save(any())).thenReturn(record);
+		when(repository.findById(record.getId())).thenReturn(Optional.of(record));
+		when(repository.save(any())).thenReturn(record);
 
-        MaintenanceRecord updated = service.updateStatus(record.getId(), update);
+		MaintenanceRecord updated = service.updateStatus(record.getId(), update);
 
-        assertEquals(MaintenanceStatus.COMPLETED, updated.getStatus());
-        assertNotNull(updated.getCompletedDate());
-        verify(eventProducer).publishMaintenanceEvent(any());
-    }
+		assertEquals(MaintenanceStatus.COMPLETED, updated.getStatus());
+		assertNotNull(updated.getCompletedDate());
+		verify(eventProducer).publishMaintenanceEvent(any());
+	}
 
-    @Test
-    void checkOverdueMaintenance_ShouldMarkOverdueAndAlert() {
-        record.setScheduledDate(LocalDate.now().minusDays(1));
-        when(repository.findByStatus(MaintenanceStatus.SCHEDULED)).thenReturn(List.of(record));
+	@Test
+	void checkOverdueMaintenance_ShouldMarkOverdueAndAlert() {
+		record.setScheduledDate(LocalDate.now().minusDays(1));
+		when(repository.findByStatus(MaintenanceStatus.SCHEDULED)).thenReturn(List.of(record));
 
-        service.checkOverdueMaintenance();
+		service.checkOverdueMaintenance();
 
-        assertEquals(MaintenanceStatus.OVERDUE, record.getStatus());
-        verify(eventProducer).publishAlert(any());
-    }
+		assertEquals(MaintenanceStatus.OVERDUE, record.getStatus());
+		verify(eventProducer).publishAlert(any());
+	}
 
-    @Test
-    void updateStatus_ToInProgress_ShouldPublishStartedEvent() {
-        MaintenanceStatusUpdate update = new MaintenanceStatusUpdate(
-                MaintenanceStatus.IN_PROGRESS, null, null, null, null);
+	@Test
+	void updateStatus_ToInProgress_ShouldPublishStartedEvent() {
+		MaintenanceStatusUpdate update = new MaintenanceStatusUpdate(
+				MaintenanceStatus.IN_PROGRESS, null, null, null, null);
 
-        when(repository.findById(record.getId())).thenReturn(Optional.of(record));
-        when(repository.save(any())).thenReturn(record);
+		when(repository.findById(record.getId())).thenReturn(Optional.of(record));
+		when(repository.save(any())).thenReturn(record);
 
-        service.updateStatus(record.getId(), update);
+		service.updateStatus(record.getId(), update);
 
-        verify(eventProducer).publishMaintenanceEvent(argThat(e -> e.eventType().equals("maintenance.started")));
-    }
+		verify(eventProducer).publishMaintenanceEvent(argThat(e -> e.eventType().equals("MAINTENANCE_STARTED")));
+	}
 
-    @Test
-    void updateStatus_ToCancelled_ShouldPublishCancelledEvent() {
-        MaintenanceStatusUpdate update = new MaintenanceStatusUpdate(
-                MaintenanceStatus.CANCELLED, null, null, null, null);
+	@Test
+	void updateStatus_ToCancelled_ShouldPublishCancelledEvent() {
+		MaintenanceStatusUpdate update = new MaintenanceStatusUpdate(
+				MaintenanceStatus.CANCELLED, null, null, null, null);
 
-        when(repository.findById(record.getId())).thenReturn(Optional.of(record));
-        when(repository.save(any())).thenReturn(record);
+		when(repository.findById(record.getId())).thenReturn(Optional.of(record));
+		when(repository.save(any())).thenReturn(record);
 
-        service.updateStatus(record.getId(), update);
+		service.updateStatus(record.getId(), update);
 
-        verify(eventProducer).publishMaintenanceEvent(argThat(e -> e.eventType().equals("maintenance.cancelled")));
-    }
+		verify(eventProducer).publishMaintenanceEvent(argThat(e -> e.eventType().equals("MAINTENANCE_CANCELLED")));
+	}
 
-    @Test
-    void getVehicleHistory_ShouldReturnList() {
-        when(repository.findByVehicleId(vehicleId)).thenReturn(List.of(record));
-        List<MaintenanceRecord> history = service.getVehicleHistory(vehicleId);
-        assertFalse(history.isEmpty());
-        assertEquals(1, history.size());
-    }
+	@Test
+	void getVehicleHistory_ShouldReturnList() {
+		when(repository.findByVehicleId(vehicleId)).thenReturn(List.of(record));
+		List<MaintenanceRecord> history = service.getVehicleHistory(vehicleId);
+		assertFalse(history.isEmpty());
+		assertEquals(1, history.size());
+	}
 
-    @Test
-    void getRecordById_ShouldReturnRecord() {
-        when(repository.findById(record.getId())).thenReturn(Optional.of(record));
-        MaintenanceRecord found = service.getRecordById(record.getId());
-        assertNotNull(found);
-        assertEquals(record.getId(), found.getId());
-    }
+	@Test
+	void getRecordById_ShouldReturnRecord() {
+		when(repository.findById(record.getId())).thenReturn(Optional.of(record));
+		MaintenanceRecord found = service.getRecordById(record.getId());
+		assertNotNull(found);
+		assertEquals(record.getId(), found.getId());
+	}
 
-    @Test
-    void getRecordById_WhenNotFound_ShouldThrowException() {
-        when(repository.findById(any())).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> service.getRecordById(UUID.randomUUID()));
-    }
+	@Test
+	void getRecordById_WhenNotFound_ShouldThrowException() {
+		when(repository.findById(any())).thenReturn(Optional.empty());
+		assertThrows(RuntimeException.class, () -> service.getRecordById(UUID.randomUUID()));
+	}
 }

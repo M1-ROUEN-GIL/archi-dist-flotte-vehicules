@@ -13,6 +13,8 @@ services:
       # --- 1. SCHÉMAS (01 à 10) ---
       - ./services/vehicle-service/db/migrations/01-vehicle.sql:/docker-entrypoint-initdb.d/01-vehicle.sql
       - ./services/driver-service/db/migrations/02-driver.sql:/docker-entrypoint-initdb.d/02-driver.sql
+      - ./services/events-service/db/migrations/04-events.sql:/docker-entrypoint-initdb.d/04-events.sql
+      - ./services/location-service/db/migrations/05-location.sql:/docker-entrypoint-initdb.d/05-location.sql
 
       # --- 2. DONNÉES / SEEDS (20 à 30) ---
       - ./services/vehicle-service/db/seeds/20-vehicle-seed.sql:/docker-entrypoint-initdb.d/20-vehicle-seed.sql
@@ -32,7 +34,7 @@ services:
     ports:
       - "5435:5432"
     volumes:
-      - ./db/03-maintenance.sql:/docker-entrypoint-initdb.d/01-maintenance.sql
+      - ./services/maintenance-service/db/migrations/03-maintenance.sql:/docker-entrypoint-initdb.d/01-maintenance.sql
       - postgres_maintenance_data:/var/lib/postgresql/data
     restart: unless-stopped
 

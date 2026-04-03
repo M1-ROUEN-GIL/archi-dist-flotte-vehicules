@@ -7,8 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 @org.springframework.test.context.ActiveProfiles("test")
 class MaintenanceServiceApplicationTests {
 
-    @Test
-    void contextLoads() {
-    }
+	@Test
+	void contextLoads() {
+	}
 
 }

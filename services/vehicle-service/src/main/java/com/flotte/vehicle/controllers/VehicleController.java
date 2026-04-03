@@ -11,82 +11,82 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/vehicles") // C'est la route de base définie dans ton OpenAPI
+@RequestMapping({"/api/vehicles", "/api/vehicles/"})
 public class VehicleController {
 
-    private final VehicleService service;
+	private final VehicleService service;
 
-    // Injection par constructeur
-    public VehicleController(VehicleService service) {
-        this.service = service;
-    }
+	// Injection par constructeur
+	public VehicleController(VehicleService service) {
+		this.service = service;
+	}
 
-    // 1. LISTER TOUS LES VÉHICULES
-    @GetMapping
-    public List<VehicleResponse> getAllVehicles() {
-        return service.getAllVehicles();
-    }
+	// 1. LISTER TOUS LES VÉHICULES
+	@GetMapping
+	public List<VehicleResponse> getAllVehicles() {
+		return service.getAllVehicles();
+	}
 
-    // 2. RÉCUPÉRER UN VÉHICULE PAR ID
-    @GetMapping("/{id}")
-    public VehicleResponse getVehicleById(@PathVariable UUID id) {
-        return service.getVehicleById(id);
-    }
+	// 2. RÉCUPÉRER UN VÉHICULE PAR ID
+	@GetMapping("/{id}")
+	public VehicleResponse getVehicleById(@PathVariable UUID id) {
+		return service.getVehicleById(id);
+	}
 
-    // 3. CRÉER UN VÉHICULE
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('admin')")
-    public VehicleResponse createVehicle(@Valid @RequestBody VehicleInput input) {
-        return service.createVehicle(input);
-    }
+	// 3. CRÉER UN VÉHICULE
+	@PostMapping
+	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('admin')")
+	public VehicleResponse createVehicle(@Valid @RequestBody VehicleInput input) {
+		return service.createVehicle(input);
+	}
 
-    // 4. METTRE À JOUR LES INFOS
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('admin')")
-    public VehicleResponse updateVehicle(
-            @PathVariable UUID id,
-            @Valid @RequestBody VehicleUpdate update) {
-        return service.updateVehicle(id, update);
-    }
+	// 4. METTRE À JOUR LES INFOS
+	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('admin')")
+	public VehicleResponse updateVehicle(
+			@PathVariable UUID id,
+			@Valid @RequestBody VehicleUpdate update) {
+		return service.updateVehicle(id, update);
+	}
 
-    // 5. CHANGER LE STATUT
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('admin', 'technician')")
-    public VehicleResponse updateVehicleStatus(
-            @PathVariable UUID id,
-            @Valid @RequestBody VehicleStatusInput statusInput) {
-        return service.updateVehicleStatus(id, statusInput.status());
-    }
+	// 5. CHANGER LE STATUT
+	@PatchMapping("/{id}/status")
+	@PreAuthorize("hasAnyRole('admin', 'technician')")
+	public VehicleResponse updateVehicleStatus(
+			@PathVariable UUID id,
+			@Valid @RequestBody VehicleStatusInput statusInput) {
+		return service.updateVehicleStatus(id, statusInput.status());
+	}
 
-    // 6. SUPPRIMER UN VÉHICULE (Soft Delete)
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('admin')")
-    public void deleteVehicle(@PathVariable UUID id) {
-        service.deleteVehicle(id);
-    }
+	// 6. SUPPRIMER UN VÉHICULE (Soft Delete)
+	@DeleteMapping("/{id}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@PreAuthorize("hasRole('admin')")
+	public void deleteVehicle(@PathVariable UUID id) {
+		service.deleteVehicle(id);
+	}
 
-    // GET /vehicles/{id}/assignments
-    @GetMapping("/{id}/assignments")
-    public List<AssignmentResponse> getAssignments(@PathVariable UUID id) {
-        return service.getAssignments(id);
-    }
+	// GET /vehicles/{id}/assignments
+	@GetMapping("/{id}/assignments")
+	public List<AssignmentResponse> getAssignments(@PathVariable UUID id) {
+		return service.getAssignments(id);
+	}
 
-    // POST /vehicles/{id}/assignments
-    @PostMapping("/{id}/assignments")
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('admin')")
-    public AssignmentResponse createAssignment(
-            @PathVariable UUID id,
-            @Valid @RequestBody AssignmentInput input) {
-        return service.createAssignment(id, input);
-    }
+	// POST /vehicles/{id}/assignments
+	@PostMapping("/{id}/assignments")
+	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('admin')")
+	public AssignmentResponse createAssignment(
+			@PathVariable UUID id,
+			@Valid @RequestBody AssignmentInput input) {
+		return service.createAssignment(id, input);
+	}
 
-    // DELETE /vehicles/{id}/assignments/current
-    @DeleteMapping("/{id}/assignments/current")
-    @PreAuthorize("hasRole('admin')")
-    public AssignmentResponse endCurrentAssignment(@PathVariable UUID id) {
-        return service.endCurrentAssignment(id);
-    }
+	// DELETE /vehicles/{id}/assignments/current
+	@DeleteMapping("/{id}/assignments/current")
+	@PreAuthorize("hasRole('admin')")
+	public AssignmentResponse endCurrentAssignment(@PathVariable UUID id) {
+		return service.endCurrentAssignment(id);
+	}
 }

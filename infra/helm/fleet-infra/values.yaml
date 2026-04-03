@@ -4,7 +4,7 @@ namespace: flotte-namespace
 postgresql:
   fullnameOverride: "postgres-service"
   auth:
-    postgresUser: "admin"
+    username: "admin"
     database: "flotte_db"
   primary:
     persistence:
@@ -17,7 +17,7 @@ postgresql-maintenance:
   enabled: true
   fullnameOverride: "postgres-maintenance-service"
   auth:
-    postgresUser: "admin"
+    username: "admin"
     database: "maintenance_db"
   primary:
     persistence:

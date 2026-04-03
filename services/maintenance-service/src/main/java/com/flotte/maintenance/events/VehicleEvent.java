@@ -5,7 +5,7 @@ import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record VehicleEvent(
-    String eventType,
-    UUID vehicleId,
-    Integer mileageKm
+	String eventType,
+	UUID vehicleId,
+	Integer mileageKm
 ) {}

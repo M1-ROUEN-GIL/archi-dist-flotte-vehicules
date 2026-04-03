@@ -7,6 +7,7 @@ spec:
   selector:
     app: event-service
   ports:
-    - port: 8083
+    - name: http
+      port: 8083
       targetPort: 8083
   type: ClusterIP

@@ -9,13 +9,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class DriverServiceTest {
-    @Mock
-    private DriverRepository driverRepository;
+	@Mock
+	private DriverRepository driverRepository;
 
-    @Mock
-    private DriverLicenseRepository licenseRepository;
+	@Mock
+	private DriverLicenseRepository licenseRepository;
 
-    @InjectMocks
-    private DriverService driverService;
+	@InjectMocks
+	private DriverService driverService;
 
 }

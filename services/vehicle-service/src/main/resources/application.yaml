@@ -10,11 +10,12 @@ spring:
     oauth2:
       resourceserver:
         jwt:
+          # On ne met PAS issuer-uri ici pour éviter que Spring essaie de faire de la découverte OIDC sur le réseau
+          # On utilisera une vérification manuelle dans SecurityConfig si nécessaire
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/gestion-flotte/protocol/openid-connect/certs}
 
   # Configuration de la base de donnees (PostgreSQL)
   datasource:
-    # Si SPRING_DATASOURCE_URL existe (Kube), on l'utilise. Sinon (Local), on prend localhost
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/flotte_db}
     username: ${SPRING_DATASOURCE_USERNAME:admin}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
@@ -23,7 +24,7 @@ spring:
   # Configuration Hibernate / JPA
   jpa:
     hibernate:
-      ddl-auto: none # Modifié pour laisser ton script SQL gérer la base
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -41,28 +42,30 @@ spring:
       group-id: vehicle-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.trusted.packages: "*"
+        spring.json.type.mapping: "com.flotte.vehicle.events.KafkaEventEnvelope:com.flotte.vehicle.events.KafkaEventEnvelope"
 
-# Configuration de l'observabilite (Micrometer + OpenTelemetry)
+# Configuration de l'observabilite
 management:
   endpoints:
     web:
       exposure:
-        include: [ "health", "info", "prometheus" ] # Expose les métriques Prometheus
+        include: [ "health", "info", "prometheus" ]
   endpoint:
     health:
       show-details: always
   metrics:
     tags:
-      application: ${spring.application.name} # Identifie le service dans Grafana
+      application: ${spring.application.name}
     export:
       prometheus:
         enabled: true
   tracing:
     sampling:
-      probability: 1.0 # Capture 100% des traces pour le démo/test
+      probability: 1.0
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}

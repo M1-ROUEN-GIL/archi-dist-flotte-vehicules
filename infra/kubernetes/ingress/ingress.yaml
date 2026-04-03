@@ -3,87 +3,30 @@ kind: Ingress
 metadata:
   name: flotte-api-ingress
   namespace: flotte-namespace
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: nginx
   rules:
     - host: flotte.local
       http:
         paths:
-          - path: /api/vehicles(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/vehicles
+            pathType: Prefix
             backend:
               service:
                 name: vehicle-service
                 port:
                   number: 8080
-          - path: /api/drivers(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/drivers
+            pathType: Prefix
             backend:
               service:
                 name: driver-service
                 port:
                   number: 8081
-          - path: /api/maintenance(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/maintenance
+            pathType: Prefix
             backend:
               service:
                 name: maintenance-service
                 port:
                   number: 8082
-          - path: /api/events(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: event-service
-                port:
-                  number: 8083
-          - path: /api/location(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: location-service
-                port:
-                  number: 3000
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: flotte-keycloak-ingress
-  namespace: flotte-namespace
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: flotte.local
-      http:
-        paths:
-          - path: /admin
-            pathType: Prefix
-            backend:
-              service:
-                name: keycloak-service
-                port:
-                  number: 8080
-          - path: /realms
-            pathType: Prefix
-            backend:
-              service:
-                name: keycloak-service
-                port:
-                  number: 8080
-          - path: /resources
-            pathType: Prefix
-            backend:
-              service:
-                name: keycloak-service
-                port:
-                  number: 8080
-          - path: /js
-            pathType: Prefix
-            backend:
-              service:
-                name: keycloak-service
-                port:
-                  number: 8080

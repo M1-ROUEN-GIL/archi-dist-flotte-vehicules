@@ -12,17 +12,17 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.logging.OpenTelemetryLoggingAutoConfiguration;
 
 @SpringBootTest(properties = {
-    "spring.kafka.enabled=false"
+	"spring.kafka.enabled=false"
 })
 @ActiveProfiles("test")
 @EnableAutoConfiguration(exclude = {OpenTelemetryLoggingAutoConfiguration.class})
 class VehicleServiceApplicationTests {
 
-    @MockitoBean
-    private JwtDecoder jwtDecoder;
+	@MockitoBean
+	private JwtDecoder jwtDecoder;
 
-    @Test
-    void contextLoads() {
-    }
+	@Test
+	void contextLoads() {
+	}
 
 }

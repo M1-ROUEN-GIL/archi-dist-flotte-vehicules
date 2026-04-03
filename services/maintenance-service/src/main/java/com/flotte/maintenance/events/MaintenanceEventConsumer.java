@@ -1,6 +1,8 @@
 package com.flotte.maintenance.events;
 
 import com.flotte.maintenance.service.MaintenanceService;
+import com.flotte.vehicle.events.KafkaEventEnvelope;
+import com.flotte.vehicle.events.VehiclePayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -8,19 +10,21 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class MaintenanceEventConsumer {
-    private static final Logger logger = LoggerFactory.getLogger(MaintenanceEventConsumer.class);
+	private static final Logger logger = LoggerFactory.getLogger(MaintenanceEventConsumer.class);
 
-    private final MaintenanceService maintenanceService;
+	private final MaintenanceService maintenanceService;
 
-    public MaintenanceEventConsumer(MaintenanceService maintenanceService) {
-        this.maintenanceService = maintenanceService;
-    }
+	public MaintenanceEventConsumer(MaintenanceService maintenanceService) {
+		this.maintenanceService = maintenanceService;
+	}
 
-    @KafkaListener(topics = "flotte.vehicules.events", groupId = "maintenance-group")
-    public void consumeVehicleEvent(VehicleEvent event) {
-        logger.info("Received vehicle event: {}", event);
-        if (event.mileageKm() != null) {
-            maintenanceService.processMileageUpdate(event.vehicleId(), event.mileageKm());
-        }
-    }
+	@KafkaListener(topics = "flotte.vehicules.events", groupId = "maintenance-group")
+	public void consumeVehicleEvent(KafkaEventEnvelope<VehiclePayload> event) {
+		logger.info("Received vehicle event type {}: {}", event.eventType(), event.payload());
+		
+		VehiclePayload payload = event.payload();
+		if (payload != null && payload.vehicleId() != null && payload.mileageKm() != null) {
+			maintenanceService.processMileageUpdate(payload.vehicleId(), payload.mileageKm());
+		}
+	}
 }

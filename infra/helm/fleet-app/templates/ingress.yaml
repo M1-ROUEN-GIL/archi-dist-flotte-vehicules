@@ -4,7 +4,6 @@ metadata:
   name: flotte-ingress
   namespace: {{ .Values.namespace }}
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: nginx
@@ -20,36 +19,36 @@ spec:
                 port:
                   number: 3000
 
-          - path: /api(/)(vehicles.*)
-            pathType: ImplementationSpecific
+          - path: /api/vehicles
+            pathType: Prefix
             backend:
               service:
                 name: vehicle-service
                 port:
                   number: 8080
-          - path: /api/drivers(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/drivers
+            pathType: Prefix
             backend:
               service:
                 name: {{ .Values.services.driver.name }}
                 port:
                   number: {{ .Values.services.driver.port }}
-          - path: /api/maintenance(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/maintenance
+            pathType: Prefix
             backend:
               service:
                 name: {{ .Values.services.maintenance.name }}
                 port:
                   number: {{ .Values.services.maintenance.port }}
-          - path: /api/events(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/events
+            pathType: Prefix
             backend:
               service:
                 name: {{ .Values.services.event.name }}
                 port:
                   number: {{ .Values.services.event.port }}
-          - path: /api/location(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/location
+            pathType: Prefix
             backend:
               service:
                 name: location-service

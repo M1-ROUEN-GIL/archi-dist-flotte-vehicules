@@ -22,33 +22,33 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/maintenance/**").authenticated()
-                .anyRequest().permitAll()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-            );
-        return http.build();
-    }
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+			.csrf(csrf -> csrf.disable())
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers("/api/maintenance/**").authenticated()
+				.anyRequest().permitAll()
+			)
+			.oauth2ResourceServer(oauth2 -> oauth2
+				.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+			);
+		return http.build();
+	}
 
-    @Bean
-    public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-            if (realmAccess == null || realmAccess.get("roles") == null) {
-                return Collections.emptyList();
-            }
-            Collection<String> roles = (Collection<String>) realmAccess.get("roles");
-            return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                .collect(Collectors.toList());
-        });
-        return converter;
-    }
+	@Bean
+	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
+		JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+		converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+			Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+			if (realmAccess == null || realmAccess.get("roles") == null) {
+				return Collections.emptyList();
+			}
+			Collection<String> roles = (Collection<String>) realmAccess.get("roles");
+			return roles.stream()
+				.map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+				.collect(Collectors.toList());
+		});
+		return converter;
+	}
 }

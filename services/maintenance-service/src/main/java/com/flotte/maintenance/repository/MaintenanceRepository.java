@@ -11,8 +11,8 @@ import java.util.UUID;
 
 @Repository
 public interface MaintenanceRepository extends JpaRepository<MaintenanceRecord, UUID> {
-    List<MaintenanceRecord> findByVehicleId(UUID vehicleId);
-    List<MaintenanceRecord> findByStatus(MaintenanceStatus status);
-    List<MaintenanceRecord> findByVehicleIdAndStatus(UUID vehicleId, MaintenanceStatus status);
-    List<MaintenanceRecord> findByVehicleIdAndPriority(UUID vehicleId, MaintenancePriority priority);
+	List<MaintenanceRecord> findByVehicleId(UUID vehicleId);
+	List<MaintenanceRecord> findByStatus(MaintenanceStatus status);
+	List<MaintenanceRecord> findByVehicleIdAndStatus(UUID vehicleId, MaintenanceStatus status);
+	List<MaintenanceRecord> findByVehicleIdAndPriority(UUID vehicleId, MaintenancePriority priority);
 }

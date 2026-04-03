@@ -21,11 +21,15 @@ kubectl create secret generic db-secrets \
 # Scripts d'initialisation pour les bases de données
 kubectl create configmap flotte-db-init \
   --from-file=01-vehicle.sql=./services/vehicle-service/db/migrations/01-vehicle.sql \
+  --from-file=02-driver.sql=./services/driver-service/db/migrations/02-driver.sql \
+  --from-file=04-events.sql=./services/events-service/db/migrations/04-events.sql \
+  --from-file=05-location.sql=./services/location-service/db/migrations/05-location.sql \
   --from-file=20-vehicle-seed.sql=./services/vehicle-service/db/seeds/20-vehicle-seed.sql \
+  --from-file=21-driver-seed.sql=./services/driver-service/db/seeds/21-driver-seed.sql \
   -n flotte-namespace
 
 kubectl create configmap maintenance-db-init \
-  --from-file=03-maintenance.sql=./db/03-maintenance.sql \
+  --from-file=03-maintenance.sql=./services/maintenance-service/db/migrations/03-maintenance.sql \
   -n flotte-namespace
 
 # 4. Build des Images dans le Docker daemon de Minikube

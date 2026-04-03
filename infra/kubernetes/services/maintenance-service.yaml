@@ -5,8 +5,9 @@ metadata:
   namespace: flotte-namespace
 spec:
   selector:
-    app: maintenance-service
+    app: maintenance # Doit correspondre exactement au label du pod
   ports:
-    - port: 8082
-      targetPort: 8082
+    - name: http
+      port: 8082
+      targetPort: 8080
   type: ClusterIP

@@ -2,6 +2,7 @@ package com.flotte.maintenance.controller;
 
 import com.flotte.maintenance.dto.MaintenanceCreateRequest;
 import com.flotte.maintenance.dto.MaintenanceStatusUpdate;
+import com.flotte.maintenance.dto.MaintenanceUpdateRequest;
 import com.flotte.maintenance.model.MaintenanceRecord;
 import com.flotte.maintenance.service.MaintenanceService;
 import org.springframework.http.HttpStatus;
@@ -16,33 +17,39 @@ import java.util.UUID;
 @RequestMapping("/api/maintenance")
 public class MaintenanceController {
 
-    private final MaintenanceService service;
+	private final MaintenanceService service;
 
-    public MaintenanceController(MaintenanceService service) {
-        this.service = service;
-    }
+	public MaintenanceController(MaintenanceService service) {
+		this.service = service;
+	}
 
-    @PostMapping
-    @PreAuthorize("hasRole('admin')")
-    public ResponseEntity<MaintenanceRecord> createRecord(@RequestBody MaintenanceCreateRequest request) {
-        return new ResponseEntity<>(service.createRecord(request), HttpStatus.CREATED);
-    }
+	@PostMapping
+	@PreAuthorize("hasRole('admin')")
+	public ResponseEntity<MaintenanceRecord> createRecord(@RequestBody MaintenanceCreateRequest request) {
+		return new ResponseEntity<>(service.createRecord(request), HttpStatus.CREATED);
+	}
 
-    @GetMapping("/vehicle/{vehicleId}")
-    @PreAuthorize("hasAnyRole('admin', 'technician')")
-    public ResponseEntity<List<MaintenanceRecord>> getVehicleHistory(@PathVariable UUID vehicleId) {
-        return ResponseEntity.ok(service.getVehicleHistory(vehicleId));
-    }
+	@GetMapping("/vehicle/{vehicleId}")
+	@PreAuthorize("hasAnyRole('admin', 'technician')")
+	public ResponseEntity<List<MaintenanceRecord>> getVehicleHistory(@PathVariable UUID vehicleId) {
+		return ResponseEntity.ok(service.getVehicleHistory(vehicleId));
+	}
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'technician')")
-    public ResponseEntity<MaintenanceRecord> getRecordById(@PathVariable UUID id) {
-        return ResponseEntity.ok(service.getRecordById(id));
-    }
+	@GetMapping("/{id}")
+	@PreAuthorize("hasAnyRole('admin', 'technician')")
+	public ResponseEntity<MaintenanceRecord> getRecordById(@PathVariable UUID id) {
+		return ResponseEntity.ok(service.getRecordById(id));
+	}
 
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('admin', 'technician')")
-    public ResponseEntity<MaintenanceRecord> updateStatus(@PathVariable UUID id, @RequestBody MaintenanceStatusUpdate update) {
-        return ResponseEntity.ok(service.updateStatus(id, update));
-    }
+	@PutMapping("/{id}")
+	@PreAuthorize("hasAnyRole('admin', 'technician')")
+	public ResponseEntity<MaintenanceRecord> updateRecord(@PathVariable UUID id, @RequestBody MaintenanceUpdateRequest request) {
+		return ResponseEntity.ok(service.updateRecord(id, request));
+	}
+
+	@PatchMapping("/{id}/status")
+	@PreAuthorize("hasAnyRole('admin', 'technician')")
+	public ResponseEntity<MaintenanceRecord> updateStatus(@PathVariable UUID id, @RequestBody MaintenanceStatusUpdate update) {
+		return ResponseEntity.ok(service.updateStatus(id, update));
+	}
 }

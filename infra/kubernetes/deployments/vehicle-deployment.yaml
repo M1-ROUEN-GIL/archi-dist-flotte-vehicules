@@ -5,7 +5,7 @@ metadata:
   name: vehicle-deployment
   namespace: flotte-namespace
 spec:
-  replicas: 2 # Kubernetes va faire tourner 2 instances de ton service en même temps !
+  replicas: 1
   selector:
     matchLabels:
       app: vehicle
@@ -14,10 +14,14 @@ spec:
       labels:
         app: vehicle
     spec:
+      hostAliases:
+      - ip: "10.96.221.20"
+        hostnames:
+        - "flotte.local"
       containers:
         - name: vehicle-app
-          image: vehicle-service:latest # L'image qu'on a créée avec le Dockerfile
-          imagePullPolicy: Never         # ⚠️ OBLIGATOIRE EN LOCAL : Ne cherche pas sur internet
+          image: vehicle-service:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
           env:
@@ -26,6 +30,11 @@ spec:
                 secretKeyRef:
                   name: db-secrets
                   key: SPRING_DATASOURCE_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: SPRING_DATASOURCE_USERNAME
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -39,7 +48,7 @@ spec:
             - name: KEYCLOAK_ISSUER_URI
               value: "https://flotte.local/auth/realms/gestion-flotte"
             - name: KEYCLOAK_JWK_SET_URI
-              value: "https://flotte.local/auth/realms/gestion-flotte/protocol/openid-connect/certs"
+              value: "http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs"
           resources:
              requests:
                     memory: "256Mi"

@@ -30,191 +30,191 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class VehicleServiceTest {
 
-    @Mock
-    private VehicleRepository repository;
+	@Mock
+	private VehicleRepository repository;
 
-    @Mock
-    private VehicleAssignmentRepository assignmentRepository;
+	@Mock
+	private VehicleAssignmentRepository assignmentRepository;
 
-    @Mock
-    private VehicleEventProducer eventProducer;
+	@Mock
+	private VehicleEventProducer eventProducer;
 
-    @InjectMocks
-    private VehicleService vehicleService;
+	@InjectMocks
+	private VehicleService vehicleService;
 
-    private Vehicle vehicle;
-    private UUID vehicleId;
+	private Vehicle vehicle;
+	private UUID vehicleId;
 
-    @BeforeEach
-    void setUp() {
-        vehicleId = UUID.randomUUID();
-        vehicle = new Vehicle();
-        vehicle.setId(vehicleId);
-        vehicle.setPlateNumber("AB-123-CD");
-        vehicle.setBrand("Renault");
-        vehicle.setModel("Kangoo");
-        vehicle.setFuelType(FuelType.electric);
-        vehicle.setStatus(VehicleStatus.available);
-        vehicle.setMileageKm(10000);
-    }
+	@BeforeEach
+	void setUp() {
+		vehicleId = UUID.randomUUID();
+		vehicle = new Vehicle();
+		vehicle.setId(vehicleId);
+		vehicle.setPlateNumber("AB-123-CD");
+		vehicle.setBrand("Renault");
+		vehicle.setModel("Kangoo");
+		vehicle.setFuelType(FuelType.electric);
+		vehicle.setStatus(VehicleStatus.available);
+		vehicle.setMileageKm(10000);
+	}
 
-    @Test
-    void getAllVehicles_ShouldReturnList() {
-        when(repository.findAllActive()).thenReturn(List.of(vehicle));
+	@Test
+	void getAllVehicles_ShouldReturnList() {
+		when(repository.findAllActive()).thenReturn(List.of(vehicle));
 
-        List<VehicleResponse> responses = vehicleService.getAllVehicles();
+		List<VehicleResponse> responses = vehicleService.getAllVehicles();
 
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).id()).isEqualTo(vehicleId);
-        verify(repository).findAllActive();
-    }
+		assertThat(responses).hasSize(1);
+		assertThat(responses.get(0).id()).isEqualTo(vehicleId);
+		verify(repository).findAllActive();
+	}
 
-    @Test
-    void getVehicleById_WhenFound_ShouldReturnVehicle() {
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+	@Test
+	void getVehicleById_WhenFound_ShouldReturnVehicle() {
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
 
-        VehicleResponse response = vehicleService.getVehicleById(vehicleId);
+		VehicleResponse response = vehicleService.getVehicleById(vehicleId);
 
-        assertThat(response.id()).isEqualTo(vehicleId);
-        verify(repository).findByIdActive(vehicleId);
-    }
+		assertThat(response.id()).isEqualTo(vehicleId);
+		verify(repository).findByIdActive(vehicleId);
+	}
 
-    @Test
-    void getVehicleById_WhenNotFound_ShouldThrowException() {
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.empty());
+	@Test
+	void getVehicleById_WhenNotFound_ShouldThrowException() {
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> vehicleService.getVehicleById(vehicleId))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
-    }
+		assertThatThrownBy(() -> vehicleService.getVehicleById(vehicleId))
+				.isInstanceOf(ResponseStatusException.class)
+				.hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
+	}
 
-    @Test
-    void createVehicle_ShouldSaveAndPublishEvent() {
-        VehicleInput input = new VehicleInput("AB-123-CD", "Renault", "Kangoo", FuelType.electric, 10000, "VIN123", 500, 3.0);
-        when(repository.save(any(Vehicle.class))).thenReturn(vehicle);
+	@Test
+	void createVehicle_ShouldSaveAndPublishEvent() {
+		VehicleInput input = new VehicleInput("AB-123-CD", "Renault", "Kangoo", FuelType.electric, 10000, "VIN123", 500, 3.0);
+		when(repository.save(any(Vehicle.class))).thenReturn(vehicle);
 
-        VehicleResponse response = vehicleService.createVehicle(input);
+		VehicleResponse response = vehicleService.createVehicle(input);
 
-        assertThat(response.plateNumber()).isEqualTo("AB-123-CD");
-        verify(repository).save(any(Vehicle.class));
-        // 👈 Changement ici : publishVehicleEvent au lieu de publish
-        verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
-    }
+		assertThat(response.plateNumber()).isEqualTo("AB-123-CD");
+		verify(repository).save(any(Vehicle.class));
+		// 👈 Changement ici : publishVehicleEvent au lieu de publish
+		verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
+	}
 
-    @Test
-    void updateVehicle_WhenFound_ShouldUpdateAndSave() {
-        VehicleUpdate update = new VehicleUpdate("Peugeot", "Partner", 12000);
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
-        when(repository.save(any(Vehicle.class))).thenReturn(vehicle);
+	@Test
+	void updateVehicle_WhenFound_ShouldUpdateAndSave() {
+		VehicleUpdate update = new VehicleUpdate("Peugeot", "Partner", 12000);
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+		when(repository.save(any(Vehicle.class))).thenReturn(vehicle);
 
-        VehicleResponse response = vehicleService.updateVehicle(vehicleId, update);
+		VehicleResponse response = vehicleService.updateVehicle(vehicleId, update);
 
-        assertThat(vehicle.getBrand()).isEqualTo("Peugeot");
-        assertThat(vehicle.getModel()).isEqualTo("Partner");
-        assertThat(vehicle.getMileageKm()).isEqualTo(12000);
-        verify(repository).save(vehicle);
-    }
+		assertThat(vehicle.getBrand()).isEqualTo("Peugeot");
+		assertThat(vehicle.getModel()).isEqualTo("Partner");
+		assertThat(vehicle.getMileageKm()).isEqualTo(12000);
+		verify(repository).save(vehicle);
+	}
 
-    @Test
-    void updateVehicleStatus_WhenFound_ShouldUpdateAndPublishEvent() {
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
-        when(repository.save(any(Vehicle.class))).thenReturn(vehicle);
+	@Test
+	void updateVehicleStatus_WhenFound_ShouldUpdateAndPublishEvent() {
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+		when(repository.save(any(Vehicle.class))).thenReturn(vehicle);
 
-        VehicleResponse response = vehicleService.updateVehicleStatus(vehicleId, VehicleStatus.in_maintenance);
+		VehicleResponse response = vehicleService.updateVehicleStatus(vehicleId, VehicleStatus.in_maintenance);
 
-        assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.in_maintenance);
-        verify(repository).save(vehicle);
-        // 👈 Changement ici
-        verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
-    }
+		assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.in_maintenance);
+		verify(repository).save(vehicle);
+		// 👈 Changement ici
+		verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
+	}
 
-    @Test
-    void deleteVehicle_WhenFound_ShouldSoftDeleteAndPublishEvent() {
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+	@Test
+	void deleteVehicle_WhenFound_ShouldSoftDeleteAndPublishEvent() {
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
 
-        vehicleService.deleteVehicle(vehicleId);
+		vehicleService.deleteVehicle(vehicleId);
 
-        assertThat(vehicle.getDeletedAt()).isNotNull();
-        verify(repository).save(vehicle);
-        // 👈 Changement ici
-        verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
-    }
+		assertThat(vehicle.getDeletedAt()).isNotNull();
+		verify(repository).save(vehicle);
+		// 👈 Changement ici
+		verify(eventProducer).publishVehicleEvent(any(KafkaEventEnvelope.class));
+	}
 
-    @Test
-    void getAssignments_WhenVehicleFound_ShouldReturnAssignments() {
-        VehicleAssignment assignment = new VehicleAssignment();
-        assignment.setVehicleId(vehicleId);
-        assignment.setDriverId(UUID.randomUUID());
+	@Test
+	void getAssignments_WhenVehicleFound_ShouldReturnAssignments() {
+		VehicleAssignment assignment = new VehicleAssignment();
+		assignment.setVehicleId(vehicleId);
+		assignment.setDriverId(UUID.randomUUID());
 
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
-        when(assignmentRepository.findByVehicleIdOrderByStartedAtDesc(vehicleId)).thenReturn(List.of(assignment));
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+		when(assignmentRepository.findByVehicleIdOrderByStartedAtDesc(vehicleId)).thenReturn(List.of(assignment));
 
-        List<AssignmentResponse> responses = vehicleService.getAssignments(vehicleId);
+		List<AssignmentResponse> responses = vehicleService.getAssignments(vehicleId);
 
-        assertThat(responses).hasSize(1);
-        verify(assignmentRepository).findByVehicleIdOrderByStartedAtDesc(vehicleId);
-    }
+		assertThat(responses).hasSize(1);
+		verify(assignmentRepository).findByVehicleIdOrderByStartedAtDesc(vehicleId);
+	}
 
-    @Test
-    void createAssignment_WhenAvailable_ShouldCreateAndPublishEvent() {
-        UUID driverId = UUID.randomUUID();
-        UUID createdBy = UUID.randomUUID();
-        AssignmentInput input = new AssignmentInput(driverId, "Notes", createdBy);
+	@Test
+	void createAssignment_WhenAvailable_ShouldCreateAndPublishEvent() {
+		UUID driverId = UUID.randomUUID();
+		UUID createdBy = UUID.randomUUID();
+		AssignmentInput input = new AssignmentInput(driverId, "Notes", createdBy);
 
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
-        when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.empty());
-        when(assignmentRepository.save(any(VehicleAssignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+		when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.empty());
+		when(assignmentRepository.save(any(VehicleAssignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        AssignmentResponse response = vehicleService.createAssignment(vehicleId, input);
+		AssignmentResponse response = vehicleService.createAssignment(vehicleId, input);
 
-        assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.on_delivery);
-        verify(repository).save(vehicle);
-        verify(assignmentRepository).save(any(VehicleAssignment.class));
-        // 👈 Changement ici : publishAssignmentEvent pour la partie assignation !
-        verify(eventProducer).publishAssignmentEvent(any(KafkaEventEnvelope.class));
-    }
+		assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.on_delivery);
+		verify(repository).save(vehicle);
+		verify(assignmentRepository).save(any(VehicleAssignment.class));
+		// 👈 Changement ici : publishAssignmentEvent pour la partie assignation !
+		verify(eventProducer).publishAssignmentEvent(any(KafkaEventEnvelope.class));
+	}
 
-    @Test
-    void createAssignment_WhenAlreadyAssigned_ShouldThrowConflict() {
-        AssignmentInput input = new AssignmentInput(UUID.randomUUID(), "Notes", UUID.randomUUID());
+	@Test
+	void createAssignment_WhenAlreadyAssigned_ShouldThrowConflict() {
+		AssignmentInput input = new AssignmentInput(UUID.randomUUID(), "Notes", UUID.randomUUID());
 
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
-        when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.of(new VehicleAssignment()));
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+		when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.of(new VehicleAssignment()));
 
-        assertThatThrownBy(() -> vehicleService.createAssignment(vehicleId, input))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
-    }
+		assertThatThrownBy(() -> vehicleService.createAssignment(vehicleId, input))
+				.isInstanceOf(ResponseStatusException.class)
+				.hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
+	}
 
-    @Test
-    void createAssignment_WhenNotAvailable_ShouldThrowConflict() {
-        vehicle.setStatus(VehicleStatus.in_maintenance);
-        AssignmentInput input = new AssignmentInput(UUID.randomUUID(), "Notes", UUID.randomUUID());
+	@Test
+	void createAssignment_WhenNotAvailable_ShouldThrowConflict() {
+		vehicle.setStatus(VehicleStatus.in_maintenance);
+		AssignmentInput input = new AssignmentInput(UUID.randomUUID(), "Notes", UUID.randomUUID());
 
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
-        when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.empty());
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+		when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> vehicleService.createAssignment(vehicleId, input))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
-    }
+		assertThatThrownBy(() -> vehicleService.createAssignment(vehicleId, input))
+				.isInstanceOf(ResponseStatusException.class)
+				.hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
+	}
 
-    @Test
-    void endCurrentAssignment_WhenActiveFound_ShouldEndAndMakeAvailable() {
-        VehicleAssignment assignment = new VehicleAssignment();
-        assignment.setVehicleId(vehicleId);
-        assignment.setDriverId(UUID.randomUUID());
+	@Test
+	void endCurrentAssignment_WhenActiveFound_ShouldEndAndMakeAvailable() {
+		VehicleAssignment assignment = new VehicleAssignment();
+		assignment.setVehicleId(vehicleId);
+		assignment.setDriverId(UUID.randomUUID());
 
-        when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
-        when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.of(assignment));
+		when(repository.findByIdActive(vehicleId)).thenReturn(Optional.of(vehicle));
+		when(assignmentRepository.findActiveByVehicleId(vehicleId)).thenReturn(Optional.of(assignment));
 
-        AssignmentResponse response = vehicleService.endCurrentAssignment(vehicleId);
+		AssignmentResponse response = vehicleService.endCurrentAssignment(vehicleId);
 
-        assertThat(assignment.getEndedAt()).isNotNull();
-        assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.available);
-        verify(assignmentRepository).save(assignment);
-        verify(repository).save(vehicle);
-        // 👈 Changement ici : publication de la fin d'assignation
-        verify(eventProducer).publishAssignmentEvent(any(KafkaEventEnvelope.class));
-    }
+		assertThat(assignment.getEndedAt()).isNotNull();
+		assertThat(vehicle.getStatus()).isEqualTo(VehicleStatus.available);
+		verify(assignmentRepository).save(assignment);
+		verify(repository).save(vehicle);
+		// 👈 Changement ici : publication de la fin d'assignation
+		verify(eventProducer).publishAssignmentEvent(any(KafkaEventEnvelope.class));
+	}
 }

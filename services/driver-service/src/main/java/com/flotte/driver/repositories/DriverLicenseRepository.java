@@ -10,12 +10,12 @@ import java.util.UUID;
 
 @Repository
 public interface DriverLicenseRepository  extends JpaRepository<DriverLicense, UUID> {
-    // Trouver tous les permis d'un chauffeur spécifique
-    List<DriverLicense> findByDriverId(UUID driverId);
+	// Trouver tous les permis d'un chauffeur spécifique
+	List<DriverLicense> findByDriverId(UUID driverId);
 
-    // Vérifier si un numéro de permis existe déjà (très utile pour éviter les doublons à la création !)
-    boolean existsByLicenseNumber(String licenseNumber);
+	// Vérifier si un numéro de permis existe déjà (très utile pour éviter les doublons à la création !)
+	boolean existsByLicenseNumber(String licenseNumber);
 
-    // Trouver un permis spécifique par son numéro
-    Optional<DriverLicense> findByLicenseNumber(String licenseNumber);
+	// Trouver un permis spécifique par son numéro
+	Optional<DriverLicense> findByLicenseNumber(String licenseNumber);
 }
