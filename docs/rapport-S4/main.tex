@@ -173,10 +173,22 @@ Cette itération se concentre sur deux piliers essentiels :
 
 \subsection{Modélisation et Persistance}
 
-Le service respecte le principe d'isolation des données : \textbf{un microservice = une base de données}. Il s'appuie sur une instance PostgreSQL dédiée (\texttt{postgres-maintenance}), dont le schéma est défini dans \texttt{db/03-maintenance.sql}.
+Le système respecte strictement le pattern \textbf{Database per Service}. Chaque microservice métier dispose de son propre serveur PostgreSQL (StatefulSet) et de sa propre base de données, garantissant une isolation totale des données.
 
-\subsubsection{Base de données dédiée}
-Contrairement aux autres services partageant l'instance principale, la maintenance dispose de sa propre base \texttt{maintenance\_db} tournant sur un conteneur isolé.
+\subsubsection{Isolation des instances}
+\begin{itemize}
+    \item \textbf{Véhicules} : Instance \texttt{postgres-service} (base \texttt{flotte\_db}).
+    \item \textbf{Maintenance} : Instance \texttt{postgres-maintenance-service} (base \texttt{maintenance\_db}).
+    \item \textbf{Driver} : Instance \texttt{postgres-driver-service} (base \texttt{driver\_db}).
+\end{itemize}
+
+\subsubsection{Initialisation via Kubernetes}
+L'initialisation des schémas n'est plus centralisée. Nous utilisons des \textbf{ConfigMaps} dédiés injectés dans les conteneurs au démarrage :
+\begin{itemize}
+    \item \texttt{flotte-db-init} : contient les schémas pour les véhicules et la localisation.
+    \item \texttt{maintenance-db-init} : contient le schéma \texttt{03-maintenance.sql}.
+    \item \texttt{driver-db-init} : contient le schéma \texttt{02-driver.sql} et les données initiales (\textit{seeds}).
+\end{itemize}
 
 \subsubsection{Entité MaintenanceRecord}
 L'entité centrale \texttt{MaintenanceRecord} gère les cycles de vie des interventions via plusieurs énumérations (\texttt{Type}, \texttt{Status}, \texttt{Priority}).
@@ -230,8 +242,8 @@ public void checkOverdueMaintenance() {
 
 Le service Driver gère le cycle de vie des conducteurs et la conformité de leurs permis de conduire.
 
-\subsection{Modélisation : Conducteurs et Permis}
-Le service respecte également l'isolation des données avec sa propre base \texttt{driver\_db} et le schéma défini dans \texttt{db/02-driver.sql}. Il utilise une relation \textbf{Un-à-Plusieurs} entre l'entité \texttt{Driver} et \texttt{DriverLicense}.
+\subsection{Relation Conducteurs et Permis}
+Le service utilise une relation \textbf{Un-à-Plusieurs} entre l'entité \texttt{Driver} et \texttt{DriverLicense}.
  Un conducteur peut posséder plusieurs catégories de permis (B, C, CE, etc.).
 
 \subsection{Surveillance des Expirations (LicenseScheduler)}
@@ -261,6 +273,7 @@ public void checkLicenseExpirations() {
 \section{Intégration et Communication}
 
 Les services \textbf{Maintenance} et \textbf{Driver} sont pleinement intégrés à l'écosystème via des APIs REST (normalisées en \texttt{snake\_case}) et des flux d'événements Kafka.
+
 
 \subsection{Exposition REST (APIs)}
 
@@ -297,7 +310,7 @@ Les services \textbf{Maintenance} et \textbf{Driver} sont pleinement intégrés 
   \hline
   \textbf{POST} & \texttt{/drivers} & Création d'un nouveau profil conducteur. \\
   \hline
-  \textbf{PATCH} & \texttt{/drivers/\{id\}/status} & Mise à jour du statut (\texttt{active, on_tour}, etc.). \\
+  \textbf{PATCH} & \texttt{/drivers/\{id\}/status} & Mise à jour du statut (\texttt{active, on\_tour}, etc.). \\
   \hline
   \textbf{POST} & \texttt{/drivers/\{id\}/licenses} & Ajout d'un permis de conduire au profil. \\
   \hline
@@ -312,6 +325,7 @@ Le service \textbf{Véhicules} consomme ces messages pour ajuster l'état opéra
 \begin{itemize}
     \item \texttt{MAINTENANCE\_STARTED} $\rightarrow$ Statut véhicule : \texttt{in\_maintenance}.
     \item \texttt{MAINTENANCE\_COMPLETED/CANCELLED} $\rightarrow$ Statut véhicule : \texttt{available}.
+
 \end{itemize}
 
 \subsubsection{Topic : flotte.driver.events}
@@ -374,7 +388,13 @@ Pour garantir l'intégrité des données, un mécanisme de compensation a été 
     \item \textbf{T1 (Action)} : Le service Maintenance crée ou démarre une intervention (\texttt{MAINTENANCE\_STARTED}).
     \item \textbf{T2 (Réaction)} : Le service Véhicule tente de passer le véhicule en \texttt{in\_maintenance}.
     \item \textbf{C1 (Compensation)} : En cas d'échec de T2, le service Véhicule publie un événement \texttt{MAINTENANCE\_REJECTED}. Le service Maintenance consomme cet événement et \textbf{annule} automatiquement la fiche d'intervention (\texttt{cancelRecord}) pour restaurer l'état initial.
+
 \end{enumerate}
+
+\subsection{Fiabilité des échanges (Outbox Pattern)}
+Une réflexion a été menée sur la fiabilité de la "double écriture" (Base de données + Kafka). Bien que l'\textbf{Outbox Pattern} soit le standard industriel pour garantir l'atomicité parfaite entre la persistance et la publication d'événements, il n'a pas été retenu pour cette itération.
+
+Compte tenu de la taille du projet et de la complexité opérationnelle qu'impliquerait la mise en place d'un outil comme \textit{Debezium} ou d'un worker de relayage, nous avons privilégié le \textbf{Direct Publishing} au sein de transactions Spring \texttt{@Transactional}. Cette approche, combinée aux transactions compensatoires du pattern Saga, offre un excellent compromis entre robustesse et maintenabilité pour notre cas d'usage.
 
 \subsection{Flux de données}
 ...

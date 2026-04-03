@@ -14,8 +14,21 @@ export const maintenanceResolvers = {
       },
       ctx: GraphQLContext,
     ) => {
-      // On assume que ctx.maintenance est déjà exposé par le Gateway
-      return ctx.maintenance.listRecords(args);
+      const records = await ctx.maintenance.listRecords({
+        vehicleId: args.vehicle_id,
+        status: args.status,
+        priority: args.priority
+      });
+      
+      // Handle pagination locally for now if needed, or just return as a Page
+      const limit = args.limit ?? 20;
+      const offset = args.offset ?? 0;
+      const paginated = records.slice(offset, offset + limit);
+
+      return {
+        items: paginated,
+        total_count: records.length,
+      };
     },
 
     maintenanceRecord: async (

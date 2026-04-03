@@ -6,6 +6,7 @@ import com.flotte.maintenance.dto.MaintenanceUpdateRequest;
 import com.flotte.maintenance.events.AlertEvent;
 import com.flotte.maintenance.events.MaintenanceEventFactory;
 import com.flotte.maintenance.events.MaintenanceEventProducer;
+import com.flotte.maintenance.model.MaintenancePriority;
 import com.flotte.maintenance.model.MaintenanceRecord;
 import com.flotte.maintenance.model.MaintenanceStatus;
 import com.flotte.maintenance.repository.MaintenanceRepository;
@@ -52,6 +53,14 @@ public class MaintenanceService {
 
 	public MaintenanceRecord getRecordById(UUID id) {
 		return repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found"));
+	}
+
+	public List<MaintenanceRecord> getAllRecords(UUID vehicleId, MaintenanceStatus status, MaintenancePriority priority) {
+		return repository.findAll().stream()
+				.filter(r -> vehicleId == null || r.getVehicleId().equals(vehicleId))
+				.filter(r -> status == null || r.getStatus() == status)
+				.filter(r -> priority == null || r.getPriority() == priority)
+				.toList();
 	}
 
 	@Transactional

@@ -3,7 +3,9 @@ package com.flotte.maintenance.controller;
 import com.flotte.maintenance.dto.MaintenanceCreateRequest;
 import com.flotte.maintenance.dto.MaintenanceStatusUpdate;
 import com.flotte.maintenance.dto.MaintenanceUpdateRequest;
+import com.flotte.maintenance.model.MaintenancePriority;
 import com.flotte.maintenance.model.MaintenanceRecord;
+import com.flotte.maintenance.model.MaintenanceStatus;
 import com.flotte.maintenance.service.MaintenanceService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,15 @@ public class MaintenanceController {
 	@PreAuthorize("hasRole('admin')")
 	public ResponseEntity<MaintenanceRecord> createRecord(@RequestBody MaintenanceCreateRequest request) {
 		return new ResponseEntity<>(service.createRecord(request), HttpStatus.CREATED);
+	}
+
+	@GetMapping
+	@PreAuthorize("hasAnyRole('admin', 'technician')")
+	public ResponseEntity<List<MaintenanceRecord>> getAllRecords(
+			@RequestParam(required = false) UUID vehicleId,
+			@RequestParam(required = false) MaintenanceStatus status,
+			@RequestParam(required = false) MaintenancePriority priority) {
+		return ResponseEntity.ok(service.getAllRecords(vehicleId, status, priority));
 	}
 
 	@GetMapping("/vehicle/{vehicleId}")
