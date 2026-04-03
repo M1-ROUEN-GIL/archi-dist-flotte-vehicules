@@ -1,35 +1,38 @@
 # ==========================================
-# Étape 1 : Build (Construction)
+# Etape 1 : Build (Construction)
 # ==========================================
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /build
 
-# On copie d'abord le pom.xml pour télécharger les dépendances
-# (Astuce Docker : ça met en cache les téléchargements Maven !)
+# On copie d'abord le pom.xml pour telecharger les dependances
 COPY pom.xml .
 RUN mvn dependency:go-offline
+
+# Telecharger l'agent OpenTelemetry
+RUN wget -O opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
 
 # On copie tout le code source et on compile le projet
 COPY src ./src
 RUN mvn clean package -DskipTests -Dmaven.test.skip=true
 
 # ==========================================
-# Étape 2 : Production (Exécution)
+# Etape 2 : Production (Execution)
 # ==========================================
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Sécurité exigée par ton projet : création d'un utilisateur non-root
+# On cree un utilisateur non-root par securite
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-# On récupère l'application compilée depuis l'étape 1
+# On recupere l'application compilee depuis l'etape 1
 COPY --from=builder /build/target/*.jar app.jar
+COPY --from=builder /build/opentelemetry-javaagent.jar opentelemetry-javaagent.jar
 
 # On expose le port de Spring Boot
-EXPOSE 8081
+EXPOSE 8080
 
 # Commande de lancement
 ENTRYPOINT ["java", "-jar", "app.jar"]

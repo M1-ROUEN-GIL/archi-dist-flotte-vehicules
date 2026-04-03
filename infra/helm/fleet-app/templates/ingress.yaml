@@ -12,7 +12,7 @@ spec:
     - host: flotte.local
       http:
         paths:
-          - path: /grafana(/|$)(.*)
+          - path: /(grafana)(.*)
             pathType: ImplementationSpecific
             backend:
               service:

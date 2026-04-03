@@ -47,19 +47,19 @@ spec:
               value: {{ $.Values.keycloak_issuer | default "http://keycloak-service:8080/realms/gestion-flotte" | quote }}
             - name: KEYCLOAK_JWK_SET_URI
               value: {{ $.Values.keycloak_jwk_set_uri | default "http://keycloak-service:8080/realms/gestion-flotte/protocol/openid-connect/certs" | quote }}
-            # Variables OpenTelemetry pour l'Agent Java
+            # Variables OpenTelemetry - On utilise le port 4318 (HTTP) pour la compatibilite totale
             - name: OTEL_SERVICE_NAME
               value: {{ $val.name }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.{{ $.Values.namespace }}.svc.cluster.local:4318"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "http/protobuf"
-            - name: OTEL_LOGS_EXPORTER
-              value: "otlp"
             - name: OTEL_METRICS_EXPORTER
               value: "otlp"
-            - name: OTEL_TRACES_EXPORTER
+            - name: OTEL_LOGS_EXPORTER
               value: "otlp"
+            - name: JAVA_TOOL_OPTIONS
+              value: "-javaagent:/app/opentelemetry-javaagent.jar"
             - name: OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED
               value: "true"
           resources:

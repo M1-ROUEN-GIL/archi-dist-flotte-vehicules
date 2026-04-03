@@ -33,7 +33,7 @@ spec:
         - name: GF_SERVER_ROOT_URL
           value: "http://flotte.local/grafana/"
         - name: GF_SERVER_SERVE_FROM_SUB_PATH
-          value: "false"
+          value: "true"
         volumeMounts:
         - name: grafana-datasources-vol
           mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
