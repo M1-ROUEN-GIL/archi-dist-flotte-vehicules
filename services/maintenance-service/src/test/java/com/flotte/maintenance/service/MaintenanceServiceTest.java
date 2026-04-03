@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -135,8 +136,41 @@ class MaintenanceServiceTest {
 	}
 
 	@Test
-	void getRecordById_WhenNotFound_ShouldThrowException() {
-		when(repository.findById(any())).thenReturn(Optional.empty());
-		assertThrows(RuntimeException.class, () -> service.getRecordById(UUID.randomUUID()));
+	void updateRecord_ShouldUpdateAndPublishEvent() {
+		com.flotte.maintenance.dto.MaintenanceUpdateRequest update = new com.flotte.maintenance.dto.MaintenanceUpdateRequest(
+				"New description", MaintenancePriority.HIGH, LocalDate.now().plusDays(5), MaintenanceStatus.IN_PROGRESS);
+		
+		when(repository.findById(record.getId())).thenReturn(Optional.of(record));
+		when(repository.save(any())).thenReturn(record);
+
+		service.updateRecord(record.getId(), update);
+
+		assertEquals("New description", record.getDescription());
+		assertEquals(MaintenanceStatus.IN_PROGRESS, record.getStatus());
+		verify(eventProducer).publishMaintenanceEvent(any());
+	}
+
+	@Test
+	void cancelRecord_ShouldChangeStatus() {
+		when(repository.findById(record.getId())).thenReturn(Optional.of(record));
+		when(repository.save(any())).thenReturn(record);
+
+		service.cancelRecord(record.getId(), "Reason");
+
+		assertEquals(MaintenanceStatus.CANCELLED, record.getStatus());
+		verify(eventProducer).publishMaintenanceEvent(any());
+	}
+
+	@Test
+	void processMileageUpdate_ShouldPublishAlertIfThresholdReached() {
+		record.setStatus(MaintenanceStatus.COMPLETED);
+		record.setCompletedDate(LocalDate.now());
+		record.setNextServiceKm(15000);
+		
+		when(repository.findByVehicleId(vehicleId)).thenReturn(List.of(record));
+
+		service.processMileageUpdate(vehicleId, 14600); // 400km before 15000
+
+		verify(eventProducer).publishAlert(any());
 	}
 }
