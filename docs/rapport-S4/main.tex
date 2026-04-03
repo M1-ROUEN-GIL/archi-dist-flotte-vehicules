@@ -167,30 +167,35 @@ Cette itération se concentre sur deux piliers essentiels :
 \end{itemize}
 
 % ------------------------------------------------------------
-% SERVICE MAINTENANCE
+% ARCHITECTURE DE PERSISTANCE
 % ------------------------------------------------------------
-\section{Microservice Maintenance}
-
-\subsection{Modélisation et Persistance}
+\section{Architecture de Persistance}
 
 Le système respecte strictement le pattern \textbf{Database per Service}. Chaque microservice métier dispose de son propre serveur PostgreSQL (StatefulSet) et de sa propre base de données, garantissant une isolation totale des données.
 
-\subsubsection{Isolation des instances}
+\subsection{Isolation des instances}
 \begin{itemize}
     \item \textbf{Véhicules} : Instance \texttt{postgres-service} (base \texttt{flotte\_db}).
     \item \textbf{Maintenance} : Instance \texttt{postgres-maintenance-service} (base \texttt{maintenance\_db}).
     \item \textbf{Driver} : Instance \texttt{postgres-driver-service} (base \texttt{driver\_db}).
 \end{itemize}
 
-\subsubsection{Initialisation via Kubernetes}
-L'initialisation des schémas n'est plus centralisée. Nous utilisons des \textbf{ConfigMaps} dédiés injectés dans les conteneurs au démarrage :
+\subsection{Initialisation via Kubernetes}
+L'initialisation des schémas est gérée par des \textbf{ConfigMaps} dédiés injectés dans les conteneurs au démarrage :
 \begin{itemize}
-    \item \texttt{flotte-db-init} : contient les schémas pour les véhicules et la localisation.
-    \item \texttt{maintenance-db-init} : contient le schéma \texttt{03-maintenance.sql}.
-    \item \texttt{driver-db-init} : contient le schéma \texttt{02-driver.sql} et les données initiales (\textit{seeds}).
+    \item \texttt{flotte-db-init} : Schémas pour les véhicules et la localisation.
+    \item \texttt{maintenance-db-init} : Schéma \texttt{03-maintenance.sql}.
+    \item \texttt{driver-db-init} : Schéma \texttt{02-driver.sql} et données initiales (\textit{seeds}).
 \end{itemize}
 
-\subsubsection{Entité MaintenanceRecord}
+% ------------------------------------------------------------
+% SERVICE MAINTENANCE
+% ------------------------------------------------------------
+\section{Microservice Maintenance}
+
+Le service Maintenance assure la traçabilité complète des interventions sur les véhicules.
+
+\subsection{Entité MaintenanceRecord}
 L'entité centrale \texttt{MaintenanceRecord} gère les cycles de vie des interventions via plusieurs énumérations (\texttt{Type}, \texttt{Status}, \texttt{Priority}).
 
 \begin{lstlisting}[language=Java, caption=Entité MaintenanceRecord]
@@ -242,11 +247,35 @@ public void checkOverdueMaintenance() {
 
 Le service Driver gère le cycle de vie des conducteurs et la conformité de leurs permis de conduire.
 
-\subsection{Relation Conducteurs et Permis}
-Le service utilise une relation \textbf{Un-à-Plusieurs} entre l'entité \texttt{Driver} et \texttt{DriverLicense}.
- Un conducteur peut posséder plusieurs catégories de permis (B, C, CE, etc.).
+\subsection{Entité Driver}
+Le service utilise une relation \textbf{Un-à-Plusieurs} entre l'entité \texttt{Driver} et \texttt{DriverLicense}. Il implémente également le \textit{Soft Delete} via Hibernate.
 
-\subsection{Surveillance des Expirations (LicenseScheduler)}
+\begin{lstlisting}[language=Java, caption=Entité Driver]
+@Entity
+@Table(name = "drivers")
+@SQLDelete(sql = "UPDATE drivers SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
+public class Driver {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    
+    private String firstName;
+    private String lastName;
+    
+    @Enumerated(EnumType.STRING)
+    private DriverStatus status = DriverStatus.active;
+
+    @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL)
+    private List<DriverLicense> licenses = new ArrayList<>();
+}
+\end{lstlisting}
+
+\subsection{Logique Métier et Conformité}
+
+Le service Driver assure la validité administrative des missions.
+
+\subsubsection{Surveillance des Expirations (LicenseScheduler)}
 Une tâche planifiée vérifie chaque nuit la validité des permis enregistrés pour alerter les gestionnaires avant l'expiration effective.
 
 \begin{lstlisting}[language=Java, caption=Vérification proactive des permis]
@@ -288,7 +317,10 @@ Les services \textbf{Maintenance} et \textbf{Driver} sont pleinement intégrés 
   \hline
   \textbf{POST} & \texttt{/api/maintenance} & Planification initiale d'une fiche. \\
   \hline
-  \textbf{GET} & \texttt{/api/maintenance/vehicle/\{id\}} & Historique complet des interventions d'un véhicule. \\
+  \textbf{GET} & \texttt{/api/maintenance} & \textbf{Nouveauté :} Liste globale filtrable par véhicule, statut ou priorité. \\
+  \hline
+  \textbf{GET} & \texttt{/api/maintenance/vehicle/\{id\}} & Historique complet d'un véhicule. \\
+
   \hline
   \textbf{PUT} & \texttt{/api/maintenance/\{id\}} & Mise à jour générale de la fiche. \\
   \hline
@@ -346,11 +378,12 @@ Ce topic notifie les créations et mises à jour de conducteurs, ainsi que les a
 \end{lstlisting}
 
 \subsection{Corrections Techniques Apportées}
-Lors de la mise en \oe{}uvre, plusieurs points critiques ont été résolus :
+L'implémentation a nécessité la résolution de plusieurs défis techniques majeurs rencontrés lors des tests d'intégration :
 \begin{itemize}
-    \item \textbf{Alignement des Ports} : Correction du port de service Kubernetes (8082 vs 8080) et mise en cohérence de l'Ingress pour les deux nouveaux services.
-    \item \textbf{Désérialisation Inter-Service} : Ajout du mappage explicite de \texttt{VehiclePayload} et \texttt{DriverPayload} dans la configuration Kafka pour éviter les erreurs de cast (\texttt{LinkedHashMap}).
-    \item \textbf{Cohérence des Types} : Correction du mappage JSON pour supporter les structures complexes (StatusChange) lors des mises à jour d'états.
+    \item \textbf{Routage et redirection (405 Method Not Allowed)} : Identification et correction d'une erreur 405 lors des requêtes \texttt{PUT}. Le problème provenait d'un conflit de port entre l'Ingress et le service Kubernetes, ainsi que d'une gestion ambiguë des slashes finaux dans les contrôleurs Spring Boot.
+    \item \textbf{Désérialisation Kafka (ClassCastException)} : Résolution d'une erreur où les événements reçus étaient interprétés comme des \texttt{LinkedHashMap} au lieu des types Records attendus. La solution a consisté à configurer explicitement le \texttt{spring.json.type.mapping} dans les propriétés Kafka.
+    \item \textbf{Cohérence des Schémas GraphQL} : Correction du crash du Gateway au démarrage dû à l'absence des types de pagination (\texttt{DriverPage}, \texttt{AlertPage}) dans les fichiers de définition du schéma.
+    \item \textbf{Contraintes de base de données} : Gestion des erreurs 500 liées à la contrainte \texttt{chk\_completed\_date} (vérifiant que la fin d'une maintenance ne précède pas sa date prévue).
 \end{itemize}
 
 \subsection{Exposition via le Gateway GraphQL}
@@ -397,7 +430,23 @@ Une réflexion a été menée sur la fiabilité de la "double écriture" (Base d
 Compte tenu de la taille du projet et de la complexité opérationnelle qu'impliquerait la mise en place d'un outil comme \textit{Debezium} ou d'un worker de relayage, nous avons privilégié le \textbf{Direct Publishing} au sein de transactions Spring \texttt{@Transactional}. Cette approche, combinée aux transactions compensatoires du pattern Saga, offre un excellent compromis entre robustesse et maintenabilité pour notre cas d'usage.
 
 \subsection{Flux de données}
-...
+L'architecture repose sur deux modes de communication complémentaires pour assurer la fluidité et la cohérence des données.
+
+\subsubsection{Flux Synchrones (Lecture et Agrégation)}
+Les requêtes de consultation transitent par le \textbf{Gateway GraphQL}. Ce dernier joue le rôle d'orchestrateur :
+\begin{itemize}
+    \item Il reçoit une requête unique (ex: fiche véhicule avec historique et conducteur).
+    \item Il appelle en parallèle les services REST concernés via leurs APIs respectives.
+    \item Il assemble les réponses JSON pour renvoyer un objet structuré au client.
+\end{itemize}
+
+\subsubsection{Flux Asynchrones (Événements et Saga)}
+Les changements d'état critiques utilisent le bus de messages \textbf{Kafka} pour garantir le découplage :
+\begin{itemize}
+    \item \textbf{Cycle de vie Maintenance} : \texttt{Maintenance $\rightarrow$ Kafka $\rightarrow$ Véhicule} (Mise à jour automatique de la disponibilité).
+    \item \textbf{Mise à jour Kilométrique} : \texttt{Véhicule $\rightarrow$ Kafka $\rightarrow$ Maintenance} (Calcul des prochaines échéances et alertes).
+    \item \textbf{Assignation Chauffeur} : \texttt{Véhicule $\rightarrow$ Kafka $\rightarrow$ Driver} (Passage du chauffeur en statut \texttt{on\_tour}).
+\end{itemize}
 
 % ------------------------------------------------------------
 % TESTS
