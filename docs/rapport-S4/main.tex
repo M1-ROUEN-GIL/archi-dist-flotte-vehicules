@@ -340,11 +340,26 @@ Lors de la mise en \oe{}uvre, plusieurs points critiques ont été résolus :
 \end{itemize}
 
 \subsection{Exposition via le Gateway GraphQL}
-Les deux services sont pleinement intégrés à l'API Gateway via GraphQL, permettant une agrégation riche :
+L'ensemble des services (Véhicule, Driver, Maintenance) est fédéré par une passerelle GraphQL implémentée avec Apollo Server.
+
+\subsubsection{Implémentation du Gateway (Apollo Server)}
+Une application Node.js dédiée centralise et expose le schéma GraphQL. Les requêtes sont résolues via un \texttt{Context} instanciant des clients REST (Axios) pour chaque microservice :
 \begin{itemize}
-    \item \textbf{Maintenance $\leftrightarrow$ Conducteur} : Résolution du technicien via son ID conducteur.
-    \item \textbf{Véhicule $\leftrightarrow$ Maintenance} : Affichage de l'historique technique depuis la fiche véhicule.
+    \item \textbf{VehicleClient} : requêtes vers \texttt{http://vehicle-service:8080}
+    \item \textbf{DriverClient} : requêtes vers \texttt{http://driver-service:8080}
+    \item \textbf{MaintenanceClient} : requêtes vers \texttt{http://maintenance-service:8082}
 \end{itemize}
+
+\subsubsection{Agrégation multi-services}
+L'API Gateway permet d'agréger les données de façon transparente pour le client :
+\begin{itemize}
+    \item \textbf{Maintenance $\leftrightarrow$ Conducteur} : Résolution du technicien.
+    \item \textbf{Véhicule $\leftrightarrow$ Maintenance} : Affichage de l'historique technique depuis la fiche véhicule.
+    \item \textbf{Véhicule $\leftrightarrow$ Conducteur} : Détail de l'assignation courante d'un véhicule vers le profil du conducteur (et ses permis).
+\end{itemize}
+
+\subsubsection{Conteneurisation et Ingress}
+Le Gateway est buildé dans une image Docker \texttt{graphql-gateway:latest} et déployé sur le cluster Kubernetes (port 4000). La configuration de l'\textbf{Ingress} route désormais le trafic de \texttt{/graphql} vers cette passerelle.
 
 % ------------------------------------------------------------
 % SAGA PATTERN
