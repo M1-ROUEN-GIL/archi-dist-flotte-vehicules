@@ -241,23 +241,63 @@ public void checkOverdueMaintenance() {
 % ------------------------------------------------------------
 \section{Intégration et Communication}
 
-\subsection{Architecture Événementielle}
-Le service produit des messages sur le topic Kafka \texttt{alerts-topic}. Ces événements (\texttt{AlertEvent}) sont consommés par le service d'événements pour être notifiés aux gestionnaires.
+L'intégration repose sur un couplage fort entre le service \textbf{Maintenance} et le service \textbf{Véhicules}, orchestré par une communication hybride REST/Kafka.
 
-\subsection{Exposition REST}
-Une API complète a été développée pour permettre au Gateway de gérer les interventions :
-\begin{center}
-\begin{tabular}{|l|l|l|}
+\subsection{Exposition REST (API de Maintenance)}
+Le service expose une API complète pour la gestion du cycle de vie des interventions. L'API utilise la stratégie \texttt{snake\_case} pour tous les champs JSON (configurée via Jackson).
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|l|l|l|p{6cm}|}
   \hline
-  \rowcolor{primary!10}
-  \textbf{Méthode} & \textbf{Endpoint} & \textbf{Action} \\
+  \rowcolor{primary!15}
+  \textbf{Méthode} & \textbf{Endpoint} & \textbf{Payload Principal} & \textbf{Description} \\
   \hline
-  POST   & \texttt{/api/maintenance} & Planifier une intervention \\
-  GET    & \texttt{/api/maintenance/vehicle/\{id\}} & Historique par véhicule \\
-  PATCH  & \texttt{/api/maintenance/\{id\}/status} & Mettre à jour le statut \\
+  \textbf{POST} & \texttt{/api/maintenance} & \texttt{vehicle\_id, type, scheduled\_date} & Planification initiale d'une fiche. \\
+  \hline
+  \textbf{GET} & \texttt{/api/maintenance/\{id\}} & - & Récupération des détails d'une fiche spécifique. \\
+  \hline
+  \textbf{GET} & \texttt{/api/maintenance/vehicle/\{id\}} & - & Historique complet des interventions d'un véhicule. \\
+  \hline
+  \textbf{PUT} & \texttt{/api/maintenance/\{id\}} & \texttt{description, priority, status} & Mise à jour des informations de planification. \\
+  \hline
+  \textbf{PATCH} & \texttt{/api/maintenance/\{id\}/status} & \texttt{status, cost\_eur, notes, ...} & Clôture technique ou changement d'état. \\
   \hline
 \end{tabular}
-\end{center}
+\caption{Catalogue des endpoints REST testés et fonctionnels}
+\end{table}
+
+\subsection{Synchronisation par Événements (Kafka)}
+Le lien entre la maintenance et la disponibilité des véhicules est automatisé via le topic \texttt{flotte.maintenance.events}. Chaque modification d'état produit un message structuré (\texttt{KafkaEventEnvelope}).
+
+\subsubsection{Flux de synchronisation du statut véhicule}
+Le service \textbf{Véhicules} consomme ces événements pour ajuster l'état opérationnel du véhicule sans intervention humaine :
+\begin{itemize}
+    \item \texttt{MAINTENANCE\_STARTED} $\rightarrow$ Statut véhicule : \texttt{in\_maintenance}.
+    \item \texttt{MAINTENANCE\_COMPLETED} $\rightarrow$ Statut véhicule : \texttt{available}.
+    \item \texttt{MAINTENANCE\_CANCELLED} $\rightarrow$ Statut véhicule : \texttt{available}.
+\end{itemize}
+
+\begin{lstlisting}[language=Java, caption=Exemple d'enveloppe d'événement Kafka]
+{
+  "eventType": "MAINTENANCE_COMPLETED",
+  "payload": {
+    "record_id": "7e3638d7-...",
+    "vehicle_id": "39e75ab3-...",
+    "status": { "previous": "IN_PROGRESS", "current": "COMPLETED" },
+    "cost_eur": 250.50
+  }
+}
+\end{lstlisting}
+
+\subsection{Corrections Techniques Apportées}
+Lors de la mise en \oe{}uvre, plusieurs points critiques ont été résolus :
+\begin{itemize}
+    \item \textbf{Alignement des Ports} : Correction du port de service Kubernetes (8082 vs 8080) et mise en cohérence de l'Ingress.
+    \item \textbf{Désérialisation Inter-Service} : Ajout du mappage explicite de \texttt{VehiclePayload} dans la configuration Kafka du service Maintenance pour éviter les erreurs de cast (\texttt{LinkedHashMap}).
+    \item \textbf{Cohérence des Types} : Correction du mappage JSON pour supporter les structures complexes (StatusChange) lors des mises à jour.
+\end{itemize}
 
 \subsection{Exposition via le Gateway GraphQL}
 Le service est pleinement intégré à l'API Gateway via GraphQL.
