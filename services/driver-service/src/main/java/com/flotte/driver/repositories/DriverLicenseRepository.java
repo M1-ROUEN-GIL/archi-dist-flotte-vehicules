@@ -4,6 +4,7 @@ import com.flotte.driver.models.DriverLicense;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,4 +19,7 @@ public interface DriverLicenseRepository  extends JpaRepository<DriverLicense, U
 
     // Trouver un permis spécifique par son numéro
     Optional<DriverLicense> findByLicenseNumber(String licenseNumber);
+
+    // Spring comprend tout seul qu'il doit chercher par le champ "expiryDate" !
+    List<DriverLicense> findByExpiryDate(LocalDate date);
 }
