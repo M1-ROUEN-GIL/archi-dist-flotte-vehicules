@@ -1,6 +1,8 @@
 {
   "name": "Minikube",
   "variables": [
+    { "name": "bruno_host_gateway", "value": "false", "enabled": true, "secret": false, "type": "text" },
+    { "name": "ingress_host", "value": "flotte.local", "enabled": true, "secret": false, "type": "text" },
     { "name": "base_url", "value": "http://flotte.local", "enabled": true, "secret": false, "type": "text" },
     { "name": "keycloak_token_url", "value": "http://flotte.local/auth/realms/gestion-flotte/protocol/openid-connect/token", "enabled": true, "secret": false, "type": "text" },
     { "name": "kc_client_id", "value": "admin-cli", "enabled": true, "secret": false, "type": "text" },

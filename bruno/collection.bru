@@ -7,35 +7,94 @@ auth:bearer {
 }
 
 script:pre-request {
-  // api_base : variable runtime (bru.setVar) — l’env `base_url` a priorité sur setVar('base_url') dans Bruno,
-  // d’où ECONNREFUSED :80 si base_url=http://127.0.0.1 sans port.
-  // Depuis la machine hôte, les noms de service Docker (graphql, gateway, …) ne se résolvent pas → EAI_AGAIN.
-  // Le service compose s’appelle « gateway » ; « graphql » n’existe souvent que dans des docs K8s / alias réseau.
+  const hostGateway = bru.getEnvVar('bruno_host_gateway') === 'true';
+  // Gateway (port 4000 ou ingress) vs Keycloak (/auth, port 8180 ou même hôte ingress).
+  const gatewayHosts = new Set([
+    'api',
+    'graphql',
+    'gateway',
+    'graphql-gateway',
+    'graphql-gateway-service',
+  ]);
+  const keycloakHosts = new Set([
+    'api',
+    'graphql',
+    'gateway',
+    'keycloak',
+    'graphql-gateway',
+    'graphql-gateway-service',
+  ]);
+
+  function rewriteClusterHost(urlStr, mode) {
+    if (!urlStr) return urlStr;
+    let u;
+    try {
+      u = new URL(urlStr.includes('://') ? urlStr : 'http://' + urlStr);
+    } catch (e) {
+      return urlStr;
+    }
+    const allow = mode === 'gateway' ? gatewayHosts : keycloakHosts;
+    if (!allow.has(u.hostname)) return urlStr;
+    const path = (u.pathname || '/') + (u.search || '');
+    if (mode === 'gateway') {
+      if (hostGateway) return 'http://127.0.0.1:4000' + path;
+      const ih = bru.getEnvVar('ingress_host') || 'flotte.local';
+      return 'http://' + ih + path;
+    }
+    if (mode === 'keycloak') {
+      if (hostGateway) return 'http://127.0.0.1:8180' + path;
+      const ih = bru.getEnvVar('ingress_host') || 'flotte.local';
+      return 'http://' + ih + path;
+    }
+    return urlStr;
+  }
+
+  // 1) En premier : corriger req (hôtes cluster) — les .bru utilisent {{base_url}} (env), pas api_base.
+  // Sinon si base_url est vide ou mal lu, « http://api/… » part tel quel → EAI_AGAIN.
+  let reqUrl = req.getUrl() || '';
+  const isTokenReq = reqUrl.includes('/openid-connect/token');
+  const mode0 = isTokenReq ? 'keycloak' : 'gateway';
+  const reqFixed = rewriteClusterHost(reqUrl, mode0);
+  if (reqFixed && reqFixed !== reqUrl) {
+    req.setUrl(reqFixed);
+    reqUrl = reqFixed;
+  }
+
+  if (isTokenReq) {
+    return;
+  }
+
   let apiBase = bru.getEnvVar('base_url') || '';
   try {
     if (apiBase) {
+      apiBase = rewriteClusterHost(apiBase, 'gateway');
       let u = new URL(apiBase.includes('://') ? apiBase : 'http://' + apiBase);
-      const dockerGatewayHosts = ['graphql', 'gateway'];
-      if (dockerGatewayHosts.includes(u.hostname)) {
-        u = new URL('http://127.0.0.1:4000');
-      } else {
-        const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
-        const port = u.port || (u.protocol === 'https:' ? '443' : '80');
-        if (local && (port === '80' || port === '443')) {
-          u.port = '4000';
-        }
+      const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+      const port = u.port || (u.protocol === 'https:' ? '443' : '80');
+      if (hostGateway && local && (port === '80' || port === '443')) {
+        u.port = '4000';
       }
       apiBase = u.href.replace(/\/$/, '');
     }
   } catch (e) { /* ignore */ }
-  if (!apiBase) {
+  if (!apiBase && hostGateway) {
     apiBase = 'http://127.0.0.1:4000';
   }
-  bru.setVar('api_base', apiBase);
-
-  const reqUrl = req.getUrl();
-  if (reqUrl.includes('/openid-connect/token')) {
-    return;
+  // 2) Aligner la requête sur base_url (après rewrites localhost:80→4000, etc.).
+  reqUrl = req.getUrl() || '';
+  if (apiBase) {
+    try {
+      const cur = new URL(reqUrl.includes('://') ? reqUrl : 'http://bruno.placeholder' + (reqUrl.startsWith('/') ? reqUrl : '/' + reqUrl));
+      const base = new URL(apiBase.replace(/\/$/, ''));
+      const path = cur.pathname + (cur.search || '');
+      req.setUrl(base.origin + path);
+    } catch (e1) {
+      try {
+        const base = new URL(apiBase.replace(/\/$/, ''));
+        const p = reqUrl.startsWith('/') ? reqUrl : '/' + reqUrl;
+        req.setUrl(base.origin + p);
+      } catch (e2) { /* ignore */ }
+    }
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -46,7 +105,8 @@ script:pre-request {
     return;
   }
 
-  const tokenUrl = bru.getEnvVar('keycloak_token_url');
+  let tokenUrl = bru.getEnvVar('keycloak_token_url');
+  tokenUrl = rewriteClusterHost(tokenUrl, 'keycloak');
   if (!tokenUrl) {
     return;
   }
