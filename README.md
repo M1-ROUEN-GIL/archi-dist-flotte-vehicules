@@ -48,8 +48,8 @@ echo "$(minikube ip) flotte.local" | sudo tee -a /etc/hosts
 
 | Service | Local (Compose) | Cluster (K8s) |
 | :--- | :--- | :--- |
-| **Gateway GraphQL** | [http://localhost:4000](http://localhost:4000) | `http://flotte.local/graphql` |
-| **Keycloak** | [http://localhost:8180](http://localhost:8180) | `http://flotte.local/auth` |
+| **Gateway GraphQL** | [http://127.0.0.1:4000](http://127.0.0.1:4000) (`localhost` équivalent) | `http://flotte.local/graphql` |
+| **Keycloak** | [http://127.0.0.1:8180](http://127.0.0.1:8180) (`localhost` équivalent) | `http://flotte.local/auth` |
 | **Bases de Données** | [localhost:5432](localhost:5432) | Service interne |
 | **Kafka UI / Watch** | `./watch-kafka.sh` | Pod dédié |
 
@@ -69,14 +69,16 @@ Toutes les requêtes de test (REST et GraphQL) sont centralisées dans une colle
 1.  **Ouvrir Bruno** et cliquer sur "Open Collection".
 2.  Sélectionner le dossier [`/bruno`](./bruno) à la racine du projet.
 3.  **Sélectionner l'environnement** en haut à droite :
-    - `Docker` : pour tester sur `localhost` (port 4000 pour le gateway, 8180 pour Keycloak).
+    - `Docker` : `base_url` = `http://127.0.0.1:4000` (gateway), Keycloak en `8180` avec préfixe `/auth` (voir [`bruno/environments/Docker.json`](./bruno/environments/Docker.json)).
     - `Minikube` : pour tester sur `http://flotte.local` (nécessite la configuration du fichier `/etc/hosts`).
-4.  **Authentification Automatique** : La collection inclut un script `pre-request` qui récupère automatiquement un token JWT auprès de Keycloak et le stocke dans la variable `access_token`. Vous n'avez rien à faire, le token est injecté dans toutes les requêtes.
+4.  **Authentification automatique** : le script `pre-request` de `collection.bru` obtient un JWT Keycloak via `bru.sendRequest`, rafraîchit le jeton selon l’expiration du payload, et pose `Authorization` sur chaque requête. Aucun POST « token » manuel.
 
 #### Structure de la collection
-- **`Auth/`** : Requêtes manuelles pour tester l'obtention de jetons.
-- **`REST/`** : Tests des endpoints CRUD pour les services `vehicle`, `driver` et `maintenance`.
-- **`GraphQL/`** : Requêtes d'agrégation via le Gateway (port 4000).
+- **`bruno.json`** : métadonnées de la collection (nom `archi-distrib`).
+- **`collection.bru`** : script de collection (token + réécriture d’URL selon l’environnement).
+- **`environments/`** : `Docker.json` et `Minikube.json` (`base_url`, `keycloak_token_url`, identifiants `kc_*`).
+- **`REST/`** : tests des endpoints CRUD pour les services `vehicle`, `driver` et `maintenance`.
+- **`GraphQL/`** : requêtes d’agrégation via `{{base_url}}/graphql` (gateway).
 
 ### Qualité et Couverture (JaCoCo)
 Chaque service Spring Boot vise une couverture de test **> 80%**.

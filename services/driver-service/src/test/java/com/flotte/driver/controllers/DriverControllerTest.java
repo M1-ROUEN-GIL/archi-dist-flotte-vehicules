@@ -89,7 +89,7 @@ class DriverControllerTest {
 	}
 
 	@Test
-	void updateDriverStatus_ShouldReturnOk() throws Exception {
+	void updateDriverStatus_WhenAdmin_ShouldReturnOk() throws Exception {
 		UUID id = UUID.randomUUID();
 		DriverStatusInput body = new DriverStatusInput(DriverStatus.ON_TOUR);
 		when(driverService.updateDriverStatus(eq(id), any())).thenReturn(
@@ -99,6 +99,18 @@ class DriverControllerTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(body)))
 				.andExpect(status().isOk());
+	}
+
+	@Test
+	void updateDriverStatus_WhenTechnician_ShouldReturnForbidden() throws Exception {
+		when(jwtDecoder.decode(anyString())).thenReturn(jwtWithRealmRoles("technician"));
+		UUID id = UUID.randomUUID();
+		DriverStatusInput body = new DriverStatusInput(DriverStatus.ON_TOUR);
+		mockMvc.perform(patch("/drivers/{id}/status", id)
+						.header(HttpHeaders.AUTHORIZATION, BEARER)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(body)))
+				.andExpect(status().isForbidden());
 	}
 
 	@Test

@@ -48,6 +48,7 @@ public class DriverController {
 	}
 
 	@PatchMapping("/{id}/status")
+	@PreAuthorize("hasAnyRole('admin', 'manager')")
 	public DriverResponse updateDriverStatus(@PathVariable UUID id,
 											 @Valid @RequestBody DriverStatusInput request){
 		return driverService.updateDriverStatus(id, request);

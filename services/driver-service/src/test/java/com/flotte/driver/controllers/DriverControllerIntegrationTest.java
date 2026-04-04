@@ -2,6 +2,8 @@ package com.flotte.driver.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flotte.driver.dto.DriverInput;
+import com.flotte.driver.dto.DriverStatusInput;
+import com.flotte.driver.models.enums.DriverStatus;
 import com.flotte.driver.services.DriverService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -80,6 +83,18 @@ public class DriverControllerIntegrationTest {
 				.header(HttpHeaders.AUTHORIZATION, BEARER)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(input)))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void updateDriverStatus_WhenUser_ShouldReturnForbidden() throws Exception {
+		when(jwtDecoder.decode(anyString())).thenReturn(jwtWithRealmRoles("user"));
+		UUID id = UUID.randomUUID();
+		DriverStatusInput body = new DriverStatusInput(DriverStatus.ON_TOUR);
+		mockMvc.perform(patch("/drivers/{id}/status", id)
+				.header(HttpHeaders.AUTHORIZATION, BEARER)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(body)))
 				.andExpect(status().isForbidden());
 	}
 
