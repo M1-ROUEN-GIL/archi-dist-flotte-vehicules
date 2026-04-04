@@ -5,6 +5,12 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   replicas: 1
+  # maxSurge: 0 → pas de 2e pod pendant le rollout (sinon sur Minikube le pod reste Pending faute de ressources)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
   selector:
     matchLabels:
       app: graphql-gateway
@@ -19,13 +25,32 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: {{ .Values.graphqlGateway.port | default 4000 }}
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.graphqlGateway.port | default 4000 }}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 24
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.graphqlGateway.port | default 4000 }}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.graphqlGateway.port | default 4000 }}
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 2
+            failureThreshold: 4
           env:
             - name: VEHICLE_SERVICE_URL
-              value: "http://vehicle-service:8080"
+              value: "http://vehicle-service.{{ .Values.namespace }}.svc.cluster.local:8080"
             - name: DRIVER_SERVICE_URL
-              value: "http://driver-service:8080"
+              value: "http://driver-service.{{ .Values.namespace }}.svc.cluster.local:8080"
             - name: MAINTENANCE_SERVICE_URL
-              value: "http://maintenance-service:8080"
+              value: "http://maintenance-service.{{ .Values.namespace }}.svc.cluster.local:8080"
             - name: OTEL_SERVICE_NAME
               value: "graphql-gateway"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

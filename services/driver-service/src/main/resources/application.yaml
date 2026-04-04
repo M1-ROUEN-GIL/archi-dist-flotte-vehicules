@@ -1,6 +1,11 @@
 server:
   port: 8080
 
+flotte:
+  postgres:
+    auto-create-databases: true
+    databases: driver_db
+
 spring:
   application:
     name: driver-service
@@ -16,15 +21,14 @@ spring:
   # Configuration de la base de donnees (PostgreSQL)
   datasource:
     # Si SPRING_DATASOURCE_URL existe (Kube), on l'utilise. Sinon (Local), on prend localhost
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5436/driver_db}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/driver_db}
     username: ${SPRING_DATASOURCE_USERNAME:admin}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
 
-  # Configuration Hibernate / JPA
   jpa:
     hibernate:
-      ddl-auto: none # Modifié pour laisser ton script SQL gérer la base
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:

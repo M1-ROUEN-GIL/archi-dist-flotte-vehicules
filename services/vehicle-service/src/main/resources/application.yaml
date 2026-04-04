@@ -1,6 +1,14 @@
 server:
   port: 8080
 
+# Base métier créée au démarrage (EnvironmentPostProcessor) avant le DataSource — voir driver-service et maintenance-service pour les leurs.
+flotte:
+  postgres:
+    auto-create-databases: true
+    # Optionnel : jdbc:postgresql://hôte:port/postgres (sinon dérivé de spring.datasource.url)
+    # bootstrap-url: jdbc:postgresql://localhost:5432/postgres
+    databases: vehicle_db
+
 spring:
   application:
     name: vehicle-service
@@ -10,8 +18,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # On ne met PAS issuer-uri ici pour éviter que Spring essaie de faire de la découverte OIDC sur le réseau
-          # On utilisera une vérification manuelle dans SecurityConfig si nécessaire
+          # Pas d'issuer-uri : JwtDecoder personnalisé (SecurityConfig) avec JwtTimestampValidator
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/gestion-flotte/protocol/openid-connect/certs}
 
   # Configuration de la base de donnees (PostgreSQL)
@@ -21,10 +28,9 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
 
-  # Configuration Hibernate / JPA
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:

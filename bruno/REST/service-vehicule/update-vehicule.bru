@@ -1,0 +1,19 @@
+meta {
+  name: update-vehicule
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}/api/vehicles/351fbadf-269a-432c-8e79-665fceafe2a5
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "brand": "Renault",
+    "model": "Kangoo ZE v2",
+    "mileage_km": 1600
+  }
+}

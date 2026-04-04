@@ -1,0 +1,25 @@
+meta {
+  name: get-drivers
+  type: graphql
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/graphql
+  body: graphql
+  auth: inherit
+}
+
+body:graphql {
+  query {
+    drivers {
+      items {
+        id
+        first_name
+        last_name
+        email
+        status
+      }
+    }
+  }
+}

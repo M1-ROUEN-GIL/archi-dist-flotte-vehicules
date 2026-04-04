@@ -31,5 +31,5 @@ COPY --from=builder /build/opentelemetry-javaagent.jar opentelemetry-javaagent.j
 # On expose le port de Spring Boot
 EXPOSE 8080
 
-# Commande de lancement avec l'agent OpenTelemetry
-ENTRYPOINT ["java", "-javaagent:opentelemetry-javaagent.jar", "-jar", "app.jar"]
+# Même modèle que driver/maintenance : l'agent est injecté via JAVA_TOOL_OPTIONS (Compose / Helm), pas en double ici.
+ENTRYPOINT ["java", "-jar", "app.jar"]

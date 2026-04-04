@@ -1,0 +1,20 @@
+meta {
+  name: update-maintenance
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/api/maintenance/42dd207b-81ef-4689-8cbc-274858f45a6f
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "description": "Nouvelle description",
+    "priority": "HIGH",
+    "scheduled_date": "2026-04-01",
+    "status": "IN_PROGRESS"
+  }
+}

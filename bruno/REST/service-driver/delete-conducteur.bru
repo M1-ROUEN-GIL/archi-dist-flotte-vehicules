@@ -1,0 +1,11 @@
+meta {
+  name: delete-conducteur
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{base_url}}/api/drivers/:id
+  body: none
+  auth: inherit
+}

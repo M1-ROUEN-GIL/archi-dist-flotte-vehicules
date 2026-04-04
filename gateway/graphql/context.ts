@@ -1,9 +1,33 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { IncomingMessage } from 'http';
 
 const VEHICLE_SERVICE_URL = process.env.VEHICLE_SERVICE_URL || 'http://vehicle-service:8080';
 const DRIVER_SERVICE_URL = process.env.DRIVER_SERVICE_URL || 'http://driver-service:8080';
 const MAINTENANCE_SERVICE_URL = process.env.MAINTENANCE_SERVICE_URL || 'http://maintenance-service:8080';
+
+/** Réessaie les erreurs réseau transitoires (backends pas encore prêts au démarrage K8s). */
+function attachTransientNetworkRetry(http: AxiosInstance, maxRetries = 4): void {
+  http.interceptors.response.use(
+    (r) => r,
+    async (error: AxiosError) => {
+      const cfg = error.config as (InternalAxiosRequestConfig & { __retryCount?: number }) | undefined;
+      if (!cfg) throw error;
+      const code = error.code;
+      const transient =
+        code === 'ECONNREFUSED' ||
+        code === 'ECONNRESET' ||
+        code === 'ETIMEDOUT' ||
+        code === 'EAI_AGAIN' ||
+        (error.message?.includes('socket hang up') ?? false);
+      const n = cfg.__retryCount ?? 0;
+      if (!transient || n >= maxRetries) throw error;
+      cfg.__retryCount = n + 1;
+      const delayMs = 400 * (n + 1);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return http.request(cfg);
+    }
+  );
+}
 
 export interface GraphQLContext {
   vehicle: VehicleClient;
@@ -14,10 +38,12 @@ export interface GraphQLContext {
 class BaseClient {
   protected http: AxiosInstance;
   constructor(baseURL: string, authHeader?: string) {
-    this.http = axios.create({ 
+    this.http = axios.create({
       baseURL,
-      headers: authHeader ? { Authorization: authHeader } : {}
+      timeout: 30_000,
+      headers: authHeader ? { Authorization: authHeader } : {},
     });
+    attachTransientNetworkRetry(this.http);
   }
 }
 

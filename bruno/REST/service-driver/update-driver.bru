@@ -1,0 +1,22 @@
+meta {
+  name: update-driver
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/api/drivers/5712188e-a270-49d5-96cb-efce2256bd71
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "keycloak_user_id": "777a8400-e29b-41d4-a716-446655447777",
+    "first_name": "Marc",
+    "last_name": "Durand-Modifie",
+    "email": "marc.durand@test.com",
+    "phone": "+33799999999",
+    "employee_id": "EMP-999"
+  }
+}

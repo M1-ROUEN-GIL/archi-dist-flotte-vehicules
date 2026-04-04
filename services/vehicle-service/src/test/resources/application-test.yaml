@@ -1,3 +1,7 @@
+flotte:
+  postgres:
+    auto-create-databases: false
+
 spring:
   jackson:
     property-naming-strategy: LOWER_CAMEL_CASE

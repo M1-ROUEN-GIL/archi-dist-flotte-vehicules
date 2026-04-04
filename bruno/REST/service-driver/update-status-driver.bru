@@ -1,0 +1,17 @@
+meta {
+  name: update-status-driver
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{base_url}}/api/drivers/5712188e-a270-49d5-96cb-efce2256bd71/status
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "ON_TOUR"
+  }
+}

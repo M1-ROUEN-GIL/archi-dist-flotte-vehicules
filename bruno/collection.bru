@@ -1,0 +1,43 @@
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+script:pre-request {
+  const reqUrl = req.getUrl();
+  if (reqUrl.includes('/openid-connect/token')) {
+    return;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const exp = parseInt(bru.getVar('access_token_exp') || '0', 10);
+  const tok = bru.getVar('access_token');
+
+  if (tok && exp && now < exp - 30) {
+    return;
+  }
+
+  const tokenUrl = bru.getEnvVar('keycloak_token_url');
+  if (!tokenUrl) {
+    return;
+  }
+
+  const res = await require('axios').post(tokenUrl,
+    'grant_type=password&client_id=' + (bru.getEnvVar('kc_client_id') || 'admin-cli') +
+    '&username=' + (bru.getEnvVar('kc_username') || 'test-user') +
+    '&password=' + (bru.getEnvVar('kc_password') || 'password'),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+  );
+
+  if (res.data.access_token) {
+    bru.setVar('access_token', res.data.access_token);
+    const parts = res.data.access_token.split('.');
+    if (parts.length === 3) {
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      if (payload.exp) bru.setVar('access_token_exp', String(payload.exp));
+    }
+  }
+}

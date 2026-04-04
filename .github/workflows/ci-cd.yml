@@ -16,8 +16,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [driver-service, events-service, maintenance-service, vehicle-service]
+        include:
+          - service: vehicle-service
+            datasource_url: jdbc:postgresql://localhost:5432/vehicle_db
+          - service: driver-service
+            datasource_url: jdbc:postgresql://localhost:5432/driver_db
+          - service: maintenance-service
+            datasource_url: jdbc:postgresql://localhost:5432/maintenance_db
+          - service: events-service
+            datasource_url: jdbc:postgresql://localhost:5432/vehicle_db
     
+    env:
+      SPRING_DATASOURCE_URL: ${{ matrix.datasource_url }}
+
     # Ajout des services nécessaires pour le chargement du contexte Spring Boot
     services:
       postgres:
@@ -58,6 +69,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+      - name: Créer les bases PostgreSQL (même instance, une base par service)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+          export PGPASSWORD=password
+          for db in driver_db maintenance_db; do
+            psql -h localhost -U admin -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$db'" | grep -q 1 \
+              || psql -h localhost -U admin -d postgres -c "CREATE DATABASE $db;"
+          done
       - name: Build and Test Java Service
         run: |
           cd services/${{ matrix.service }}

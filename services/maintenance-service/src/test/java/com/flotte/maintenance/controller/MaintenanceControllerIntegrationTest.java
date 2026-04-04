@@ -5,18 +5,26 @@ import com.flotte.maintenance.dto.MaintenanceCreateRequest;
 import com.flotte.maintenance.model.MaintenancePriority;
 import com.flotte.maintenance.model.MaintenanceType;
 import com.flotte.maintenance.service.MaintenanceService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,6 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @org.springframework.test.context.ActiveProfiles("test")
 class MaintenanceControllerIntegrationTest {
+
+	private static final String BEARER = "Bearer test-token";
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -35,36 +45,55 @@ class MaintenanceControllerIntegrationTest {
 	@MockBean
 	private MaintenanceService service;
 
+	@MockBean
+	private JwtDecoder jwtDecoder;
+
+	@BeforeEach
+	void defaultAdminJwt() {
+		when(jwtDecoder.decode(anyString())).thenReturn(jwtWithRealmRoles("admin"));
+	}
+
+	private static Jwt jwtWithRealmRoles(String... roles) {
+		return Jwt.withTokenValue("test-token")
+			.header("alg", "none")
+			.claim("realm_access", Map.of("roles", List.of(roles)))
+			.issuedAt(Instant.now())
+			.expiresAt(Instant.now().plusSeconds(3600))
+			.build();
+	}
+
 	@Test
-	@WithMockUser(roles = "admin")
 	void createRecord_WhenAdmin_ShouldReturnCreated() throws Exception {
 		MaintenanceCreateRequest request = new MaintenanceCreateRequest(
 				UUID.randomUUID(), MaintenanceType.PREVENTIVE, MaintenancePriority.MEDIUM,
 				LocalDate.now().plusDays(10), "Test description");
 
 		mockMvc.perform(post("/maintenance")
+				.header(HttpHeaders.AUTHORIZATION, BEARER)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isCreated());
 	}
 
 	@Test
-	@WithMockUser(roles = "technician")
 	void createRecord_WhenTechnician_ShouldReturnForbidden() throws Exception {
+		when(jwtDecoder.decode(anyString())).thenReturn(jwtWithRealmRoles("technician"));
 		MaintenanceCreateRequest request = new MaintenanceCreateRequest(
 				UUID.randomUUID(), MaintenanceType.PREVENTIVE, MaintenancePriority.MEDIUM,
 				LocalDate.now().plusDays(10), "Test description");
 
 		mockMvc.perform(post("/maintenance")
+				.header(HttpHeaders.AUTHORIZATION, BEARER)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isForbidden());
 	}
 
 	@Test
-	@WithMockUser(roles = "technician")
 	void getVehicleHistory_WhenTechnician_ShouldReturnOk() throws Exception {
-		mockMvc.perform(get("/maintenance/vehicle/" + UUID.randomUUID()))
+		when(jwtDecoder.decode(anyString())).thenReturn(jwtWithRealmRoles("technician"));
+		mockMvc.perform(get("/maintenance/vehicle/" + UUID.randomUUID())
+				.header(HttpHeaders.AUTHORIZATION, BEARER))
 				.andExpect(status().isOk());
 	}
 

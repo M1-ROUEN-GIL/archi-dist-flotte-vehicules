@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "archi-distrib",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"],
+  "proxy": {
+    "enabled": false
+  }
+}

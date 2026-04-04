@@ -1,0 +1,23 @@
+meta {
+  name: get-maintenance
+  type: graphql
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/graphql
+  body: graphql
+  auth: inherit
+}
+
+body:graphql {
+  query {
+    maintenanceRecords {
+      items {
+        id
+        description
+        status
+      }
+    }
+  }
+}

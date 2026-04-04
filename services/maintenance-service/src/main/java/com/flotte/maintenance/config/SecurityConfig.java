@@ -27,7 +27,7 @@ public class SecurityConfig {
 		http
 			.csrf(csrf -> csrf.disable())
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/api/maintenance/**").authenticated()
+				.requestMatchers("/maintenance/**").authenticated()
 				.anyRequest().permitAll()
 			)
 			.oauth2ResourceServer(oauth2 -> oauth2

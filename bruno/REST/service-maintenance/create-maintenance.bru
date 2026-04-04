@@ -1,0 +1,21 @@
+meta {
+  name: create-maintenance
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/maintenance/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "vehicle_id": "39e75ab3-7878-48a4-814e-f20c63fc99b7",
+    "type": "CORRECTIVE",
+    "priority": "HIGH",
+    "scheduled_date": "2026-05-01",
+    "description": "Changement des pneus"
+  }
+}

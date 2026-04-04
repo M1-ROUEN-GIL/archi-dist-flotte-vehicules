@@ -25,13 +25,25 @@ spec:
             - containerPort: 8082 # Le service écoute sur 8082 en interne
           env:
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://postgres-maintenance-service:5432/maintenance_db"
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: MAINTENANCE_DATASOURCE_URL
             - name: SPRING_DATASOURCE_USERNAME
-              value: "postgres"
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: SPRING_DATASOURCE_USERNAME
             - name: SPRING_DATASOURCE_PASSWORD
-              value: "pK4v3YrwTZ"
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: SPRING_DATASOURCE_PASSWORD
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              value: "kafka-service:9092"
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: KAFKA_BROKER
             - name: KEYCLOAK_JWK_SET_URI
               value: "http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs"
           resources:

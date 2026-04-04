@@ -1,0 +1,10 @@
+{
+  "name": "Docker",
+  "variables": [
+    { "name": "base_url", "value": "http://localhost", "enabled": true, "secret": false, "type": "text" },
+    { "name": "keycloak_token_url", "value": "http://localhost:8180/auth/realms/gestion-flotte/protocol/openid-connect/token", "enabled": true, "secret": false, "type": "text" },
+    { "name": "kc_client_id", "value": "admin-cli", "enabled": true, "secret": false, "type": "text" },
+    { "name": "kc_username", "value": "test-user", "enabled": true, "secret": false, "type": "text" },
+    { "name": "kc_password", "value": "password", "enabled": true, "secret": false, "type": "text" }
+  ]
+}

@@ -1,53 +1,18 @@
 services:
-  # 1. PostgreSQL Véhicules (+ Keycloak : même instance, base vehicle_db)
-  postgres-vehicle:
+  # Un seul PostgreSQL ; bases métier par service ; Keycloak utilise la base par défaut "postgres" (pas de script SQL dédié).
+  postgres:
     image: timescale/timescaledb:2.14.2-pg15
-    container_name: flotte-postgres-vehicle
+    container_name: flotte-postgres
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: vehicle_db
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
-      - ./services/vehicle-service/db/migrations/01-vehicle.sql:/docker-entrypoint-initdb.d/01-vehicle.sql
-      - ./services/vehicle-service/db/seeds/02-vehicle-seed.sql:/docker-entrypoint-initdb.d/02-vehicle-seed.sql
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  # 1b. Base de données PostgreSQL pour le service Maintenance
-  postgres-maintenance:
-    image: postgres:15-alpine
-    container_name: flotte-postgres-maintenance
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: maintenance_db
-    ports:
-      - "5435:5432"
-    volumes:
-      - ./services/maintenance-service/db/migrations/01-maintenance.sql:/docker-entrypoint-initdb.d/01-maintenance.sql
-      - ./services/maintenance-service/db/seeds/02-maintenance-seed.sql:/docker-entrypoint-initdb.d/02-maintenance-seed.sql
-      - postgres_maintenance_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # 1c. Base de données PostgreSQL pour le service Conducteurs
-  postgres-driver:
-    image: postgres:15-alpine
-    container_name: flotte-postgres-driver
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: driver_db
-    ports:
-      - "5436:5432"
-    volumes:
-      - ./services/driver-service/db/migrations/01-driver.sql:/docker-entrypoint-initdb.d/01-driver.sql
-      - ./services/driver-service/db/seeds/02-driver-seed.sql:/docker-entrypoint-initdb.d/02-driver-seed.sql
-      - postgres_driver_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # 2. Redis
   redis:
     image: redis:7.2-alpine
     container_name: flotte-redis
@@ -55,7 +20,6 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
-  # 3. Apache Kafka
   kafka:
     image: apache/kafka:3.7.0
     container_name: flotte-kafka
@@ -74,28 +38,31 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     restart: unless-stopped
 
-  # 4. Keycloak
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    # Version épinglée — :latest (26+) exige KC_BOOTSTRAP_ADMIN_* (KEYCLOAK_ADMIN est déprécié)
+    image: quay.io/keycloak/keycloak:26.5.7
     container_name: flotte-keycloak
     command: start-dev --import-realm
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-vehicle:5432/vehicle_db?sslmode=disable
+      KC_DB_URL: jdbc:postgresql://postgres:5432/postgres?sslmode=disable
       KC_DB_USERNAME: admin
       KC_DB_PASSWORD: password
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: "xforwarded"
+      KC_HTTP_RELATIVE_PATH: "/auth"
     ports:
       - "8180:8080"
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm.json
     depends_on:
-      - postgres-vehicle
+      postgres:
+        condition: service_started
     restart: unless-stopped
 
-  # 5. Interface d'administration web pour PostgreSQL
   pgadmin:
     image: dpage/pgadmin4
     container_name: flotte-pgadmin
@@ -105,25 +72,23 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - postgres-vehicle
-      - postgres-maintenance
-      - postgres-driver
+      - postgres
     restart: unless-stopped
 
-  # 6. Microservice Véhicules
   vehicle:
     build:
       context: ./services/vehicle-service
       dockerfile: Dockerfile
     container_name: flotte-vehicle
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-vehicle:5432/vehicle_db
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/vehicle_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
       - KAFKA_BROKER=kafka:9092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/gestion-flotte
-      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/gestion-flotte/protocol/openid-connect/certs
-      # Configuration pour l'Agent Java OpenTelemetry
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/auth/realms/gestion-flotte
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
+      - JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
       - OTEL_SERVICE_NAME=vehicle-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -134,25 +99,24 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres-vehicle
+      - postgres
       - kafka
-      - keycloak
     restart: unless-stopped
 
-  # 6. Microservice Maintenance
   maintenance:
     build:
       context: ./services/maintenance-service
       dockerfile: Dockerfile
     container_name: flotte-maintenance
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-maintenance:5432/maintenance_db
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/maintenance_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/gestion-flotte
-      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/gestion-flotte/protocol/openid-connect/certs
-      # Configuration pour l'Agent Java OpenTelemetry
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/auth/realms/gestion-flotte
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
+      - JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
       - OTEL_SERVICE_NAME=maintenance-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -163,25 +127,28 @@ services:
     ports:
       - "8082:8080"
     depends_on:
-      - postgres-maintenance
-      - kafka
-      - keycloak
+      postgres:
+        condition: service_started
+      kafka:
+        condition: service_started
+      keycloak:
+        condition: service_started
     restart: unless-stopped
 
-  # 7. Microservice Conducteurs
   driver:
     build:
       context: ./services/driver-service
       dockerfile: Dockerfile
     container_name: flotte-driver
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-driver:5432/driver_db
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/driver_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
       - KAFKA_BROKER=kafka:9092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/gestion-flotte
-      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/gestion-flotte/protocol/openid-connect/certs
-      # Configuration pour l'Agent Java OpenTelemetry
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/auth/realms/gestion-flotte
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
+      - JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
       - OTEL_SERVICE_NAME=driver-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -192,12 +159,14 @@ services:
     ports:
       - "8081:8080"
     depends_on:
-      - postgres-driver
-      - kafka
-      - keycloak
+      postgres:
+        condition: service_started
+      kafka:
+        condition: service_started
+      keycloak:
+        condition: service_started
     restart: unless-stopped
 
-  # 8. GraphQL Gateway
   gateway:
     build:
       context: ./gateway
@@ -219,6 +188,3 @@ services:
 
 volumes:
   postgres_data:
-  postgres_maintenance_data:
-  postgres_driver_data:
-  kafka_data:

@@ -1,42 +1,28 @@
 namespace: flotte-namespace
 
-# 1. PostgreSQL Véhicules (aligné sur postgres-*-service ; Keycloak partage cette instance / vehicle_db)
+# PostgreSQL unique — bases métier créées au démarrage par chaque microservice (flotte.postgres.*).
+# Keycloak se connecte à la base par défaut "postgres" (auth.database) : pas de CREATE DATABASE séparé.
 postgresql:
-  fullnameOverride: "postgres-vehicle-service"
+  fullnameOverride: "postgres-flotte-service"
   auth:
     username: "admin"
-    database: "vehicle_db"
+    database: "postgres"
   primary:
+    initdb:
+      scripts:
+        create-databases.sql: |
+          CREATE DATABASE driver_db;
+          CREATE DATABASE maintenance_db;
+          CREATE DATABASE vehicle_db;
+          CREATE DATABASE keycloak_db;
     persistence:
       enabled: false
-    initdb:
-      scriptsConfigMap: "vehicle-db-init"
 
-# 1b. Configuration de PostgreSQL pour la Maintenance
 postgresql-maintenance:
-  enabled: true
-  fullnameOverride: "postgres-maintenance-service"
-  auth:
-    username: "admin"
-    database: "maintenance_db"
-  primary:
-    persistence:
-      enabled: false
-    initdb:
-      scriptsConfigMap: "maintenance-db-init"
+  enabled: false
 
-# 1c. Configuration de PostgreSQL pour le Service Conducteurs
 postgresql-driver:
-  enabled: true
-  fullnameOverride: "postgres-driver-service"
-  auth:
-    username: "admin"
-    database: "driver_db"
-  primary:
-    persistence:
-      enabled: false
-    initdb:
-      scriptsConfigMap: "driver-db-init"
+  enabled: false
 
 # 2. Configuration de Redis
 redis:

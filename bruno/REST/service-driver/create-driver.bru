@@ -1,0 +1,22 @@
+meta {
+  name: create-driver
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/drivers/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "keycloak_user_id": "777a8400-e29b-41d4-a716-446655447777",
+    "first_name": "Marc",
+    "last_name": "Durand",
+    "email": "marc.durand@test.com",
+    "phone": "+33799999999",
+    "employee_id": "EMP-999"
+  }
+}

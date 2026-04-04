@@ -33,7 +33,7 @@ Le projet a franchi une étape majeure avec l'implémentation du premier microse
 docker compose up -d --build
 ```
 
-Pour **repartir sur des volumes vides** (bases recréées avec `vehicle_db`, etc.) : `docker compose down -v` puis relancer la commande ci-dessus.
+Pour **repartir sur des volumes vides** (bases `vehicle_db`, `driver_db`, etc. recréées) : `docker compose down -v` puis relancer la commande ci-dessus.
 
 ### Accès aux Services (Localhost)
 | Service | URL / Port | Identifiants |
@@ -76,14 +76,14 @@ minikube addons enable ingress
 kubectl apply -f infra/kubernetes/namespaces/namespaces.yaml
 ```
 
-#### Étape 2 : Créer les secrets et ConfigMaps
-Le système a besoin de secrets pour les bases de données et Kafka, ainsi que de ConfigMaps pour l'initialisation des schémas SQL.
+#### Étape 2 : Créer les secrets
+Le système a besoin de secrets pour les bases de données et Kafka. Chaque microservice crée **sa** base métier au démarrage (`flotte.postgres` dans son `application.yaml` ou `application.properties`). **Keycloak** n’a pas d’option pour exécuter `CREATE DATABASE` sur PostgreSQL : il se connecte à la base **`postgres`** déjà fournie par le chart / l’image Docker et y applique ses migrations Liquibase.
 ```bash
 # Exemple pour les secrets
 kubectl create secret generic db-secrets \
-  --from-literal=SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-vehicle-service:5432/vehicle_db \
-  --from-literal=MAINTENANCE_DATASOURCE_URL=jdbc:postgresql://postgres-maintenance-service:5432/maintenance_db \
-  --from-literal=DRIVER_DATASOURCE_URL=jdbc:postgresql://postgres-driver-service:5432/driver_db \
+  --from-literal=SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-flotte-service:5432/vehicle_db \
+  --from-literal=DRIVER_DATASOURCE_URL=jdbc:postgresql://postgres-flotte-service:5432/driver_db \
+  --from-literal=MAINTENANCE_DATASOURCE_URL=jdbc:postgresql://postgres-flotte-service:5432/maintenance_db \
   --from-literal=SPRING_DATASOURCE_USERNAME=admin \
   --from-literal=SPRING_DATASOURCE_PASSWORD=password \
   --from-literal=KAFKA_BROKER=kafka-service:9092 \

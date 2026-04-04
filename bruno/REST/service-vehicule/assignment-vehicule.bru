@@ -1,0 +1,19 @@
+meta {
+  name: assignment-vehicule
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/vehicles/351fbadf-269a-432c-8e79-665fceafe2a5/assignments
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "driver_id": "b0699e29-7f49-4e86-b497-9e9ccbec4a27",
+    "created_by": "b0699e29-7f49-4e86-b497-9e9ccbec4a27",
+    "notes": "Assignation de test"
+  }
+}

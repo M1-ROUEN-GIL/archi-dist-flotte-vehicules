@@ -1,0 +1,21 @@
+meta {
+  name: update-status-maintenance
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{base_url}}/api/maintenance/42dd207b-81ef-4689-8cbc-274858f45a6f/status
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "COMPLETED",
+    "cost_eur": 250.50,
+    "notes": "Tout est OK, plaquettes changees.",
+    "mileage_at_service": 45000,
+    "next_service_km": 60000
+  }
+}

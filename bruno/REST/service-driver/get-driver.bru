@@ -1,0 +1,11 @@
+meta {
+  name: get-driver
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/drivers/:id
+  body: none
+  auth: inherit
+}

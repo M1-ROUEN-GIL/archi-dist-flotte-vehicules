@@ -1,0 +1,21 @@
+meta {
+  name: add-permis-driver
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/drivers/b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e/licenses
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "license_number": "24AA12345",
+    "category": "B",
+    "issued_date": "2020-01-15",
+    "expiry_date": "2035-01-15",
+    "country": "FR"
+  }
+}

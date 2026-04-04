@@ -6,7 +6,8 @@ services:
     name: vehicle-service
     image: vehicle-service:latest
     port: 8080
-    replicas: 2
+    # Minikube : 2× Spring + OTEL peut saturer la RAM — passer à 2 en prod si besoin
+    replicas: 1
   driver:
     name: driver-service
     image: driver-service:latest
@@ -25,6 +26,6 @@ graphqlGateway:
   image: graphql-gateway:latest
   port: 4000
 
-# Configuration Keycloak (SSO)
+# Même arbre d’URL que Keycloak avec KC_HTTP_RELATIVE_PATH=/auth (K8s + ingress /auth)
 keycloak_issuer: "http://keycloak-service:8080/auth/realms/gestion-flotte"
 keycloak_jwk_set_uri: "http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs"

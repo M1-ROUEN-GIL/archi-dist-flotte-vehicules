@@ -1,0 +1,11 @@
+meta {
+  name: liste-permis
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/api/drivers/:id/licenses
+  body: none
+  auth: inherit
+}
