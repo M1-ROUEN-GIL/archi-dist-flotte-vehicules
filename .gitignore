@@ -1,4 +1,39 @@
-# LaTeX residues
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+.env
+
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDEs
+.idea/
+.vscode/
+.metals/
+.bloop/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+infra/kubernetes/secrets/db-secrets.yaml
+infra/helm/dependencies/values.secret.yaml
+
+# LaTeX
 *.aux
 *.log
 *.toc
@@ -6,9 +41,3 @@
 *.out
 *.fdb_latexmk
 *.fls
-
-infra/kubernetes/secrets/db-secrets.yaml
-infra/helm/dependencies/values.secret.yaml
-.idea
-.metals
-.vscode
