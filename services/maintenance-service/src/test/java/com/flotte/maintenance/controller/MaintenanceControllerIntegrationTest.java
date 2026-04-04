@@ -1,6 +1,7 @@
 package com.flotte.maintenance.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flotte.maintenance.MaintenanceSpringBootTest;
 import com.flotte.maintenance.dto.MaintenanceCreateRequest;
 import com.flotte.maintenance.model.MaintenancePriority;
 import com.flotte.maintenance.model.MaintenanceType;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@MaintenanceSpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class MaintenanceControllerIntegrationTest {
