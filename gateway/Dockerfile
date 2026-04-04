@@ -28,11 +28,11 @@ RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/graphql/schemas ./dist/graphql/schemas
 
-# Environment variables defaults
+# Aligné sur compose.yaml (services vehicle, driver, maintenance — pas *-service).
 ENV PORT=4000
-ENV VEHICLE_SERVICE_URL=http://vehicle-service:8080
-ENV DRIVER_SERVICE_URL=http://driver-service:8080
-ENV MAINTENANCE_SERVICE_URL=http://maintenance-service:8080
+ENV VEHICLE_SERVICE_URL=http://vehicle:8080
+ENV DRIVER_SERVICE_URL=http://driver:8080
+ENV MAINTENANCE_SERVICE_URL=http://maintenance:8080
 
 EXPOSE 4000
 

@@ -1,7 +1,5 @@
 import axios from 'axios';
-const VEHICLE_SERVICE_URL = process.env.VEHICLE_SERVICE_URL || 'http://vehicle-service:8080';
-const DRIVER_SERVICE_URL = process.env.DRIVER_SERVICE_URL || 'http://driver-service:8080';
-const MAINTENANCE_SERVICE_URL = process.env.MAINTENANCE_SERVICE_URL || 'http://maintenance-service:8080';
+import { DRIVER_SERVICE_URL, MAINTENANCE_SERVICE_URL, VEHICLE_SERVICE_URL, } from '../config.js';
 /** Réessaie les erreurs réseau transitoires (backends pas encore prêts au démarrage K8s). */
 function attachTransientNetworkRetry(http, maxRetries = 4) {
     http.interceptors.response.use((r) => r, async (error) => {

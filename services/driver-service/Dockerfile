@@ -23,8 +23,9 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# On cree un utilisateur non-root par securite
-RUN addgroup -S spring && adduser -S spring -G spring
+# curl : healthcheck Docker (actuator)
+RUN addgroup -S spring && adduser -S spring -G spring \
+	&& apk add --no-cache curl
 USER spring:spring
 
 # On recupere l'application compilee depuis l'etape 1

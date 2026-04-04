@@ -11,6 +11,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     restart: unless-stopped
 
   redis:
@@ -88,19 +94,23 @@ services:
       - KAFKA_BROKER=kafka:9092
       - KEYCLOAK_ISSUER_URI=http://keycloak:8080/auth/realms/gestion-flotte
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
-      - JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
+      # Pas d'otel-collector dans ce compose — pas d'agent JVM
+      - JAVA_TOOL_OPTIONS=
       - OTEL_SERVICE_NAME=vehicle-service
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-      - OTEL_LOGS_EXPORTER=otlp
-      - OTEL_TRACES_EXPORTER=otlp
-      - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED=true
     ports:
       - "8080:8080"
+    # Pas de -f : dès que Tomcat répond (même 401/404 sur /), le port est ouvert.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS -o /dev/null http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 150s
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     restart: unless-stopped
 
   maintenance:
@@ -116,19 +126,19 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - KEYCLOAK_ISSUER_URI=http://keycloak:8080/auth/realms/gestion-flotte
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
-      - JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
+      - JAVA_TOOL_OPTIONS=
       - OTEL_SERVICE_NAME=maintenance-service
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-      - OTEL_LOGS_EXPORTER=otlp
-      - OTEL_TRACES_EXPORTER=otlp
-      - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED=true
     ports:
       - "8082:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS -o /dev/null http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 150s
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
       kafka:
         condition: service_started
       keycloak:
@@ -148,19 +158,19 @@ services:
       - KAFKA_BROKER=kafka:9092
       - KEYCLOAK_ISSUER_URI=http://keycloak:8080/auth/realms/gestion-flotte
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
-      - JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
+      - JAVA_TOOL_OPTIONS=
       - OTEL_SERVICE_NAME=driver-service
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-      - OTEL_LOGS_EXPORTER=otlp
-      - OTEL_TRACES_EXPORTER=otlp
-      - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED=true
     ports:
       - "8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS -o /dev/null http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 150s
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
       kafka:
         condition: service_started
       keycloak:
@@ -177,13 +187,15 @@ services:
       - DRIVER_SERVICE_URL=http://driver:8080
       - MAINTENANCE_SERVICE_URL=http://maintenance:8080
       - OTEL_SERVICE_NAME=graphql-gateway
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
     ports:
       - "4000:4000"
     depends_on:
-      - vehicle
-      - driver
-      - maintenance
+      vehicle:
+        condition: service_healthy
+      driver:
+        condition: service_healthy
+      maintenance:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

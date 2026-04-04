@@ -24,7 +24,8 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # On cree un utilisateur non-root par securite
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN addgroup -S spring && adduser -S spring -G spring \
+	&& apk add --no-cache curl
 USER spring:spring
 
 # On recupere le fichier .jar genere a l'etape 1

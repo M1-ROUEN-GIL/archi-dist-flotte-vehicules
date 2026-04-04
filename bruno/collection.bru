@@ -7,6 +7,32 @@ auth:bearer {
 }
 
 script:pre-request {
+  // api_base : variable runtime (bru.setVar) — l’env `base_url` a priorité sur setVar('base_url') dans Bruno,
+  // d’où ECONNREFUSED :80 si base_url=http://127.0.0.1 sans port.
+  // Depuis la machine hôte, les noms de service Docker (graphql, gateway, …) ne se résolvent pas → EAI_AGAIN.
+  // Le service compose s’appelle « gateway » ; « graphql » n’existe souvent que dans des docs K8s / alias réseau.
+  let apiBase = bru.getEnvVar('base_url') || '';
+  try {
+    if (apiBase) {
+      let u = new URL(apiBase.includes('://') ? apiBase : 'http://' + apiBase);
+      const dockerGatewayHosts = ['graphql', 'gateway'];
+      if (dockerGatewayHosts.includes(u.hostname)) {
+        u = new URL('http://127.0.0.1:4000');
+      } else {
+        const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+        const port = u.port || (u.protocol === 'https:' ? '443' : '80');
+        if (local && (port === '80' || port === '443')) {
+          u.port = '4000';
+        }
+      }
+      apiBase = u.href.replace(/\/$/, '');
+    }
+  } catch (e) { /* ignore */ }
+  if (!apiBase) {
+    apiBase = 'http://127.0.0.1:4000';
+  }
+  bru.setVar('api_base', apiBase);
+
   const reqUrl = req.getUrl();
   if (reqUrl.includes('/openid-connect/token')) {
     return;
@@ -29,7 +55,11 @@ script:pre-request {
     'grant_type=password&client_id=' + (bru.getEnvVar('kc_client_id') || 'admin-cli') +
     '&username=' + (bru.getEnvVar('kc_username') || 'test-user') +
     '&password=' + (bru.getEnvVar('kc_password') || 'password'),
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 60000,
+      proxy: false
+    }
   );
 
   if (res.data.access_token) {
