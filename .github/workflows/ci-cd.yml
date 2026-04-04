@@ -23,8 +23,6 @@ jobs:
             datasource_url: jdbc:postgresql://localhost:5432/driver_db
           - service: maintenance-service
             datasource_url: jdbc:postgresql://localhost:5432/maintenance_db
-          - service: events-service
-            datasource_url: jdbc:postgresql://localhost:5432/vehicle_db
     
     env:
       SPRING_DATASOURCE_URL: ${{ matrix.datasource_url }}
@@ -165,10 +163,4 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ matrix.service }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-rvices/${{ matrix.service }}
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ matrix.service }}:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ matrix.service }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+
