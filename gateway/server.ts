@@ -51,7 +51,7 @@ app.use(
 	cors(),
 	express.json({ limit: '50mb' }),
 	expressMiddleware(apollo, {
-		context: async ({ req }: { req: express.Request }) => createContext({ req }),
+		context: async ({ req }) => createContext({ req }),
 	}) as unknown as express.RequestHandler,
 );
 
