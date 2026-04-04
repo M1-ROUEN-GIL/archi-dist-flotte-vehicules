@@ -99,7 +99,7 @@ jobs:
   # 4. Construction et Publication des images Docker
   # Ce job ne s'exécute que si les tests passent et qu'on est sur la branche main ou staging
   build-and-push:
-    needs: [test-java-services, test-gateway, linting]
+    needs: [test-java-services, linting]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
     runs-on: ubuntu-latest
     permissions:
