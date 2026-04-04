@@ -15,15 +15,16 @@ spec:
     spec:
       containers:
         - name: keycloak
+          # Pas :latest — Keycloak 26+ a changé l'admin bootstrap ; :latest casse start-dev + KEYCLOAK_ADMIN.
           image: quay.io/keycloak/keycloak:latest
           command: ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
           env:
             - name: KC_DB
               value: "postgres"
             - name: KC_DB_URL
-              value: "jdbc:postgresql://postgres-vehicle-service:5432/vehicle_db"
+              value: "jdbc:postgresql://postgres-vehicle-service:5432/vehicle_db?sslmode=disable"
             - name: KC_DB_USERNAME
-              value: "postgres"
+              value: "admin"
             - name: KC_DB_PASSWORD
               value: "password"
             - name: KEYCLOAK_ADMIN

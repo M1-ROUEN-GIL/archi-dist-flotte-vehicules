@@ -33,6 +33,8 @@ Le projet a franchi une étape majeure avec l'implémentation du premier microse
 docker compose up -d --build
 ```
 
+Pour **repartir sur des volumes vides** (bases recréées avec `vehicle_db`, etc.) : `docker compose down -v` puis relancer la commande ci-dessus.
+
 ### Accès aux Services (Localhost)
 | Service | URL / Port | Identifiants |
 | :--- | :--- | :--- |
@@ -92,7 +94,9 @@ kubectl create secret generic db-secrets \
 ```bash
 eval $(minikube docker-env)
 docker build -t vehicle-service:latest ./services/vehicle-service/
-# ... répéter pour les autres services (driver, maintenance)
+docker build -t driver-service:latest ./services/driver-service/
+docker build -t maintenance-service:latest ./services/maintenance-service/
+docker build -t graphql-gateway:latest ./gateway/
 ```
 
 #### Étape 4 : Déployer l'Infrastructure et l'Application

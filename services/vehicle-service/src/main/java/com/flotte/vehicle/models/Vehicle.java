@@ -5,9 +5,7 @@ import com.flotte.vehicle.models.enums.FuelType;
 import com.flotte.vehicle.models.enums.VehicleStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -30,7 +28,7 @@ public class Vehicle {
 	private String model;
 
 	@Enumerated(EnumType.STRING)
-	@Column(name= "fuel_type", nullable = false)
+	@Column(name = "fuel_type", nullable = false)
 	private FuelType fuelType;
 
 	@Column(name = "mileage_km", nullable = false)

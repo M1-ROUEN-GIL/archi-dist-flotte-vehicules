@@ -6,17 +6,17 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TYPE vehicle_status AS ENUM (
-  'available',
-  'on_delivery',
-  'in_maintenance',
-  'out_of_service'
+  'AVAILABLE',
+  'ON_DELIVERY',
+  'IN_MAINTENANCE',
+  'OUT_OF_SERVICE'
 );
 
 CREATE TYPE fuel_type AS ENUM (
-  'gasoline',
-  'diesel',
-  'electric',
-  'hybrid'
+  'GASOLINE',
+  'DIESEL',
+  'ELECTRIC',
+  'HYBRID'
 );
 
 CREATE TABLE vehicles (
@@ -26,7 +26,7 @@ CREATE TABLE vehicles (
   model         VARCHAR(100)   NOT NULL,
   fuel_type     fuel_type      NOT NULL,
   mileage_km    INTEGER        NOT NULL DEFAULT 0 CHECK (mileage_km >= 0),
-  status        vehicle_status NOT NULL DEFAULT 'available',
+  status        vehicle_status NOT NULL DEFAULT 'AVAILABLE',
   vin           VARCHAR(17)    UNIQUE,
   payload_capacity_kg INTEGER        NOT NULL DEFAULT 1000 CHECK (payload_capacity_kg > 0),
   cargo_volume_m3     NUMERIC(5,2)   NOT NULL DEFAULT 10.0 CHECK (cargo_volume_m3 > 0),

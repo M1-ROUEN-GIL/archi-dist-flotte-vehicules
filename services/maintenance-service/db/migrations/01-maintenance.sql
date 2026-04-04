@@ -12,22 +12,22 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- RECALL      : rappel constructeur
 -- OTHER       : toute intervention ne rentrant pas dans les catégories précédentes
 CREATE TYPE maintenance_type AS ENUM (
-  'preventive',
-  'corrective',
-  'inspection',
-  'recall',
-  'other'
+  'PREVENTIVE',
+  'CORRECTIVE',
+  'INSPECTION',
+  'RECALL',
+  'OTHER'
 );
 
 CREATE TYPE maintenance_status AS ENUM (
-  'scheduled',
-  'in_progress',
-  'completed',
-  'cancelled',
-  'overdue'       -- ajouté : intervention non réalisée après la date prévue
+  'SCHEDULED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'CANCELLED',
+  'OVERDUE'       -- ajouté : intervention non réalisée après la date prévue
 );
 
-CREATE TYPE maintenance_priority AS ENUM ('low', 'medium', 'high', 'critical');
+CREATE TYPE maintenance_priority AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
 
 -- vehicle_id    : référence logique vers Service Véhicules (pas de FK inter-service)
 -- technician_id : référence logique vers Service Conducteurs (pas de FK inter-service)
@@ -35,8 +35,8 @@ CREATE TABLE maintenance_records (
   id                 UUID                 PRIMARY KEY DEFAULT uuid_generate_v4(),
   vehicle_id         UUID                 NOT NULL, -- ref logique → Service Véhicules
   type               maintenance_type     NOT NULL,
-  status             maintenance_status   NOT NULL DEFAULT 'scheduled',
-  priority           maintenance_priority NOT NULL DEFAULT 'medium',
+  status             maintenance_status   NOT NULL DEFAULT 'SCHEDULED',
+  priority           maintenance_priority NOT NULL DEFAULT 'MEDIUM',
   scheduled_date     DATE                 NOT NULL,
   completed_date     DATE,
   technician_id      UUID,                          -- ref logique → Service Conducteurs

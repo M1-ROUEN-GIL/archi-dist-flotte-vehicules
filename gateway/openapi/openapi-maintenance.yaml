@@ -74,8 +74,8 @@ paths:
               $ref: '#/components/schemas/MaintenanceInput'
             example:
               vehicle_id: "550e8400-e29b-41d4-a716-446655440000"
-              type: "preventive"
-              priority: "medium"
+              type: "PREVENTIVE"
+              priority: "MEDIUM"
               scheduled_date: "2026-04-01"
               description: "Vidange + filtre à huile"
       responses:
@@ -233,16 +233,16 @@ components:
 
     MaintenanceStatus:
       type: string
-      enum: [scheduled, in_progress, completed, cancelled, overdue]
+      enum: [SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED, OVERDUE]
 
     MaintenancePriority:
       type: string
-      enum: [low, medium, high, critical]
+      enum: [LOW, MEDIUM, HIGH, CRITICAL]
 
     MaintenanceType:
       type: string
       # Aligné sur common.graphql et les messages Kafka
-      enum: [preventive, corrective, inspection, recall, other]
+      enum: [PREVENTIVE, CORRECTIVE, INSPECTION, RECALL, OTHER]
 
     MaintenanceRecord:
       type: object

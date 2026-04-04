@@ -20,6 +20,11 @@ services:
     replicas: 1
     dbUrlKey: MAINTENANCE_DATASOURCE_URL
 
+# Gateway GraphQL (Ingress /graphql)
+graphqlGateway:
+  image: graphql-gateway:latest
+  port: 4000
+
 # Configuration Keycloak (SSO)
 keycloak_issuer: "http://keycloak-service:8080/auth/realms/gestion-flotte"
 keycloak_jwk_set_uri: "http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs"

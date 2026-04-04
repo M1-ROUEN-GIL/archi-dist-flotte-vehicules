@@ -7,11 +7,11 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE license_category AS ENUM ('A', 'B', 'C', 'D', 'BE', 'CE');
 
 CREATE TYPE driver_status AS ENUM (
-  'active',
-  'on_tour',
-  'on_leave',
-  'suspended',
-  'inactive'
+  'ACTIVE',
+  'ON_TOUR',
+  'ON_LEAVE',
+  'SUSPENDED',
+  'INACTIVE'
 );
 
 -- 1. Table principale des conducteurs
@@ -23,7 +23,7 @@ CREATE TABLE drivers (
                          email            VARCHAR(255)  UNIQUE NOT NULL,
                          phone            VARCHAR(20),
                          employee_id      VARCHAR(50)   UNIQUE,
-                         status           driver_status NOT NULL DEFAULT 'active',
+                         status           driver_status NOT NULL DEFAULT 'ACTIVE',
                          created_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
                          updated_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
                          deleted_at       TIMESTAMPTZ

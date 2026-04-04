@@ -42,6 +42,7 @@ echo "Building images..."
 docker build -t vehicle-service:latest ./services/vehicle-service/
 docker build -t driver-service:latest ./services/driver-service/
 docker build -t maintenance-service:latest ./services/maintenance-service/
+docker build -t graphql-gateway:latest ./gateway/
 
 # 5. Déploiement Infrastructure (DB, Kafka, Redis)
 helm dependency update ./infra/helm/fleet-infra/

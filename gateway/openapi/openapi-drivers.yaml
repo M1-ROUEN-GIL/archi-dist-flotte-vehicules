@@ -283,7 +283,7 @@ components:
 
     DriverStatus:
       type: string
-      enum: [active, on_leave, suspended, inactive]
+      enum: [ACTIVE, ON_TOUR, ON_LEAVE, SUSPENDED, INACTIVE]
 
     Driver:
       type: object

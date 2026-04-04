@@ -1,5 +1,5 @@
 services:
-  # 1. PostgreSQL Véhicules (+ Keycloak : même instance, base vehicle_db) — aligné sur postgres-maintenance / postgres-driver ; en K8s : postgres-vehicle-service
+  # 1. PostgreSQL Véhicules (+ Keycloak : même instance, base vehicle_db)
   postgres-vehicle:
     image: timescale/timescaledb:2.14.2-pg15
     container_name: flotte-postgres-vehicle
@@ -81,7 +81,7 @@ services:
     command: start-dev --import-realm
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-vehicle:5432/vehicle_db
+      KC_DB_URL: jdbc:postgresql://postgres-vehicle:5432/vehicle_db?sslmode=disable
       KC_DB_USERNAME: admin
       KC_DB_PASSWORD: password
       KC_HOSTNAME_STRICT: "false"

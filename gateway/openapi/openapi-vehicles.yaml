@@ -61,7 +61,7 @@ paths:
               plate_number: "DH-076-LR"
               brand: "Mercedes"
               model: "Sprinter 314 CDI"
-              fuel_type: "diesel"
+              fuel_type: "DIESEL"
               mileage_km: 12000
               vin: "WDB9066351S123456"
               payload_capacity_kg: 1500
@@ -295,11 +295,11 @@ components:
 
     VehicleStatus:
       type: string
-      enum: [available, on_delivery, in_maintenance, out_of_service]
+      enum: [AVAILABLE, ON_DELIVERY, IN_MAINTENANCE, OUT_OF_SERVICE]
 
     FuelType:
       type: string
-      enum: [gasoline, diesel, electric, hybrid]
+      enum: [GASOLINE, DIESEL, ELECTRIC, HYBRID]
 
     Vehicle:
       type: object
