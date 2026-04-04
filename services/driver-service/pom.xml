@@ -28,47 +28,48 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <spring-framework.version>6.2.11</spring-framework.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Tomcat vulnerabilities (CVE-2025-24813, CVE-2024-50379, etc) -->
+            <!-- Tomcat vulnerabilities (CVE-2025-48988, CVE-2026-24734, etc) -->
             <dependency>
                 <groupId>org.apache.tomcat.embed</groupId>
                 <artifactId>tomcat-embed-core</artifactId>
-                <version>10.1.35</version>
+                <version>10.1.52</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tomcat.embed</groupId>
                 <artifactId>tomcat-embed-el</artifactId>
-                <version>10.1.35</version>
+                <version>10.1.52</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tomcat.embed</groupId>
                 <artifactId>tomcat-embed-websocket</artifactId>
-                <version>10.1.35</version>
+                <version>10.1.52</version>
             </dependency>
-            <!-- Spring Security vulnerabilities (CVE-2025-41232, CVE-2026-22732, etc) -->
+            <!-- Spring Security vulnerabilities (CVE-2025-41248, CVE-2026-22732) -->
             <dependency>
                 <groupId>org.springframework.security</groupId>
                 <artifactId>spring-security-core</artifactId>
-                <version>6.4.6</version>
+                <version>6.5.9</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.security</groupId>
                 <artifactId>spring-security-web</artifactId>
-                <version>6.4.6</version>
+                <version>6.5.9</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.security</groupId>
                 <artifactId>spring-security-crypto</artifactId>
-                <version>6.4.6</version>
+                <version>6.5.9</version>
             </dependency>
-            <!-- LZ4 vulnerability (CVE-2025-12183) -->
+            <!-- LZ4 vulnerability (CVE-2025-66566) -->
             <dependency>
                 <groupId>org.lz4</groupId>
                 <artifactId>lz4-java</artifactId>
-                <version>1.8.1</version>
+                <version>1.10.1</version>
             </dependency>
             <!-- Postgres vulnerability (CVE-2025-49146) -->
             <dependency>
