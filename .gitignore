@@ -12,11 +12,6 @@ target/
 *.war
 *.ear
 
-# Maven
-.mvn/
-mvnw
-mvnw.cmd
-
 # IDEs
 .idea/
 .vscode/

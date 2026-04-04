@@ -628,4 +628,42 @@ Le profil Maven \texttt{unit-coverage} isole les tests unitaires pour le rapport
 \caption{Synth\`{e}se couverture JaCoCo (profil \texttt{unit-coverage})}
 \end{table}
 
+% ============================================================
+\newpage
+\section{S\'{e}curisation et Maintenance (Hardening)}
+% ============================================================
+
+\begin{infobox}
+\textbf{Audit de s\'{e}curit\'{e} :} L'utilisation de l'outil \textbf{Trivy} dans la pipeline CI/CD a permis d'identifier et de corriger plusieurs vuln\'{e}rabilit\'{e}s critiques dans les images Docker et les d\'{e}pendances logicielles.
+\end{infobox}
+
+\subsection{Rem\'{e}diation applicative (Java)}
+
+Les services \textbf{Driver}, \textbf{Maintenance} et \textbf{Vehicle} ont \'{e}t\'{e} mis \`{a} jour pour corriger des failles dans les composants embarqu\'{e}s (notamment Tomcat et Spring Security) :
+\begin{itemize}
+  \item \textbf{Spring Boot} --- Passage en version \texttt{3.4.5}.
+  \item \textbf{PostgreSQL Driver} --- Mise \`{a} jour en \texttt{42.7.7}.
+  \item \textbf{Dependency Management} --- Surcharge explicite des versions de \texttt{tomcat-embed-core} (10.1.35) et \texttt{spring-security} (6.4.6) pour garantir la r\'{e}solution des CVE-2025-24813 et CVE-2026-22732.
+\end{itemize}
+
+\subsection{S\'{e}curisation des images Docker}
+
+Pour r\'{e}duire la surface d'attaque des conteneurs :
+\begin{itemize}
+  \item \textbf{Update OS} --- Ajout syst\'{e}matique de \texttt{apk upgrade --no-cache} dans les Dockerfiles pour appliquer les patchs de s\'{e}curit\'{e} Alpine Linux au moment du build.
+  \item \textbf{Images de base} --- Utilisation de \texttt{maven:3.9.9} pour la construction et \texttt{eclipse-temurin:21-jre-alpine} pour l'ex\'{e}cution.
+\end{itemize}
+
+\subsection{Gestion des d\'{e}pendances Node.js (Gateway)}
+
+Le Gateway GraphQL a fait l'objet d'un durcissement particulier suite \`{a} la d\'{e}tection de failles transitives dans les outils de package (\texttt{npm}) :
+\begin{itemize}
+  \item \textbf{npm Overrides} --- Utilisation de la directive \texttt{overrides} dans le \texttt{package.json} pour forcer la version \texttt{4.0.4} de la biblioth\`{e}que \texttt{picomatch} (r\'{e}solution de la CVE-2026-33671).
+  \item \textbf{npm Audit} --- Ex\'{e}cution de \texttt{npm audit fix} pour assainir l'arbre des d\'{e}pendances.
+\end{itemize}
+
+\subsection{Hygi\`{e}ne du d\'{e}p\^{o}t Git}
+
+Afin d'\'{e}viter la pollution du serveur et les probl\`{e}mes de compatibilit\'{e}, le fichier \texttt{.gitignore} a \'{e}t\'{e} compl\`{e}tement revu. Les dossiers \texttt{node\_modules/}, \texttt{target/} et \texttt{dist/} ont \'{e}t\'{e} d\'{e}finitivement retir\'{e}s de l'historique Git via une purge de l'index (\texttt{git rm --cached}).
+
 \end{document}
