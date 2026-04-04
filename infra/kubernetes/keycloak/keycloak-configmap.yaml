@@ -696,8 +696,8 @@ data:
           "protocol": "openid-connect",
           "attributes": {
             "realm_client": "false",
-            "client.use.lightweight.access.token.enabled": "true",
-            "post.logout.redirect.uris": "+"
+            "post.logout.redirect.uris": "+",
+            "client.use.lightweight.access.token.enabled": "false"
           },
           "authenticationFlowBindingOverrides": {},
           "fullScopeAllowed": true,
@@ -1537,7 +1537,7 @@ data:
           "description": "OpenID Connect scope for add user roles to the access token",
           "protocol": "openid-connect",
           "attributes": {
-            "include.in.token.scope": "false",
+            "include.in.token.scope": "true",
             "consent.screen.text": "${rolesScopeConsentText}",
             "display.on.consent.screen": "true"
           },

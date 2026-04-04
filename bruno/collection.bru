@@ -1,65 +1,290 @@
 auth {
-  mode: bearer
+  mode: none
 }
 
-auth:bearer {
-  token: {{access_token}}
+docs {
+  # Jeton Keycloak automatique
+
+  Aucun POST « Token » à lancer : ce script s’exécute **avant chaque requête** de la collection, obtient un jeton (password grant) si besoin, et pose **`Authorization: Bearer …`**.
+
+  Appel Keycloak via **`bru.sendRequest`** (le sandbox n’a souvent ni `fetch` ni `URLSearchParams`).
+
+  Variables d’environnement : `keycloak_token_url`, `kc_*`, `base_url`, `bruno_host_gateway`, `ingress_host`.  
+  Valeurs par défaut **Docker Compose** si une clé est absente.
+
+  Note : dans certains builds Bruno, `bru.getEnvVar()` reste vide dans le script de collection alors que l’environnement est bien sélectionné — la fonction `env()` ci‑dessous utilise aussi `getAllEnvVars()` et `interpolate('{{…}}')`.
 }
 
 script:pre-request {
-  const axios = require('axios');
-
-  // 1. Éviter la boucle infinie si on appelle déjà la requête de token
-  const reqUrl = req.getUrl();
-  if (reqUrl && reqUrl.includes('/openid-connect/token')) {
-    return;
-  }
-
-  // 2. Vérifier si le token actuel est encore valide (marge de 10s)
-  const now = Math.floor(Date.now() / 1000);
-  const token = bru.getVar('access_token');
-  const expiry = parseInt(bru.getVar('access_token_exp') || '0', 10);
-
-  if (token && expiry > (now + 10)) {
-    return; // Le token est encore bon
-  }
-
-  // 3. Récupérer un nouveau token
-  const tokenUrl = bru.getEnvVar('keycloak_token_url');
-  const clientId = bru.getEnvVar('kc_client_id') || 'admin-cli';
-  const username = bru.getEnvVar('kc_username') || 'test-user';
-  const password = bru.getEnvVar('kc_password') || 'password';
-
-  if (!tokenUrl) {
-    console.error("Erreur Bruno : 'keycloak_token_url' n'est pas défini dans l'environnement !");
-    return;
-  }
-
-  try {
-    const response = await axios.post(tokenUrl, 
-      new URLSearchParams({
-        grant_type: 'password',
-        client_id: clientId,
-        username: username,
-        password: password
-      }).toString(),
-      {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: 10000
-      }
-    );
-
-    if (response.data.access_token) {
-      bru.setVar('access_token', response.data.access_token);
-      
-      // Décoder le JWT pour récupérer l'expiration
-      const payload = JSON.parse(Buffer.from(response.data.access_token.split('.')[1], 'base64').toString());
-      if (payload.exp) {
-        bru.setVar('access_token_exp', payload.exp.toString());
-      }
-      console.log("Bruno : Nouveau token récupéré automatiquement.");
+  const ENV_DEFAULT = {
+    keycloak_token_url: 'http://127.0.0.1:8180/auth/realms/gestion-flotte/protocol/openid-connect/token',
+    base_url: 'http://127.0.0.1:4000',
+    ingress_host: '127.0.0.1',
+    kc_client_id: 'admin-cli',
+    kc_username: 'test-user',
+    kc_password: 'password',
+    kc_scope: 'openid profile email roles',
+  };
+  function env(name) {
+    let raw = bru.getEnvVar(name);
+    if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+      return String(raw).trim();
     }
-  } catch (error) {
-    console.error("Bruno : Échec de l'auto-auth Keycloak", error.message);
+    try {
+      const all = bru.getAllEnvVars && bru.getAllEnvVars();
+      if (all && typeof all === 'object' && Object.prototype.hasOwnProperty.call(all, name)) {
+        const v = all[name];
+        if (v !== undefined && v !== null && String(v).trim() !== '') {
+          return String(v).trim();
+        }
+      }
+    } catch (e) { /* ignore */ }
+    try {
+      if (typeof bru.interpolate === 'function') {
+        const interp = bru.interpolate('{{' + name + '}}');
+        if (interp && typeof interp === 'string' && interp.indexOf('{{') === -1 && interp.trim() !== '') {
+          return interp.trim();
+        }
+      }
+    } catch (e) { /* ignore */ }
+    raw = bru.getVar(name);
+    if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+      return String(raw).trim();
+    }
+    return ENV_DEFAULT[name] || '';
+  }
+
+  function formUrlEncode(fields) {
+    const keys = Object.keys(fields);
+    const parts = [];
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(fields[k])));
+    }
+    return parts.join('&');
+  }
+
+  const hostGateway = env('bruno_host_gateway') === 'true';
+  const gatewayHosts = new Set([
+    'api',
+    'graphql',
+    'gateway',
+    'graphql-gateway',
+    'graphql-gateway-service',
+  ]);
+  const keycloakHosts = new Set([
+    'api',
+    'graphql',
+    'gateway',
+    'keycloak',
+    'graphql-gateway',
+    'graphql-gateway-service',
+  ]);
+
+  function rewriteClusterHost(urlStr, mode) {
+    if (!urlStr) return urlStr;
+    let u;
+    try {
+      u = new URL(urlStr.includes('://') ? urlStr : 'http://' + urlStr);
+    } catch (e) {
+      return urlStr;
+    }
+    const allow = mode === 'gateway' ? gatewayHosts : keycloakHosts;
+    if (!allow.has(u.hostname)) return urlStr;
+    const path = (u.pathname || '/') + (u.search || '');
+    if (mode === 'gateway') {
+      if (hostGateway) return 'http://127.0.0.1:4000' + path;
+      const ih = env('ingress_host');
+      return 'http://' + ih + path;
+    }
+    if (mode === 'keycloak') {
+      if (hostGateway) return 'http://127.0.0.1:8180' + path;
+      const ih = env('ingress_host');
+      return 'http://' + ih + path;
+    }
+    return urlStr;
+  }
+
+  function fixLocalhostDockerPorts(urlStr) {
+    if (!urlStr) return urlStr;
+    let u;
+    try {
+      u = new URL(urlStr.includes('://') ? urlStr : 'http://' + urlStr);
+    } catch (e) {
+      return urlStr;
+    }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return urlStr;
+    const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+    if (!local) return urlStr;
+    const effective = u.port || (u.protocol === 'https:' ? '443' : '80');
+    if (effective !== '80') return urlStr;
+    const path = u.pathname || '/';
+    const search = u.search || '';
+    const isKeycloakPath =
+      path.startsWith('/auth') ||
+      path.includes('/realms/') ||
+      path.includes('openid-connect');
+    if (isKeycloakPath) {
+      return 'http://' + u.hostname + ':8180' + path + search;
+    }
+    return 'http://' + u.hostname + ':4000' + path + search;
+  }
+
+  let reqUrl = req.getUrl() || '';
+  const isTokenReq = reqUrl.includes('/openid-connect/token');
+  const mode0 = isTokenReq ? 'keycloak' : 'gateway';
+  let reqFixed = rewriteClusterHost(reqUrl, mode0);
+  reqFixed = fixLocalhostDockerPorts(reqFixed);
+  if (reqFixed && reqFixed !== reqUrl) {
+    req.setUrl(reqFixed);
+    reqUrl = reqFixed;
+  }
+
+  if (isTokenReq) {
+    return;
+  }
+
+  let apiBase = env('base_url');
+  try {
+    if (apiBase) {
+      apiBase = rewriteClusterHost(apiBase, 'gateway');
+      let u = new URL(apiBase.includes('://') ? apiBase : 'http://' + apiBase);
+      const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+      const port = u.port || (u.protocol === 'https:' ? '443' : '80');
+      if (hostGateway && local && (port === '80' || port === '443')) {
+        u.port = '4000';
+      }
+      apiBase = fixLocalhostDockerPorts(u.href.replace(/\/$/, ''));
+    }
+  } catch (e) { /* ignore */ }
+  if (!apiBase && hostGateway) {
+    apiBase = 'http://127.0.0.1:4000';
+  }
+
+  reqUrl = req.getUrl() || '';
+  if (apiBase) {
+    try {
+      const cur = new URL(reqUrl.includes('://') ? reqUrl : 'http://bruno.placeholder' + (reqUrl.startsWith('/') ? reqUrl : '/' + reqUrl));
+      const base = new URL(apiBase.replace(/\/$/, ''));
+      const path = cur.pathname + (cur.search || '');
+      req.setUrl(base.origin + path);
+    } catch (e1) {
+      try {
+        const base = new URL(apiBase.replace(/\/$/, ''));
+        const p = reqUrl.startsWith('/') ? reqUrl : '/' + reqUrl;
+        req.setUrl(base.origin + p);
+      } catch (e2) { /* ignore */ }
+    }
+  }
+  {
+    const afterMerge = req.getUrl() || '';
+    const fixed = fixLocalhostDockerPorts(afterMerge);
+    if (fixed && fixed !== afterMerge) {
+      req.setUrl(fixed);
+    }
+  }
+
+  function jwtExpUnix(jwt) {
+    try {
+      if (!jwt || typeof jwt !== 'string') return 0;
+      const parts = jwt.split('.');
+      if (parts.length !== 3) return 0;
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = b64 + '==='.slice((b64.length + 3) % 4);
+      const json =
+        typeof Buffer !== 'undefined'
+          ? Buffer.from(pad, 'base64').toString()
+          : atob(pad);
+      const payload = JSON.parse(json);
+      return payload.exp ? parseInt(String(payload.exp), 10) : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  let tok = env('access_token') || bru.getVar('access_token');
+  const jwtExp = tok ? jwtExpUnix(tok) : 0;
+  const margin = 120;
+  const needsToken =
+    !tok ||
+    jwtExp === 0 ||
+    now >= jwtExp - margin;
+
+  if (needsToken) {
+    let tokenUrl = env('keycloak_token_url');
+    tokenUrl = rewriteClusterHost(tokenUrl, 'keycloak');
+    tokenUrl = fixLocalhostDockerPorts(tokenUrl);
+    try {
+        const body = formUrlEncode({
+          grant_type: 'password',
+          client_id: env('kc_client_id'),
+          username: env('kc_username'),
+          password: env('kc_password'),
+          scope: env('kc_scope'),
+        });
+
+        if (typeof bru.sendRequest !== 'function') {
+          console.error("Bruno : bru.sendRequest indisponible — mettre à jour Bruno ou activer le mode développeur / scripts complets.");
+        } else {
+        const tokenRes = await bru.sendRequest({
+          method: 'POST',
+          url: tokenUrl,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          data: body,
+        });
+
+        const status = tokenRes.status || tokenRes.statusCode || 0;
+        const ok = status >= 200 && status < 300;
+        let raw = '';
+        let data = {};
+        if (tokenRes.data !== undefined && tokenRes.data !== null) {
+          if (typeof tokenRes.data === 'string') {
+            raw = tokenRes.data;
+            try {
+              data = raw ? JSON.parse(raw) : {};
+            } catch (pe) {
+              console.error('Bruno : réponse token non-JSON', raw && raw.slice(0, 200));
+            }
+          } else if (typeof tokenRes.data === 'object') {
+            data = tokenRes.data;
+            try {
+              raw = JSON.stringify(data);
+            } catch (e) {
+              raw = '';
+            }
+          }
+        }
+
+        if (!ok) {
+          console.error('Bruno : Keycloak token HTTP ' + status, data.error_description || data.error || raw);
+        } else if (data.access_token) {
+          bru.setVar('access_token', data.access_token);
+          try {
+            bru.setEnvVar('access_token', data.access_token);
+          } catch (e) { /* ignore */ }
+          tok = data.access_token;
+          let expSec = jwtExpUnix(data.access_token);
+          if (!expSec && typeof data.expires_in === 'number' && data.expires_in > 0) {
+            expSec = now + data.expires_in;
+          }
+          if (expSec) {
+            bru.setVar('access_token_exp', String(expSec));
+          }
+        }
+        }
+      } catch (error) {
+        console.error('Bruno : échec auto-auth Keycloak', error && error.message ? error.message : error);
+        try {
+          bru.setVar('access_token', '');
+          bru.setVar('access_token_exp', '0');
+          bru.setEnvVar('access_token', '');
+        } catch (e) { /* ignore */ }
+    }
+  }
+
+  tok = env('access_token') || bru.getVar('access_token');
+  if (tok) {
+    req.setHeader('Authorization', 'Bearer ' + tok);
   }
 }

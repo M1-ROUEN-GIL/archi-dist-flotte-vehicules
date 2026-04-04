@@ -68,8 +68,8 @@ public class VehicleController {
 		service.deleteVehicle(id);
 	}
 
-	// GET /vehicles/{id}/assignments
 	@GetMapping("/{id}/assignments")
+	@PreAuthorize("hasAnyRole('admin', 'technician')")
 	public List<AssignmentResponse> getAssignments(@PathVariable UUID id) {
 		return service.getAssignments(id);
 	}

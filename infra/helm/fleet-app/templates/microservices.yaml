@@ -29,8 +29,10 @@ spec:
           ports:
             - containerPort: {{ $val.port }}
           env:
+            # dev + otel : logback-spring.xml du vehicle-service active OpenTelemetryAppender (dépendance runtime).
+            # Docker Compose reste sur « dev » seul pour éviter l’export OTLP en local.
             - name: SPRING_PROFILES_ACTIVE
-              value: {{ $val.profile | default "dev" | quote }}
+              value: {{ printf "%s,otel" ($val.profile | default "dev") | quote }}
             - name: SPRING_DATASOURCE_URL
               valueFrom:
                 secretKeyRef:
