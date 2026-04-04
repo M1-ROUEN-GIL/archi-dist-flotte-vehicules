@@ -7,7 +7,6 @@ spring:
     property-naming-strategy: LOWER_CAMEL_CASE
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-    driver-class-name: org.h2.Driver
     username: sa
     password:
   jpa:
@@ -16,7 +15,6 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
         type:
           json_format_mapper: jackson
   kafka:
