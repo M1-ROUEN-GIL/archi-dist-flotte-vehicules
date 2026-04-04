@@ -7,162 +7,59 @@ auth:bearer {
 }
 
 script:pre-request {
-  const hostGateway = bru.getEnvVar('bruno_host_gateway') === 'true';
-  // Gateway (port 4000 ou ingress) vs Keycloak (/auth, port 8180 ou même hôte ingress).
-  const gatewayHosts = new Set([
-    'api',
-    'graphql',
-    'gateway',
-    'graphql-gateway',
-    'graphql-gateway-service',
-  ]);
-  const keycloakHosts = new Set([
-    'api',
-    'graphql',
-    'gateway',
-    'keycloak',
-    'graphql-gateway',
-    'graphql-gateway-service',
-  ]);
+  const axios = require('axios');
 
-  function rewriteClusterHost(urlStr, mode) {
-    if (!urlStr) return urlStr;
-    let u;
-    try {
-      u = new URL(urlStr.includes('://') ? urlStr : 'http://' + urlStr);
-    } catch (e) {
-      return urlStr;
-    }
-    const allow = mode === 'gateway' ? gatewayHosts : keycloakHosts;
-    if (!allow.has(u.hostname)) return urlStr;
-    const path = (u.pathname || '/') + (u.search || '');
-    if (mode === 'gateway') {
-      if (hostGateway) return 'http://127.0.0.1:4000' + path;
-      const ih = bru.getEnvVar('ingress_host') || 'flotte.local';
-      return 'http://' + ih + path;
-    }
-    if (mode === 'keycloak') {
-      if (hostGateway) return 'http://127.0.0.1:8180' + path;
-      const ih = bru.getEnvVar('ingress_host') || 'flotte.local';
-      return 'http://' + ih + path;
-    }
-    return urlStr;
-  }
-
-  /** http://127.0.0.1/... sans port → port 80 implicite → ECONNREFUSED:80. Ne pas dépendre de bruno_host_gateway (souvent oublié / mauvais env). flotte.local etc. inchangé. */
-  function fixLocalhostDockerPorts(urlStr) {
-    if (!urlStr) return urlStr;
-    let u;
-    try {
-      u = new URL(urlStr.includes('://') ? urlStr : 'http://' + urlStr);
-    } catch (e) {
-      return urlStr;
-    }
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return urlStr;
-    const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
-    if (!local) return urlStr;
-    const effective = u.port || (u.protocol === 'https:' ? '443' : '80');
-    if (effective !== '80') return urlStr;
-    const path = u.pathname || '/';
-    const search = u.search || '';
-    const isKeycloakPath =
-      path.startsWith('/auth') ||
-      path.includes('/realms/') ||
-      path.includes('openid-connect');
-    if (isKeycloakPath) {
-      return 'http://' + u.hostname + ':8180' + path + search;
-    }
-    return 'http://' + u.hostname + ':4000' + path + search;
-  }
-
-  // 1) En premier : corriger req (hôtes cluster) — les .bru utilisent {{base_url}} (env), pas api_base.
-  // Sinon si base_url est vide ou mal lu, « http://api/… » part tel quel → EAI_AGAIN.
-  let reqUrl = req.getUrl() || '';
-  const isTokenReq = reqUrl.includes('/openid-connect/token');
-  const mode0 = isTokenReq ? 'keycloak' : 'gateway';
-  let reqFixed = rewriteClusterHost(reqUrl, mode0);
-  reqFixed = fixLocalhostDockerPorts(reqFixed);
-  if (reqFixed && reqFixed !== reqUrl) {
-    req.setUrl(reqFixed);
-    reqUrl = reqFixed;
-  }
-
-  if (isTokenReq) {
+  // 1. Éviter la boucle infinie si on appelle déjà la requête de token
+  const reqUrl = req.getUrl();
+  if (reqUrl && reqUrl.includes('/openid-connect/token')) {
     return;
   }
 
-  let apiBase = bru.getEnvVar('base_url') || '';
-  try {
-    if (apiBase) {
-      apiBase = rewriteClusterHost(apiBase, 'gateway');
-      let u = new URL(apiBase.includes('://') ? apiBase : 'http://' + apiBase);
-      const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
-      const port = u.port || (u.protocol === 'https:' ? '443' : '80');
-      if (hostGateway && local && (port === '80' || port === '443')) {
-        u.port = '4000';
-      }
-      apiBase = fixLocalhostDockerPorts(u.href.replace(/\/$/, ''));
-    }
-  } catch (e) { /* ignore */ }
-  if (!apiBase && hostGateway) {
-    apiBase = 'http://127.0.0.1:4000';
-  }
-  // 2) Aligner la requête sur base_url (après rewrites localhost:80→4000, etc.).
-  reqUrl = req.getUrl() || '';
-  if (apiBase) {
-    try {
-      const cur = new URL(reqUrl.includes('://') ? reqUrl : 'http://bruno.placeholder' + (reqUrl.startsWith('/') ? reqUrl : '/' + reqUrl));
-      const base = new URL(apiBase.replace(/\/$/, ''));
-      const path = cur.pathname + (cur.search || '');
-      req.setUrl(base.origin + path);
-    } catch (e1) {
-      try {
-        const base = new URL(apiBase.replace(/\/$/, ''));
-        const p = reqUrl.startsWith('/') ? reqUrl : '/' + reqUrl;
-        req.setUrl(base.origin + p);
-      } catch (e2) { /* ignore */ }
-    }
-  }
-  {
-    const afterMerge = req.getUrl() || '';
-    const fixed = fixLocalhostDockerPorts(afterMerge);
-    if (fixed && fixed !== afterMerge) {
-      req.setUrl(fixed);
-    }
-  }
-
+  // 2. Vérifier si le token actuel est encore valide (marge de 10s)
   const now = Math.floor(Date.now() / 1000);
-  const exp = parseInt(bru.getVar('access_token_exp') || '0', 10);
-  const tok = bru.getVar('access_token');
+  const token = bru.getVar('access_token');
+  const expiry = parseInt(bru.getVar('access_token_exp') || '0', 10);
 
-  if (tok && exp && now < exp - 30) {
-    return;
+  if (token && expiry > (now + 10)) {
+    return; // Le token est encore bon
   }
 
-  let tokenUrl = bru.getEnvVar('keycloak_token_url');
-  tokenUrl = rewriteClusterHost(tokenUrl, 'keycloak');
-  tokenUrl = fixLocalhostDockerPorts(tokenUrl);
+  // 3. Récupérer un nouveau token
+  const tokenUrl = bru.getEnvVar('keycloak_token_url');
+  const clientId = bru.getEnvVar('kc_client_id') || 'admin-cli';
+  const username = bru.getEnvVar('kc_username') || 'test-user';
+  const password = bru.getEnvVar('kc_password') || 'password';
+
   if (!tokenUrl) {
+    console.error("Erreur Bruno : 'keycloak_token_url' n'est pas défini dans l'environnement !");
     return;
   }
 
-  const res = await require('axios').post(tokenUrl,
-    'grant_type=password&client_id=' + (bru.getEnvVar('kc_client_id') || 'admin-cli') +
-    '&username=' + (bru.getEnvVar('kc_username') || 'test-user') +
-    '&password=' + (bru.getEnvVar('kc_password') || 'password'),
-    {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      timeout: 60000,
-      proxy: false
-    }
-  );
+  try {
+    const response = await axios.post(tokenUrl, 
+      new URLSearchParams({
+        grant_type: 'password',
+        client_id: clientId,
+        username: username,
+        password: password
+      }).toString(),
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 10000
+      }
+    );
 
-  if (res.data.access_token) {
-    bru.setVar('access_token', res.data.access_token);
-    const parts = res.data.access_token.split('.');
-    if (parts.length === 3) {
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-      if (payload.exp) bru.setVar('access_token_exp', String(payload.exp));
+    if (response.data.access_token) {
+      bru.setVar('access_token', response.data.access_token);
+      
+      // Décoder le JWT pour récupérer l'expiration
+      const payload = JSON.parse(Buffer.from(response.data.access_token.split('.')[1], 'base64').toString());
+      if (payload.exp) {
+        bru.setVar('access_token_exp', payload.exp.toString());
+      }
+      console.log("Bruno : Nouveau token récupéré automatiquement.");
     }
+  } catch (error) {
+    console.error("Bruno : Échec de l'auto-auth Keycloak", error.message);
   }
 }
