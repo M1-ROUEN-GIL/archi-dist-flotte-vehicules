@@ -2,6 +2,8 @@
 FROM node:18.20-alpine AS builder
 WORKDIR /app
 
+RUN npm install -g npm@latest
+
 # Copier les fichiers de dependances
 COPY package*.json ./
 
@@ -15,7 +17,8 @@ COPY . .
 FROM node:18.20-alpine
 WORKDIR /app
 
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache && \
+    npm install -g npm@latest
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001

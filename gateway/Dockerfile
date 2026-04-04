@@ -3,6 +3,9 @@ FROM node:20.18-alpine AS builder
 
 WORKDIR /app
 
+# Update npm to latest
+RUN npm install -g npm@latest
+
 # Copy package files
 COPY package*.json ./
 
@@ -20,7 +23,8 @@ FROM node:20.18-alpine
 
 WORKDIR /app
 
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache && \
+    npm install -g npm@latest
 
 # Copy production dependencies only
 COPY package*.json ./
