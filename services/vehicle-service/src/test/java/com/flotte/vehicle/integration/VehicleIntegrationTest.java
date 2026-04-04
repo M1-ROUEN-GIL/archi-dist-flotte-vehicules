@@ -8,8 +8,8 @@ import com.flotte.vehicle.events.producers.VehicleEventProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.flotte.vehicle.VehicleSpringBootTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -31,15 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.logging.OpenTelemetryLoggingAutoConfiguration;
 
-@SpringBootTest(properties = {
-	"spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
-	"spring.datasource.driver-class-name=org.h2.Driver",
-	"spring.datasource.username=sa",
-	"spring.datasource.password=",
-	"spring.jpa.hibernate.ddl-auto=create-drop",
-	"spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-	"spring.kafka.enabled=false"
-})
+@VehicleSpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @EnableAutoConfiguration(exclude = {OpenTelemetryLoggingAutoConfiguration.class})
