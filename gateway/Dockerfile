@@ -24,7 +24,9 @@ FROM node:20.18-alpine
 WORKDIR /app
 
 RUN apk upgrade --no-cache && \
-    npm install -g npm@latest
+    npm install -g npm@latest && \
+    # Force patch picomatch to 4.0.4 in npm's own tree to resolve CVE-2026-33671
+    find /usr/local/lib/node_modules/npm -name picomatch -type d -exec npm install --prefix {} picomatch@4.0.4 \;
 
 # Copy production dependencies only
 COPY package*.json ./
