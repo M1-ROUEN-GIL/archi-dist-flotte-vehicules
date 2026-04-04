@@ -16,7 +16,8 @@ import java.lang.annotation.Target;
 		"spring.datasource.url=jdbc:h2:mem:drivertest;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
 		"spring.datasource.username=sa",
 		"spring.datasource.password=",
-		"spring.jpa.hibernate.ddl-auto=create-drop"
+		"spring.jpa.hibernate.ddl-auto=create-drop",
+		"flotte.postgres.auto-create-databases=false"
 })
 public @interface DriverSpringBootTest {
 }

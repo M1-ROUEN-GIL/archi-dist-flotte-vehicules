@@ -1,5 +1,5 @@
 # BUILD
-FROM node:18-alpine AS builder
+FROM node:18.20-alpine AS builder
 WORKDIR /app
 
 # Copier les fichiers de dependances
@@ -12,8 +12,10 @@ RUN npm install --production
 COPY . .
 
 # RUNTIME
-FROM node:18-alpine
+FROM node:18.20-alpine
 WORKDIR /app
+
+RUN apk upgrade --no-cache
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001

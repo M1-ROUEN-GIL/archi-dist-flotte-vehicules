@@ -1,7 +1,7 @@
 # ==========================================
 # Etape 1 : Build (Construction)
 # ==========================================
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /build
 
@@ -25,9 +25,9 @@ WORKDIR /app
 
 # curl : healthcheck Docker (actuator)
 RUN addgroup -S spring && adduser -S spring -G spring \
-	&& apk add --no-cache curl
+        && apk upgrade --no-cache \
+        && apk add --no-cache curl
 USER spring:spring
-
 # On recupere l'application compilee depuis l'etape 1
 COPY --from=builder /build/target/*.jar app.jar
 COPY --from=builder /build/opentelemetry-javaagent.jar opentelemetry-javaagent.jar

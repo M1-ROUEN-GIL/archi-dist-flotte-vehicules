@@ -19,7 +19,8 @@ import java.lang.annotation.Target;
 		"spring.datasource.password=",
 		"spring.jpa.hibernate.ddl-auto=create-drop",
 		"spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-		"spring.kafka.enabled=false"
+		"spring.kafka.enabled=false",
+		"flotte.postgres.auto-create-databases=false"
 })
 public @interface VehicleSpringBootTest {
 }

@@ -1,7 +1,7 @@
 # ==========================================
 # Étape 1 : Build (Construction)
 # ==========================================
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /build
 
@@ -22,7 +22,8 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Bonne pratique de sécurité utilisateur non-root
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN addgroup -S spring && adduser -S spring -G spring \
+        && apk upgrade --no-cache
 USER spring:spring
 
 # On récupère le fichier .jar généré à l'étape 1

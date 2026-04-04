@@ -29,7 +29,10 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(DriverController.class)
+@WebMvcTest(controllers = DriverController.class, properties = {
+		"spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost:8080/realms/flotte/protocol/openid-connect/certs",
+		"flotte.postgres.auto-create-databases=false"
+})
 @Import(SecurityConfig.class)
 @AutoConfigureMockMvc
 class DriverControllerTest {

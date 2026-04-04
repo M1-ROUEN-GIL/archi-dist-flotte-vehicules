@@ -36,7 +36,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.logging.OpenTelemetryLoggingAutoConfiguration;
 
-@WebMvcTest(VehicleController.class)
+@WebMvcTest(controllers = VehicleController.class, properties = {
+        "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost:8080/realms/flotte/protocol/openid-connect/certs",
+        "flotte.postgres.auto-create-databases=false"
+})
 @Import(SecurityConfig.class)
 @AutoConfigureMockMvc
 @EnableAutoConfiguration(exclude = {OpenTelemetryLoggingAutoConfiguration.class})

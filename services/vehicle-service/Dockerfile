@@ -1,5 +1,5 @@
 # Étape 1 : Construction
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /build
 
@@ -21,9 +21,9 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S spring && adduser -S spring -G spring \
-	&& apk add --no-cache curl
+        && apk upgrade --no-cache \
+        && apk add --no-cache curl
 USER spring:spring
-
 # On récupère l'application compilée depuis l'étape 1
 COPY --from=builder /build/target/*.jar app.jar
 COPY --from=builder /build/opentelemetry-javaagent.jar opentelemetry-javaagent.jar
