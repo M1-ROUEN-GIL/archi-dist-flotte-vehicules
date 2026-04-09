@@ -29,6 +29,7 @@ docker build -t driver-service:latest ./services/driver-service/
 docker build -t maintenance-service:latest ./services/maintenance-service/
 docker build -t events-service:latest ./services/events-service/
 docker build -t graphql-gateway:latest ./gateway/
+docker build -t location-service:latest ./services/location-service/
 
 # 5. Déploiement Infrastructure (DB, Kafka, Redis)
 helm dependency update ./infra/helm/fleet-infra/
@@ -63,6 +64,11 @@ kubectl rollout status deployment/vehicle-service-deployment -n flotte-namespace
 kubectl rollout status deployment/driver-service-deployment -n flotte-namespace --timeout=600s
 kubectl rollout status deployment/maintenance-service-deployment -n flotte-namespace --timeout=600s
 kubectl rollout status deployment/events-service-deployment -n flotte-namespace --timeout=600s
+
+# 11. Déploiement du service location (NestJS, séparé du Helm fleet-app car env vars différentes)
+kubectl apply -f infra/kubernetes/services/location-service.yaml -n flotte-namespace
+kubectl apply -f infra/kubernetes/deployments/location-deployment.yaml -n flotte-namespace
+kubectl rollout status deployment/location-deployment -n flotte-namespace --timeout=300s
 
 # 10. Configuration du Host (Optionnel : demande sudo)
 echo "--------------------------------------------------"
