@@ -40,8 +40,8 @@ public class DataSeeder implements CommandLineRunner {
 		if (!vehicleRepository.existsById(DEMO_VEHICLE_ID)) {
 			// INSERT natif : schéma réel = Hibernate ddl-auto (varchar pour enums, pas les types ENUM du script SQL manuel).
 			entityManager.createNativeQuery(
-					"INSERT INTO vehicles (id, plate_number, brand, model, fuel_type, mileage_km, status, vin, payload_capacity_kg, cargo_volume_m3, metadata) "
-							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+					"INSERT INTO vehicles (id, plate_number, brand, model, fuel_type, mileage_km, status, vin, payload_capacity_kg, cargo_volume_m3, metadata, created_at, updated_at) "
+							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())")
 					.setParameter(1, DEMO_VEHICLE_ID)
 					.setParameter(2, "BR-DEMO-001")
 					.setParameter(3, "Renault")

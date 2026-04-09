@@ -76,7 +76,7 @@ class VehicleClient extends BaseClient {
     return true;
   }
   async assignVehicle(vehicleId: string, driverId: string, notes?: string) {
-    const { data } = await this.http.post(`/vehicles/${vehicleId}/assignments`, { driver_id: driverId, notes });
+    const { data } = await this.http.post(`/vehicles/${vehicleId}/assignments`, { driver_id: driverId, notes, created_by: driverId });
     return data;
   }
   async unassignVehicle(vehicleId: string) {

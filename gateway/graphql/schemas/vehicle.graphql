@@ -10,16 +10,16 @@ type Vehicle {
   status: VehicleStatus!
   mileage_km: Int!
   vin: String
-  payload_capacity_kg: Int!
-  cargo_volume_m3: Float!
+  payload_capacity_kg: Int
+  cargo_volume_m3: Float
   # Résolu par le Service Localisation via l'API Gateway
   current_location: Location
   # Résolu par le Service Conducteurs
   current_assignment: Assignment
   # Résolu par le Service Maintenance
   maintenance_records(limit: Int = 5): [MaintenanceRecord!]!
-  created_at: String!
-  updated_at: String!
+  created_at: String
+  updated_at: String
 }
 
 type Assignment {
