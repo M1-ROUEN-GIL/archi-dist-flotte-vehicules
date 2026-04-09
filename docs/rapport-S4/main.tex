@@ -153,7 +153,7 @@
 
   {\Huge\sffamily\bfseries\color{primary} Projet Gestion de Flotte\\[0.35cm]}
   {\LARGE\sffamily\bfseries\color{primary!80!black} Rapport de Semaine 4}\\[0.35cm]
-  {\large\sffamily\color{primary!65!black} Services Conducteurs \& Maintenance, Bruno, Datafaker}
+  {\large\sffamily\color{primary!65!black} Services Conducteurs \& Maintenance, Kafka, Gateway GraphQL}
 
   {\color{primary!55}\rule{\linewidth}{0.5mm}}\\[1.5cm]
 
@@ -187,101 +187,18 @@
 \section{Introduction}
 % ============================================================
 
-Apr\`{e}s la mise en place de l'infrastructure (S2) et du microservice V\'{e}hicules (S3), la semaine~4 compl\`{e}te la plateforme avec les services \textbf{Conducteurs} et \textbf{Maintenance}, la communication \'{e}v\'{e}nementielle Kafka, la passerelle GraphQL et l'authentification Keycloak.
-
-\subsection{Objectifs}
-
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Service Conducteurs} --- CRUD, suivi des permis, assignations v\'{e}hicule--conducteur.
-  \item \textbf{Service Maintenance} --- Planification, historique par v\'{e}hicule, alertes pr\'{e}ventives.
-  \item \textbf{Kafka} --- Saga par chor\'{e}graphie pour les transitions d'\'{e}tat inter-services.
-  \item \textbf{Gateway GraphQL} --- Agr\'{e}gation multi-services (Apollo Server).
-  \item \textbf{Keycloak} --- JWT + r\^{o}les pour s\'{e}curiser REST et GraphQL.
-  \item \textbf{Bruno} --- Collection de tests API (remplacement de Postman).
-  \item \textbf{Datafaker} --- G\'{e}n\'{e}ration automatique de donn\'{e}es de test au d\'{e}marrage.
-\end{itemize}
+Apr\`{e}s la mise en place de l'infrastructure (S2) et du microservice V\'{e}hicules (S3), la semaine~4 compl\`{e}te la plateforme m\'{e}tier. Deux nouveaux services ont \'{e}t\'{e} d\'{e}velopp\'{e}s --- \textbf{Conducteurs} et \textbf{Maintenance} --- et connect\'{e}s aux autres via Kafka. Une passerelle GraphQL (Apollo Server) unifie l'acc\`{e}s aux trois services, prot\'{e}g\'{e}e par Keycloak. Chaque service produit des donn\'{e}es de d\'{e}mo au d\'{e}marrage gr\^{a}ce \`{a} Datafaker, et la collection de tests Bruno couvre l'ensemble des endpoints.
 
 % ============================================================
 \newpage
-\section{Architecture de persistance}
+\section{Nouveaux services m\'{e}tier}
 % ============================================================
 
-\begin{infobox}
-\textbf{Approche :} Une instance PostgreSQL unique (Bitnami Helm chart) h\'{e}berge des bases s\'{e}par\'{e}es par service. L'isolation logique est assur\'{e}e au niveau base de donn\'{e}es, pas au niveau instance.
-\end{infobox}
+Les services \textbf{Driver} et \textbf{Maintenance} suivent la m\^{e}me structure que le service V\'{e}hicules : API REST Spring Boot, base PostgreSQL d\'{e}di\'{e}e, DDL g\'{e}r\'{e} par Hibernate (\texttt{ddl-auto: update}), et publication d'\'{e}v\'{e}nements Kafka. Une instance PostgreSQL unique h\'{e}berge les trois bases (\texttt{vehicle\_db}, \texttt{driver\_db}, \texttt{maintenance\_db}) avec isolation logique au niveau base de donn\'{e}es.
 
-\subsection{Bases de donn\'{e}es}
+\subsection{Service Driver}
 
-Les quatre bases sont cr\'{e}\'{e}es automatiquement au d\'{e}marrage de PostgreSQL via un script \texttt{initdb} d\'{e}clar\'{e} dans les values Helm :
-
-\begin{lstlisting}[language=SQL, caption=Script d'initialisation (values.yaml fleet-infra)]
-CREATE DATABASE driver_db;
-CREATE DATABASE maintenance_db;
-CREATE DATABASE vehicle_db;
-CREATE DATABASE keycloak_db;
-\end{lstlisting}
-
-\begin{itemize}
-  \item \texttt{vehicle\_db}, \texttt{driver\_db}, \texttt{maintenance\_db} --- une base par microservice m\'{e}tier.
-  \item \texttt{keycloak\_db} --- cr\'{e}\'{e}e par le script d'init Helm ; utilis\'{e}e par Keycloak en d\'{e}ploiement Kubernetes.
-\end{itemize}
-
-\textbf{Docker Compose :} Keycloak se connecte \`{a} la base par d\'{e}faut \texttt{postgres} (m\^{e}me instance PostgreSQL, pas de s\'{e}paration \texttt{keycloak\_db} dans ce profil). \textbf{Kubernetes :} Keycloak utilise \texttt{keycloak\_db} (voir \texttt{infra/helm/fleet-infra} et le d\'{e}ploiement Keycloak).
-
-Le sch\'{e}ma (DDL) est g\'{e}r\'{e} par Hibernate (\texttt{ddl-auto: update}) : pas de scripts SQL manuels \`{a} maintenir pour les entit\'{e}s JPA.
-
-\subsection{Seeding automatique avec Datafaker}
-
-Plut\^{o}t que des fichiers \texttt{data.sql} statiques, chaque service embarque un \textbf{DataSeeder} activ\'{e} par le profil Spring \texttt{dev}. Le \textbf{vehicle-service} ins\`{e}re d'abord un v\'{e}hicule \textbf{d\'{e}mo} \`{a} UUID fixe (align\'{e} sur les requ\^{e}tes Bruno/API) via un \texttt{INSERT} SQL natif --- n\'{e}cessaire car un UUID assign\'{e} \`{a} la main ne se comporte pas comme une entit\'{e} JPA \texttt{new} avec \texttt{@GeneratedValue}. Ensuite, si la base ne contient qu'au plus ce v\'{e}hicule, neuf v\'{e}hicules suppl\'{e}mentaires sont g\'{e}n\'{e}r\'{e}s avec \textbf{Datafaker} ; si la base est d\'{e}j\`{a} peupl\'{e}e d'autres lignes, le seed al\'{e}atoire est ignor\'{e}.
-
-\begin{lstlisting}[language=Java, caption=Logique r\'{e}sum\'{e}e du DataSeeder (vehicle-service)]
-@Transactional
-public void run(String... args) {
-  if (!vehicleRepository.existsById(DEMO_VEHICLE_ID)) {
-    entityManager.createNativeQuery(
-        "INSERT INTO vehicles (...) VALUES (?,?,...)").executeUpdate();
-  }
-  if (vehicleRepository.count() > 1) return;
-  for (int i = 0; i < 9; i++) {
-    Vehicle v = new Vehicle();
-    // champs remplis via Faker (plaque, VIN, etc.)
-    vehicleRepository.save(v);
-  }
-}
-\end{lstlisting}
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabular}{|l|l|l|}
-  \hline
-  \rowcolor{primary!15}
-  \textbf{Service} & \textbf{Donn\'{e}es g\'{e}n\'{e}r\'{e}es} & \textbf{D\'{e}tails} \\
-  \hline
-  vehicle-service & 10 v\'{e}hicules (1 d\'{e}mo + 9 al\'{e}atoires) & D\'{e}mo UUID fixe ; puis Faker si la base n'est pas d\'{e}j\`{a} remplie \\
-  \hline
-  driver-service & 8 conducteurs & Noms, emails, t\'{e}l\'{e}phones + 1 permis chacun \\
-  \hline
-  maintenance-service & 12 maintenances & Types, priorit\'{e}s, dates, co\^{u}ts pour les compl\'{e}t\'{e}es \\
-  \hline
-\end{tabular}
-\caption{Donn\'{e}es g\'{e}n\'{e}r\'{e}es par Datafaker (profil \texttt{dev})}
-\end{table}
-
-Le profil \texttt{dev} est activ\'{e} via \texttt{SPRING\_PROFILES\_ACTIVE=dev} dans le template Helm (Kubernetes) et dans le \texttt{compose.yaml} (Docker). Les seeders \textbf{driver} et \textbf{maintenance} ne remplissent que des tables vides ; le seed \textbf{v\'{e}hicule} garantit en outre la pr\'{e}sence du v\'{e}hicule d\'{e}mo si son UUID manque (bases d\'{e}j\`{a} peupl\'{e}es).
-
-% ============================================================
-\newpage
-\section{Microservice Driver}
-% ============================================================
-
-\begin{infobox}
-\textbf{Objectif :} G\'{e}rer le cycle de vie des conducteurs : profils, permis de conduire, coordination avec le service V\'{e}hicules lors des assignations.
-\end{infobox}
-
-\subsection{Mod\`{e}le de donn\'{e}es}
-
-Relation \textbf{1-N} entre \texttt{Driver} et \texttt{DriverLicense}. Le service impl\'{e}mente le \textit{Soft Delete} via \texttt{@SQLDelete} / \texttt{@SQLRestriction} Hibernate.
+Le service g\`{e}re le cycle de vie des conducteurs : profils, permis, et coordination avec le service V\'{e}hicules lors des assignations. Le mod\`{e}le repose sur une relation \textbf{1-N} entre \texttt{Driver} et \texttt{DriverLicense}, avec suppression logique via \texttt{@SQLDelete} / \texttt{@SQLRestriction} Hibernate.
 
 \begin{lstlisting}[language=Java, caption=Entit\'{e} Driver (extraits)]
 @Entity @Table(name = "drivers")
@@ -300,109 +217,43 @@ public class Driver {
 }
 \end{lstlisting}
 
-\subsection{Surveillance des permis (LicenseScheduler)}
+Une t\^{a}che \texttt{@Scheduled} (cron quotidien) d\'{e}tecte les permis expirant sous 30 jours et publie des \'{e}v\'{e}nements Kafka (\texttt{LICENSE\_EXPIRING}, \texttt{LICENSE\_EXPIRED}) consommables par les autres services.
 
-Une t\^{a}che \texttt{@Scheduled} (cron quotidien) d\'{e}tecte les permis expirant sous 30 jours et publie des \'{e}v\'{e}nements Kafka (\texttt{LICENSE\_EXPIRING}, \texttt{LICENSE\_EXPIRED}).
+\subsection{Service Maintenance}
 
-\subsection{Endpoints REST}
+Le service assure la tra\c{c}abilit\'{e} compl\`{e}te des interventions, de la planification \`{a} la cl\^{o}ture. L'entit\'{e} \texttt{MaintenanceRecord} utilise trois \'{e}num\'{e}rations (\texttt{MaintenanceType}, \texttt{MaintenanceStatus}, \texttt{MaintenancePriority}). Le lien vers le v\'{e}hicule est un simple UUID --- pas de cl\'{e} \'{e}trang\`{e}re inter-bases, conform\'{e}ment au principe microservices. Une t\^{a}che \texttt{@Scheduled} quotidienne (01h00) passe les maintenances en retard au statut \texttt{OVERDUE} et publie une alerte Kafka.
+
+\subsection{Donn\'{e}es de d\'{e}mo (Datafaker)}
+
+Plut\^{o}t que des fichiers \texttt{data.sql} statiques, chaque service embarque un \texttt{DataSeeder} activ\'{e} par le profil Spring \texttt{dev}. Le \texttt{vehicle-service} ins\`{e}re d'abord un v\'{e}hicule d\'{e}mo \`{a} UUID fixe via un \texttt{INSERT} SQL natif (n\'{e}cessaire car un UUID assign\'{e} manuellement ne passe pas par le cycle JPA \texttt{@GeneratedValue}), puis compl\`{e}te avec neuf v\'{e}hicules Faker si la base n'est pas d\'{e}j\`{a} peupl\'{e}e.
 
 \begin{table}[H]
 \centering\small
-\begin{tabular}{|l|l|p{7cm}|}
+\begin{tabular}{|l|l|l|}
   \hline
   \rowcolor{primary!15}
-  \textbf{M\'{e}thode} & \textbf{Endpoint} & \textbf{Description} \\
+  \textbf{Service} & \textbf{Donn\'{e}es g\'{e}n\'{e}r\'{e}es} & \textbf{D\'{e}tails} \\
   \hline
-  GET & \texttt{/api/drivers} & Liste (filtrable par statut) \\
-  POST & \texttt{/api/drivers} & Cr\'{e}ation d'un profil \\
-  GET & \texttt{/api/drivers/\{id\}} & D\'{e}tails par UUID \\
-  PUT & \texttt{/api/drivers/\{id\}} & Mise \`{a} jour compl\`{e}te \\
-  PATCH & \texttt{/api/drivers/\{id\}/status} & Changement de statut \\
-  POST & \texttt{/api/drivers/\{id\}/licenses} & Ajout d'un permis \\
-  GET & \texttt{/api/drivers/\{id\}/licenses} & Liste des permis \\
-  DELETE & \texttt{/api/drivers/\{id\}} & Suppression logique \\
+  vehicle-service & 10 v\'{e}hicules (1 d\'{e}mo + 9 al\'{e}atoires) & UUID fixe garanti ; Faker ignor\'{e} si base d\'{e}j\`{a} peupl\'{e}e \\
+  \hline
+  driver-service & 8 conducteurs & Noms, emails, t\'{e}l\'{e}phones + 1 permis chacun \\
+  \hline
+  maintenance-service & 12 maintenances & Types, priorit\'{e}s, dates, co\^{u}ts pour les compl\'{e}t\'{e}es \\
   \hline
 \end{tabular}
-\caption{Endpoints REST --- service Driver}
+\caption{Donn\'{e}es inject\'{e}es par Datafaker (profil \texttt{dev})}
 \end{table}
 
 % ============================================================
 \newpage
-\section{Microservice Maintenance}
-% ============================================================
-
-\begin{infobox}
-\textbf{Objectif :} Tra\c{c}abilit\'{e} compl\`{e}te des interventions techniques, de la planification \`{a} la cl\^{o}ture, avec d\'{e}tection automatique des retards.
-\end{infobox}
-
-\subsection{Mod\`{e}le de donn\'{e}es}
-
-L'entit\'{e} \texttt{MaintenanceRecord} utilise trois \'{e}num\'{e}rations (\texttt{MaintenanceType}, \texttt{MaintenanceStatus}, \texttt{MaintenancePriority}). Le lien vers le v\'{e}hicule est un simple UUID --- pas de cl\'{e} \'{e}trang\`{e}re inter-bases (principe microservices).
-
-\subsection{D\'{e}tection des retards}
-
-Une t\^{a}che \texttt{@Scheduled} quotidienne (01h00) passe les maintenances en retard au statut \texttt{OVERDUE} et publie une alerte Kafka.
-
-\subsection{Endpoints REST}
-
-\begin{table}[H]
-\centering\small
-\begin{tabular}{|l|l|p{7cm}|}
-  \hline
-  \rowcolor{primary!15}
-  \textbf{M\'{e}thode} & \textbf{Endpoint} & \textbf{Description} \\
-  \hline
-  GET & \texttt{/api/maintenance} & Liste (filtrable par v\'{e}hicule, statut, priorit\'{e}) \\
-  POST & \texttt{/api/maintenance} & Planification d'une intervention \\
-  GET & \texttt{/api/maintenance/vehicle/\{id\}} & Historique d'un v\'{e}hicule \\
-  PUT & \texttt{/api/maintenance/\{id\}} & Mise \`{a} jour g\'{e}n\'{e}rale \\
-  PATCH & \texttt{/api/maintenance/\{id\}/status} & Cl\^{o}ture (co\^{u}t, km, notes) \\
-  \hline
-\end{tabular}
-\caption{Endpoints REST --- service Maintenance}
-\end{table}
-
-% ============================================================
-\newpage
-\section{Gateway GraphQL}
-% ============================================================
-
-\begin{infobox}
-\textbf{Objectif :} Agr\'{e}ger les trois services m\'{e}tier derri\`{e}re une API GraphQL unifi\'{e}e (Apollo Server, Node.js).
-\end{infobox}
-
-\subsection{Architecture}
-
-Le Gateway est d\'{e}ploy\'{e} sur le port 4000 et route les requ\^{e}tes via des clients REST (Axios) vers chaque service backend. Le JWT re\c{c}u du client est \textbf{forward\'{e}} automatiquement aux services.
-
-\begin{itemize}
-  \item \textbf{VehicleClient} $\rightarrow$ \texttt{http://vehicle-service:8080}
-  \item \textbf{DriverClient} $\rightarrow$ \texttt{http://driver-service:8080}
-  \item \textbf{MaintenanceClient} $\rightarrow$ \texttt{http://maintenance-service:8080}
-\end{itemize}
-
-Un m\'{e}canisme de retry (intercepteur Axios) g\`{e}re les erreurs r\'{e}seau transitoires au d\'{e}marrage (\texttt{ECONNREFUSED}, \texttt{ECONNRESET}).
-
-\subsection{Agr\'{e}gation multi-services}
-
-Les relations suivantes sont r\'{e}solubles en une seule requ\^{e}te GraphQL :
-
-\begin{itemize}
-  \item \textbf{V\'{e}hicule $\leftrightarrow$ Maintenance} --- historique technique depuis la fiche v\'{e}hicule.
-  \item \textbf{V\'{e}hicule $\leftrightarrow$ Conducteur} --- assignation courante et profil du conducteur.
-  \item \textbf{Maintenance $\leftrightarrow$ Conducteur} --- technicien assign\'{e} \`{a} une intervention.
-\end{itemize}
-
-% ============================================================
-\newpage
-\section{Architecture \'{e}v\'{e}nementielle (Saga)}
+\section{Communication \'{e}v\'{e}nementielle entre services}
 % ============================================================
 
 \begin{infobox}
 \textbf{Principe :} Saga par \textbf{chor\'{e}graphie} --- chaque service r\'{e}agit aux \'{e}v\'{e}nements des autres et publie ses propres r\'{e}sultats. Pas d'orchestrateur central.
 \end{infobox}
 
-\subsection{Format d'enveloppe (KafkaEventEnvelope)}
+Les \'{e}v\'{e}nements circulent dans une enveloppe commune \texttt{KafkaEventEnvelope} qui embarque l'identifiant, le type, l'horodatage, le payload m\'{e}tier et les m\'{e}tadonn\'{e}es de la source :
 
 \begin{lstlisting}[language=java, caption=Enveloppe \'{e}v\'{e}nement unifi\'{e}e]
 {
@@ -414,15 +265,7 @@ Les relations suivantes sont r\'{e}solubles en une seule requ\^{e}te GraphQL :
 }
 \end{lstlisting}
 
-\subsection{Transactions compensatoires}
-
-\begin{enumerate}
-  \item \textbf{T1} --- Maintenance publie \texttt{MAINTENANCE\_STARTED}.
-  \item \textbf{T2} --- V\'{e}hicule consomme et passe en \texttt{IN\_MAINTENANCE}.
-  \item \textbf{C1} --- En cas d'\'{e}chec, V\'{e}hicule publie \texttt{MAINTENANCE\_REJECTED} $\rightarrow$ Maintenance annule la fiche.
-\end{enumerate}
-
-\subsection{Topics Kafka}
+Le flux principal illustre la coordination entre les services via une saga compensatoire : Maintenance publie \texttt{MAINTENANCE\_STARTED} (T1), Vehicle consomme et passe en \texttt{IN\_MAINTENANCE} (T2). En cas d'\'{e}chec, Vehicle publie \texttt{MAINTENANCE\_REJECTED} qui d\'{e}clenche l'annulation de la fiche c\^{o}t\'{e} Maintenance (C1).
 
 \begin{table}[H]
 \centering\small
@@ -431,7 +274,7 @@ Les relations suivantes sont r\'{e}solubles en une seule requ\^{e}te GraphQL :
   \rowcolor{primary!15}
   \textbf{Topic} & \textbf{\'{E}v\'{e}nements} & \textbf{Effet} \\
   \hline
-  \texttt{flotte.maintenance.events} & \texttt{STARTED}, \texttt{COMPLETED}, \texttt{CANCELLED} & V\'{e}hicule : \texttt{in\_maintenance} / \texttt{available} \\
+  \texttt{flotte.maintenance.events} & \texttt{STARTED}, \texttt{COMPLETED}, \texttt{CANCELLED} & Vehicle : \texttt{in\_maintenance} / \texttt{available} \\
   \hline
   \texttt{flotte.conducteurs.events} & \texttt{DRIVER\_CREATED/UPDATED}, \texttt{LICENSE\_EXPIRING/EXPIRED} & Notification inter-services \\
   \hline
@@ -443,224 +286,75 @@ Les relations suivantes sont r\'{e}solubles en une seule requ\^{e}te GraphQL :
 
 % ============================================================
 \newpage
-\section{Authentification Keycloak}
+\section{Gateway GraphQL et authentification}
 % ============================================================
 
 \begin{infobox}
-\textbf{Approche :} Keycloak (v26.5.7) d\'{e}ploy\'{e} avec \texttt{--import-realm} pour charger automatiquement le realm \texttt{gestion-flotte}, ses clients et ses utilisateurs au d\'{e}marrage.
+\textbf{Objectif :} Exposer une API GraphQL unifi\'{e}e (Apollo Server, Node.js, port 4000) devant les trois services m\'{e}tier, prot\'{e}g\'{e}e par des JWT Keycloak.
 \end{infobox}
 
-\subsection{Configuration}
+Le Gateway route les requ\^{e}tes via des clients REST Axios vers chaque service backend et \textbf{forwarde} le header \texttt{Authorization} re\c{c}u sans le modifier. Un intercepteur Axios assure la r\'{e}silience au d\'{e}marrage (\texttt{ECONNREFUSED} / \texttt{ECONNRESET}) avec retry automatique.
 
-\begin{itemize}
-  \item \textbf{Base PostgreSQL} --- sous \textbf{Kubernetes}, Keycloak utilise \texttt{keycloak\_db}. Sous \textbf{Docker Compose}, la connexion JDBC pointe sur la base \texttt{postgres} (voir variables \texttt{KC\_DB\_URL}).
-  \item \textbf{Realm} --- \texttt{gestion-flotte}, import\'{e} depuis \texttt{keycloak/realm-export.json}.
-  \item \textbf{Client} --- \texttt{admin-cli} (public, \texttt{directAccessGrantsEnabled}).
-  \item \textbf{Utilisateur} --- \texttt{test-user} (r\^{o}le \texttt{admin}), credentials hash\'{e}es (argon2) dans l'export.
-\end{itemize}
+Les relations entre domaines sont r\'{e}solubles en une seule requ\^{e}te GraphQL : historique de maintenance depuis une fiche v\'{e}hicule, profil du conducteur assign\'{e}, technicien d'une intervention. Cela \'{e}vite au client d'interroger plusieurs services s\'{e}par\'{e}ment.
 
-\subsection{Flux d'authentification}
+\subsection{Authentification Keycloak}
 
-Les services Spring Boot valident les JWT via le \texttt{jwk-set-uri} de Keycloak. Le Gateway GraphQL forward le header \texttt{Authorization} re\c{c}u du client vers chaque service backend.
+Keycloak (v26.5.7) est d\'{e}ploy\'{e} avec \texttt{--import-realm} pour charger automatiquement le realm \texttt{gestion-flotte} au d\'{e}marrage. Les services Spring Boot valident les JWT via \texttt{jwk-set-uri} ; le Gateway se contente de transmettre le token re\c{c}u.
 
 \begin{lstlisting}[language=bash, caption=R\'{e}cup\'{e}ration du token (grant type password)]
 POST /auth/realms/gestion-flotte/protocol/openid-connect/token
-  grant_type=password
-  client_id=admin-cli
-  username=test-user
-  password=password
+  grant_type=password  client_id=admin-cli
+  username=test-user   password=password
 \end{lstlisting}
+
+La base de Keycloak diff\`{e}re selon le profil de d\'{e}ploiement : sous Kubernetes elle utilise \texttt{keycloak\_db} (cr\'{e}\'{e}e par le script \texttt{initdb} Helm) ; sous Docker Compose elle se connecte \`{a} la base \texttt{postgres} par d\'{e}faut.
 
 % ============================================================
 \newpage
-\section{Tests API avec Bruno}
-\label{sec:tests-bruno}
+\section{Qualit\'{e} : tests et couverture}
 % ============================================================
 
-\begin{infobox}
-\textbf{Migration Postman $\rightarrow$ Bruno :} la collection est d\'{e}sormais au format Bruno (fichiers \texttt{.bru} versionn\'{e}s dans Git), avec gestion automatique du token JWT via un script de collection.
-\end{infobox}
+\subsection{Collection Bruno}
 
-\subsection{Organisation de la collection}
-
-\begin{lstlisting}[language=bash, caption=Structure du dossier bruno/]
-bruno/
-  bruno.json                  # Metadonnees collection
-  collection.bru              # Script pre-request : token JWT + en-tete Authorization
-  environments/
-    Minikube.json             # Variables flotte.local (K8s)
-    Docker.json               # Variables localhost (Compose)
-  REST/
-    service-vehicule/         # CRUD vehicules
-    service-driver/           # CRUD conducteurs
-    service-maintenance/      # CRUD maintenance
-  GraphQL/
-    service-vehicule/         # Query vehicles
-    service-driver/           # Query drivers
-    service-maintenance/      # Query maintenanceRecords
-\end{lstlisting}
-
-\subsection{Gestion automatique du token}
-
-Le fichier \texttt{collection.bru} d\'{e}finit \texttt{auth: none} et un script \texttt{pre-request} qui s'ex\'{e}cute avant chaque requ\^{e}te. Le renouvellement du JWT utilise \textbf{\texttt{bru.sendRequest}} (API Bruno ; \texttt{fetch} et \texttt{URLSearchParams} ne sont pas toujours disponibles dans le sandbox). Le corps \texttt{application/x-www-form-urlencoded} est construit manuellement ; la date d'expiration est lue dans le payload du JWT. Les variables d'environnement sont lues via \texttt{bru.getEnvVar}, avec secours \texttt{bru.getAllEnvVars()} et valeurs par d\'{e}faut align\'{e}es sur \texttt{Docker.json} lorsque Bruno ne r\'{e}sout pas l'environnement dans le script de collection. Aucune requ\^{e}te POST s\'{e}par\'{e}e pour obtenir le jeton n'est n\'{e}cessaire.
-
-\subsection{Environnements}
-
-Deux environnements sont fournis, s\'{e}lectionnables dans Bruno :
-
-\begin{itemize}
-  \item \textbf{Minikube} --- \texttt{base\_url = http://flotte.local} (Ingress K8s).
-  \item \textbf{Docker} --- \texttt{base\_url = http://127.0.0.1:4000} (gateway), \texttt{keycloak\_token\_url} sur le port 8180 avec pr\'{e}fixe \texttt{/auth} (Keycloak en Compose).
-\end{itemize}
-
-\subsection{Bilan des tests REST}
-
-\begin{table}[H]
-\centering\small
-\begin{tabular}{|l|l|l|l|}
-  \hline
-  \rowcolor{primary!15}
-  \textbf{Service} & \textbf{Endpoint} & \textbf{Code attendu} & \textbf{R\'{e}sultat} \\
-  \hline
-  Driver & POST /api/drivers & 201 & \textcolor{success}{\textbf{OK}} \\
-  Driver & GET /api/drivers & 200 & \textcolor{success}{\textbf{OK}} \\
-  Driver & GET /api/drivers/\{id\} & 200 & \textcolor{success}{\textbf{OK}} \\
-  Driver & PUT /api/drivers/\{id\} & 200 & \textcolor{success}{\textbf{OK}} \\
-  Driver & PATCH /api/drivers/\{id\}/status & 200 & \textcolor{success}{\textbf{OK}} \\
-  Driver & POST /api/drivers/\{id\}/licenses & 201 & \textcolor{success}{\textbf{OK}} \\
-  Driver & GET /api/drivers/\{id\}/licenses & 200 & \textcolor{success}{\textbf{OK}} \\
-  Driver & DELETE /api/drivers/\{id\} & 204 & \textcolor{success}{\textbf{OK}} \\
-  \hline
-  Maintenance & POST /api/maintenance & 201 & \textcolor{success}{\textbf{OK}} \\
-  Maintenance & GET /api/maintenance & 200 & \textcolor{success}{\textbf{OK}} \\
-  Maintenance & GET /api/maintenance/vehicle/\{id\} & 200 & \textcolor{success}{\textbf{OK}} \\
-  Maintenance & PUT /api/maintenance/\{id\} & 200 & \textcolor{success}{\textbf{OK}} \\
-  Maintenance & PATCH /api/maintenance/\{id\}/status & 200 & \textcolor{success}{\textbf{OK}} \\
-  \hline
-  Vehicle & POST /api/vehicles & 201 & \textcolor{success}{\textbf{OK}} \\
-  Vehicle & GET /api/vehicles & 200 & \textcolor{success}{\textbf{OK}} \\
-  Vehicle & PUT /api/vehicles/\{id\} & 200 & \textcolor{success}{\textbf{OK}} \\
-  Vehicle & POST /api/vehicles/\{id\}/assignments & 201 & \textcolor{success}{\textbf{OK}} \\
-  Vehicle & GET /api/vehicles/\{id\}/assignments & 200 & \textcolor{success}{\textbf{OK}} \\
-  \hline
-\end{tabular}
-\caption{Bilan des 18 endpoints REST test\'{e}s via Bruno}
-\end{table}
-
-\subsection{Bilan des tests GraphQL}
-
-\begin{table}[H]
-\centering\small
-\begin{tabular}{|l|l|l|l|}
-  \hline
-  \rowcolor{primary!15}
-  \textbf{Domaine} & \textbf{Op\'{e}ration} & \textbf{HTTP} & \textbf{R\'{e}sultat} \\
-  \hline
-  V\'{e}hicules & Query \texttt{vehicles} & 200 & \textcolor{success}{\textbf{OK}} \\
-  Maintenance & Query \texttt{maintenanceRecords} & 200 & \textcolor{success}{\textbf{OK}} \\
-  Conducteurs & Query \texttt{drivers} & 200 & \textcolor{success}{\textbf{OK}} \\
-  \hline
-\end{tabular}
-\caption{Bilan des requ\^{e}tes GraphQL (Gateway, JWT via Bruno)}
-\end{table}
-
-% ============================================================
-\newpage
-\section{Tests automatis\'{e}s et couverture}
-% ============================================================
-
-\begin{infobox}
-\textbf{Objectif :} Couverture minimale de \textbf{80\% en lignes} sur les tests unitaires (JaCoCo).
-\end{infobox}
-
-\subsection{Strat\'{e}gie}
-
-\begin{itemize}
-  \item \textbf{Tests unitaires} (JUnit 5, Mockito, \texttt{@WebMvcTest}) --- validation des services et endpoints.
-  \item \textbf{Tests d'int\'{e}gration} (\texttt{@SpringBootTest}, H2) --- flux HTTP + persistance.
-\end{itemize}
-
-Le profil Maven \texttt{unit-coverage} isole les tests unitaires pour le rapport JaCoCo :
-
-\begin{lstlisting}[language=bash, caption=G\'{e}n\'{e}ration du rapport JaCoCo]
-./mvnw clean test -Punit-coverage
-# Rapport : target/site/jacoco/index.html
-\end{lstlisting}
-
-\subsection{R\'{e}sultats JaCoCo}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{./image/driver-jacoco.png}
-  \caption{JaCoCo --- \texttt{driver-service}}
-  \label{fig:jacoco-driver}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{./image/maintenance-jacoco.png}
-  \caption{JaCoCo --- \texttt{maintenance-service}}
-  \label{fig:jacoco-maintenance}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{./image/vehicule-jacoco.png}
-  \caption{JaCoCo --- \texttt{vehicle-service}}
-  \label{fig:jacoco-vehicle}
-\end{figure}
+La collection de tests remplace Postman par des fichiers \texttt{.bru} versionn\'{e}s dans Git. Un script \texttt{pre-request} dans \texttt{collection.bru} obtient et renouvelle le JWT automatiquement avant chaque requ\^{e}te via \texttt{bru.sendRequest}, en lisant la date d'expiration dans le payload du token --- aucune requ\^{e}te d'authentification manuelle n'est n\'{e}cessaire. Deux environnements sont fournis : \textbf{Docker} (\texttt{http://127.0.0.1:4000}, Keycloak port 8180) et \textbf{Minikube} (\texttt{http://flotte.local}, Ingress K8s).
 
 \begin{table}[H]
 \centering\small
 \begin{tabular}{|l|l|l|}
   \hline
   \rowcolor{primary!15}
-  \textbf{Service} & \textbf{Couverture lignes} & \textbf{Objectif} \\
+  \textbf{Service} & \textbf{Endpoints test\'{e}s} & \textbf{R\'{e}sultat} \\
   \hline
-  \texttt{driver-service} & $\approx$ 89\% & $\geq$ 80\% \\
-  \texttt{maintenance-service} & $\approx$ 85\% & $\geq$ 80\% \\
-  \texttt{vehicle-service} & $\approx$ 89\% & $\geq$ 80\% \\
+  Driver & 8 endpoints REST + Query GraphQL \texttt{drivers} & \textcolor{success}{\textbf{18/18 OK}} \\
+  Maintenance & 5 endpoints REST + Query GraphQL \texttt{maintenanceRecords} & \textcolor{success}{\textbf{18/18 OK}} \\
+  Vehicle & 5 endpoints REST + Query GraphQL \texttt{vehicles} & \textcolor{success}{\textbf{18/18 OK}} \\
   \hline
 \end{tabular}
-\caption{Synth\`{e}se couverture JaCoCo (profil \texttt{unit-coverage})}
+\caption{Bilan Bruno --- 18 endpoints REST + 3 queries GraphQL, tous verts}
 \end{table}
 
-% ============================================================
-\newpage
-\section{S\'{e}curisation et Maintenance (Hardening)}
-% ============================================================
+\subsection{Couverture JaCoCo}
 
-\begin{infobox}
-\textbf{Audit de s\'{e}curit\'{e} :} L'utilisation de l'outil \textbf{Trivy} dans la pipeline CI/CD a permis d'identifier et de corriger plusieurs vuln\'{e}rabilit\'{e}s critiques dans les images Docker et les d\'{e}pendances logicielles.
-\end{infobox}
+Les tests unitaires (JUnit~5, Mockito, \texttt{@WebMvcTest}) et les tests d'int\'{e}gration (\texttt{@SpringBootTest}, H2) sont s\'{e}par\'{e}s via le profil Maven \texttt{unit-coverage}, ce qui permet d'isoler le rapport JaCoCo sur les tests unitaires.
 
-\subsection{Rem\'{e}diation applicative (Java)}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{./image/driver-jacoco.png}
+  \caption{JaCoCo --- \texttt{driver-service}}
+\end{figure}
 
-Les services \textbf{Driver}, \textbf{Maintenance} et \textbf{Vehicle} ont \'{e}t\'{e} mis \`{a} jour pour corriger des failles dans les composants embarqu\'{e}s (notamment Tomcat et Spring Security) :
-\begin{itemize}
-  \item \textbf{Spring Boot} --- Parent Maven \texttt{spring-boot-starter-parent} en \texttt{3.4.0} (services Java) ; les d\'{e}pendances transitives (Tomcat, Spring Security) suivent le BOM du parent.
-  \item \textbf{PostgreSQL Driver} --- Version gouvern\'{e}e par le BOM Spring Boot (surclassement possible selon les audits).
-  \item \textbf{Dependency Management} --- Lors des audits de s\'{e}curit\'{e}, surcharges ponctuelles des versions de \texttt{tomcat-embed-core} et \texttt{spring-security} pour traiter les CVE identifi\'{e}s (ex. CVE-2025-24813, CVE-2026-22732 selon les rapports d'audit).
-\end{itemize}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{./image/maintenance-jacoco.png}
+  \caption{JaCoCo --- \texttt{maintenance-service}}
+\end{figure}
 
-\subsection{S\'{e}curisation des images Docker}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{./image/vehicule-jacoco.png}
+  \caption{JaCoCo --- \texttt{vehicle-service}}
+\end{figure}
 
-Pour r\'{e}duire la surface d'attaque des conteneurs :
-\begin{itemize}
-  \item \textbf{Update OS} --- Ajout syst\'{e}matique de \texttt{apk upgrade --no-cache} dans les Dockerfiles pour appliquer les patchs de s\'{e}curit\'{e} Alpine Linux au moment du build.
-  \item \textbf{Images de base} --- Utilisation de \texttt{maven:3.9.9} pour la construction et \texttt{eclipse-temurin:21-jre-alpine} pour l'ex\'{e}cution.
-\end{itemize}
-
-\subsection{Gestion des d\'{e}pendances Node.js (Gateway)}
-
-Le Gateway GraphQL a fait l'objet d'un durcissement particulier suite \`{a} la d\'{e}tection de failles transitives dans les outils de package (\texttt{npm}) :
-\begin{itemize}
-  \item \textbf{npm Overrides} --- Utilisation de la directive \texttt{overrides} dans le \texttt{package.json} pour forcer la version \texttt{4.0.4} de la biblioth\`{e}que \texttt{picomatch} (r\'{e}solution de la CVE-2026-33671).
-  \item \textbf{npm Audit} --- Ex\'{e}cution de \texttt{npm audit fix} pour assainir l'arbre des d\'{e}pendances.
-\end{itemize}
-
-\subsection{Hygi\`{e}ne du d\'{e}p\^{o}t Git}
-
-Afin d'\'{e}viter la pollution du serveur et les probl\`{e}mes de compatibilit\'{e}, le fichier \texttt{.gitignore} a \'{e}t\'{e} compl\`{e}tement revu. Les dossiers \texttt{node\_modules/}, \texttt{target/} et \texttt{dist/} ont \'{e}t\'{e} d\'{e}finitivement retir\'{e}s de l'historique Git via une purge de l'index (\texttt{git rm --cached}).
+Les trois services d\'{e}passent l'objectif de 80\% de couverture en lignes : \texttt{driver-service} et \texttt{vehicle-service} atteignent environ 89\%, \texttt{maintenance-service} environ 85\%.
 
 \end{document}
