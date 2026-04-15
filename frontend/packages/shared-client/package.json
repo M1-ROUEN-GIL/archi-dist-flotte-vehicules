@@ -1,0 +1,13 @@
+{
+  "name": "@flotte/shared-client",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@apollo/client": "^3.9.0",
+    "graphql": "^16.8.0"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "@flotte/shared-auth": "*"
+  }
+}

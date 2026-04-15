@@ -1,0 +1,11 @@
+{
+  "name": "@flotte/shared-auth",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "dependencies": {
+    "keycloak-js": "^24.0.0"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  }
+}
