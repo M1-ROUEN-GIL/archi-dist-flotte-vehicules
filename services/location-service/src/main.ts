@@ -15,6 +15,9 @@ async function bootstrap() {
       // Attention au chemin : pointe vers le bon dossier proto
       protoPath: join(__dirname, 'proto/location.proto'),
       url: '0.0.0.0:50051',
+      loader: {
+        keepCase: true,  // ← ajouter ça
+      },
     },
   });
 

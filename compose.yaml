@@ -197,6 +197,13 @@ services:
       - KAFKA_BROKER=kafka:9092
     ports:
       - "50051:50051" # Port gRPC (simulateur externe)
+      - "3000:3000"      # (utile pour le frontend)
+    healthcheck:
+      test: [ "CMD-SHELL", "node -e \"require('net').createConnection(50051, '127.0.0.1').on('connect', () => { process.exit(0); }).on('error', () => { process.exit(1); })\"" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
@@ -216,7 +223,7 @@ services:
       command: [ "node", "dist/simulation/simulator.js" ]
       depends_on:
         location:
-          condition: service_started
+          condition: service_healthy
       restart: unless-stopped
 
   gateway:

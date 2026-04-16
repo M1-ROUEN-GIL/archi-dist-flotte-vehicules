@@ -17,7 +17,7 @@ import { GeofenceZone } from './geofence/geofence.entity';
       // ⚠️ TRÈS IMPORTANT : false avec TimescaleDB.
       // NestJS ne sait pas créer des Hypertables, on le fera à la main via SQL.
       // La table geofence_zones est créée automatiquement par DetectionService.onModuleInit().
-      synchronize: false,
+      synchronize: true, //Elle va créer la table au démarrage , ne pas faire en prod
     }),
     LocationModule,
   ],

@@ -30,7 +30,7 @@ export class LocationService {
             accuracyM:  position.accuracy_m,
             altitudeM:  position.altitude_m,
             source:     position.source || 'GPS_DEVICE',
-            time:       new Date(position.timestamp),
+            time: new Date(Number(position.timestamp)),
         });
 
         await this.locationRepo.save(reading);

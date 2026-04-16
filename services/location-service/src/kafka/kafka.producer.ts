@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class KafkaProducer implements OnModuleInit, OnModuleDestroy {

@@ -3,7 +3,7 @@ const protoLoader = require('@grpc/proto-loader');
 const path = require('path');
 
 // 1. Charger le contrat (le fichier .proto)
-const PROTO_PATH = path.join(__dirname, '../proto/location.proto');
+const PROTO_PATH = path.join(__dirname, '../grpc/location.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
     keepCase: true, // Très important pour garder les underscores (vehicle_id)
     longs: String,
@@ -13,17 +13,17 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 });
 
 const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
-const locationService = protoDescriptor.flotte.localisation.v1.LocationService;
+const locationService = protoDescriptor.flotte.location.v1.LocationService;
 
 // 2. Créer le client gRPC (Connexion au serveur NestJS)
 const client = new locationService(
-    'location:50051',
+    'localhost:50051',
     grpc.credentials.createInsecure() // Pas de SSL pour les tests en local
 );
 
 // Variables du camion fantôme (Départ de Rouen 📍)
-const VEHICLE_ID = 'CAMION-TEST-76';
-const DRIVER_ID = 'CHAUFFEUR-001';
+const VEHICLE_ID = '550e8400-e29b-41d4-a716-446655440076';
+const DRIVER_ID = '11111111-2222-3333-4444-555555555555';
 let currentLat = 49.4432; // Rouen - Centre
 let currentLon = 1.0999;
 
@@ -63,7 +63,7 @@ const interval = setInterval(() => {
         accuracy_m: 5,
         altitude_m: 25,
         source: 'SIMULATOR',
-        timestamp: Date.now().toString(), // Les int64 protobuf sont souvent gérés comme des strings en JS
+        timestamp: Date.now(), // Les int64 protobuf sont souvent gérés comme des strings en JS
     };
 
     console.log(`📡 Envoi position : Lat ${position.latitude.toFixed(4)}, Lon ${position.longitude.toFixed(4)}...`);

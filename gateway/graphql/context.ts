@@ -8,6 +8,14 @@ import {
 	VEHICLE_SERVICE_URL,
 } from '../config.js';
 
+//  NOUVEAUX IMPORTS POUR LE TEMPS RÉEL
+import * as path from 'path';
+import * as grpc from '@grpc/grpc-js';
+import * as protoLoader from '@grpc/proto-loader';
+import { PubSub } from 'graphql-subscriptions';
+
+const pubsub = new PubSub();
+
 /** Réessaie les erreurs réseau transitoires (backends pas encore prêts au démarrage K8s). */
 function attachTransientNetworkRetry(http: AxiosInstance, maxRetries = 4): void {
   http.interceptors.response.use(
@@ -176,6 +184,43 @@ class EventsClient extends BaseClient {
 }
 
 class LocationClient extends BaseClient {
+  private grpcClient: any;
+
+  constructor(baseURL: string) {
+    super(baseURL); // Initialise l'appel HTTP classique (Axios)
+
+    try {
+      // 1. Calcul du chemin absolu vers le fichier .proto
+      // process.cwd() correspond à la racine où tu lances ton serveur (flotte/gateway)
+      const PROTO_PATH = path.resolve(process.cwd(), '../services/location-service/src/grpc/location.proto');
+
+      // 2. Chargement du fichier
+      const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true
+      });
+
+      // 3. Extraction du package avec ton nom précis "flotte.location.v1"
+      const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
+      const locationProto = protoDescriptor.flotte.location.v1;
+
+      // 4. Initialisation du client gRPC
+      const grpcUrl = process.env.LOCATION_GRPC_URL || 'localhost:50051';
+      this.grpcClient = new locationProto.LocationService(
+          grpcUrl,
+          grpc.credentials.createInsecure()
+      );
+
+      console.log("✅ Client gRPC Location initialisé avec succès !");
+    } catch (error) {
+      console.warn("⚠️ Impossible de charger le client gRPC Location:", error);
+    }
+  }
+
+  // --- REQUÊTES REST EXISTANTES ---
   async getLatestPosition(vehicleId: string) {
     const { data } = await this.http.get(`/locations/${vehicleId}/latest`);
     return data;
@@ -185,6 +230,34 @@ class LocationClient extends BaseClient {
       params: { from, to, limit: 1000 },
     });
     return data;
+  }
+
+  // --- FLUX GRPC TEMPS RÉEL ---
+  watchVehicleStream(vehicleId: string) {
+    if (!this.grpcClient) {
+      throw new Error("Client gRPC non initialisé");
+    }
+
+    const topic = `VEHICLE_LOCATION_${vehicleId}`;
+
+    // Appel gRPC vers NestJS (Assure-toi que la méthode s'appelle bien WatchVehicle ou StreamPositions selon ton .proto)
+    const call = this.grpcClient.WatchVehicle({ vehicle_id: vehicleId });
+
+    call.on('data', (position: any) => {
+      // Publie l'événement dans GraphQL dès qu'on le reçoit du gRPC
+      pubsub.publish(topic, { vehicleLocationUpdated: position });
+    });
+
+    call.on('error', (error: any) => {
+      console.error(`[gRPC] Erreur sur le flux du véhicule ${vehicleId}:`, error.message);
+    });
+
+    call.on('end', () => {
+      console.log(`[gRPC] Fin du flux pour le véhicule ${vehicleId}`);
+    });
+
+    // Retourne l'itérateur (bypass du check TypeScript avec "as any")
+    return (pubsub as any).asyncIterator(topic);
   }
 }
 

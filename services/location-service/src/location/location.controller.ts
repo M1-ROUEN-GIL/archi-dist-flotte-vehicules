@@ -1,7 +1,8 @@
 import { Controller } from '@nestjs/common';
-import { GrpcStreamCall, GrpcMethod } from '@nestjs/microservices';
+import { GrpcStreamCall, GrpcMethod, GrpcStreamMethod } from '@nestjs/microservices';
 import { Observable, Subject } from 'rxjs';
 import { LocationService } from './location.service';
+import {randomUUID} from "node:crypto";
 
 @Controller()
 export class LocationController {
@@ -10,36 +11,28 @@ export class LocationController {
 
     // Streaming bidirectionnel — boîtier GPS envoie des positions
     @GrpcStreamCall('LocationService', 'StreamPositions')
-    async streamPositions(
-        requestStream: any,
-        response: Subject<any>,
-    ): Promise<void> {
-        requestStream.on('data', async (position: any) => {
+    streamPositions(requestStream: any) {
+        // On ne renvoie rien au simulateur pour l'instant, on veut juste stocker !
+        requestStream.on('data', async (data: any) => {
             try {
+                // Nettoyage rapide de la date si nécessaire
+                const position = {
+                    ...data,
+                    time: new Date().toISOString()
+                };
                 await this.locationService.savePosition(position);
-                response.next({
-                    event_id: crypto.randomUUID(),
-                    accepted: true,
-                });
-            } catch (error) {
-                response.next({
-                    event_id: crypto.randomUUID(),
-                    accepted: false,
-                });
+                console.log(`📍 Position enregistrée pour ${data.vehicle_id}`);
+            } catch (e) {
+                console.error("Erreur de sauvegarde interne", e.message);
             }
         });
 
-        requestStream.on('end', () => {
-            response.complete();
-        });
-
-        requestStream.on('error', (error: any) => {
-            response.error(error);
-        });
+        requestStream.on('error', (err) => console.error('Flux Error:', err));
+        requestStream.on('end', () => requestStream.removeAllListeners());
     }
 
     // Streaming serveur — s'abonner aux positions d'un véhicule
-    @GrpcMethod('LocationService', 'WatchVehicle')
+    @GrpcStreamMethod('LocationService', 'WatchVehicle')
     watchVehicle(request: { vehicle_id: string }): Observable<any> {
         return this.locationService.watchVehicle(request.vehicle_id);
     }

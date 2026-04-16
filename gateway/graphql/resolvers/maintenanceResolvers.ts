@@ -98,7 +98,7 @@ export const maintenanceResolvers = {
 
             return ctx.maintenance.updateRecord(args.id, cleanPayload);
         },
-
+    },
     MaintenanceRecord: {
         vehicle: async (
             parent: { vehicle_id?: string },

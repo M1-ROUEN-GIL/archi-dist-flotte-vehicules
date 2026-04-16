@@ -30,6 +30,9 @@ export const Layout = () => {
                         <Link to="/maintenance" style={{ color: '#666', textDecoration: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span>🔧</span> Maintenance
                         </Link>
+                        <Link to="/location" style={{ color: '#666', textDecoration: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            📍 Temps Réel
+                        </Link>
                     </nav>
 
                     {/* Infos utilisateur + déconnexion */}

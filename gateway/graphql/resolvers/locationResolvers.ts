@@ -43,4 +43,21 @@ export const locationResolvers = {
       };
     },
   },
+
+  //  LA NOUVELLE SECTION POUR LE TEMPS RÉEL
+  Subscription: {
+    vehicleLocationUpdated: {
+      // 1. La méthode subscribe : elle doit retourner un flux (AsyncIterator)
+      subscribe: async (_: unknown, args: { vehicle_id: string }, ctx: GraphQLContext) => {
+        // ctx.location doit retourner le flux gRPC converti en AsyncIterator
+        return ctx.location.watchVehicleStream(args.vehicle_id);
+      },
+
+      // 2. La méthode resolve : magique ! Elle applique ton formateur sur chaque point GPS qui passe
+      resolve: (payload: any) => {
+        // Le payload brut arrive du flux gRPC, on le passe dans ta fonction géniale
+        return toGqlLocation(payload);
+      },
+    },
+  },
 };

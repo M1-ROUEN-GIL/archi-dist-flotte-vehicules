@@ -19,6 +19,10 @@ import {
 } from './config.js';
 import { resolvers } from './graphql/resolvers/index.js';
 import { createContext } from './graphql/context.js';
+import { WebSocketServer } from 'ws';
+// @ts-ignore
+import { useServer } from 'graphql-ws/use/ws';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,10 +44,34 @@ const typeDefs = readdirSync(schemasDir)
 const app = express();
 const httpServer = http.createServer(app);
 
+// 1. Fusionner typeDefs et resolvers dans un seul "schema"
+const schema = makeExecutableSchema({ typeDefs, resolvers });
+
+// 2. Créer le serveur WebSocket
+const wsServer = new WebSocketServer({
+	server: httpServer,
+	path: '/graphql',
+});
+
+// 3. Brancher GraphQL sur le WebSocket
+const serverCleanup = useServer({ schema }, wsServer);
+
+// 4. Initialiser Apollo Server
 const apollo = new ApolloServer({
-	typeDefs,
-	resolvers,
-	plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+	schema, // 👈 On utilise le schema fusionné ici
+	plugins: [
+		ApolloServerPluginDrainHttpServer({ httpServer }),
+		// Plugin pour éteindre proprement le WebSocket quand le serveur s'arrête
+		{
+			async serverWillStart() {
+				return {
+					async drainServer() {
+						await serverCleanup.dispose();
+					},
+				};
+			},
+		},
+	],
 });
 
 await apollo.start();

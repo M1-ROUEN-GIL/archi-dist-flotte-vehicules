@@ -25,6 +25,7 @@ const Home = () => (
 const VehicleList = React.lazy(() => import('vehicles_app/VehicleList'));
 const DriverList = React.lazy(() => import('drivers_app/DriverList'));
 const MaintenanceList = React.lazy(() => import('maintenance_app/MaintenanceList'));
+const LocationMap = React.lazy(() => import('location_app/LocationMap'));
 function App() {
     return (
         <BrowserRouter>
@@ -59,6 +60,15 @@ function App() {
                             <MaintenanceList />
                         </Suspense>
                     } />
+
+                    <Route
+                        path="/location"
+                        element={
+                            <Suspense fallback={<div style={{ padding: '2rem' }}>⏳ Chargement de la carte radar...</div>}>
+                                <LocationMap />
+                            </Suspense>
+                        }
+                    />
 
                 </Route>
             </Routes>
