@@ -54,25 +54,30 @@ export default function LocationMap() {
   const location = realtimeData?.vehicleLocationUpdated || initialData?.vehicleLocation;
 
   // Coordonnées par défaut (Centre de la France) si le camion n'a pas de GPS
+  const defaultPosition: [number, number] = [46.603354, 1.888334];
   const position: [number, number] = location
       ? [location.latitude, location.longitude]
-      : [46.603354, 1.888334];
+      : defaultPosition;
 
   if (loading) return <div>Chargement...</div>;
   return (
       <div style={{ padding: '0', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 100px)' }}>
-        {/* HEADER & CONTROLES */}
+        {/* ... (Header) ... */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ margin: 0, color: '#1e293b' }}>📍 Suivi de la Flotte</h2>
 
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            {location && (
+            {location ? (
                 <div style={{ display: 'flex', gap: '10px', fontSize: '0.9rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '8px 15px', borderRadius: '8px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Navigation size={14} /> Vitesse: <strong>{location.speed_kmh || 0} km/h</strong>
                   </span>
                   <span>•</span>
                   <span>Dernier signal: <strong>{new Date(location.recorded_at).toLocaleTimeString()}</strong></span>
+                </div>
+            ) : (
+                <div style={{ fontSize: '0.9rem', color: '#64748b', fontStyle: 'italic' }}>
+                  En attente de signal GPS...
                 </div>
             )}
             <select
@@ -81,14 +86,13 @@ export default function LocationMap() {
                 style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}
             >
               <option value="550e8400-e29b-41d4-a716-446655440076">Camion A </option>
-              {/* Ajoute d'autres ID ici pour tester */}
             </select>
           </div>
         </div>
 
         {/* CARTE LEAFLET */}
         <div style={{ flex: 1, minHeight: '480px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-          <MapContainer center={position} zoom={location ? 14 : 5} style={{ height: '100%', minHeight: '480px', width: '100%' }}>
+          <MapContainer center={defaultPosition} zoom={location ? 14 : 5} style={{ height: '100%', minHeight: '480px', width: '100%' }}>
 
             <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"

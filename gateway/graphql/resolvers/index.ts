@@ -19,10 +19,20 @@ const kafka = new Kafka({
 const consumer = kafka.consumer({ groupId: 'gateway-websockets-group' });
 
 const startKafkaConsumer = async () => {
-  try {
-    await consumer.connect();
-    await consumer.subscribe({ topic: 'flotte.localisation.gps', fromBeginning: false });
+  let subscribed = false;
+  while (!subscribed) {
+    try {
+      await consumer.connect();
+      await consumer.subscribe({ topic: 'flotte.localisation.gps', fromBeginning: false });
+      subscribed = true;
+      console.log('✅ Gateway : Écouteur Kafka branché sur flotte.localisation.gps !');
+    } catch (err) {
+      console.error('⚠️ Attente du topic Kafka flotte.localisation.gps (nouvel essai dans 5s)...');
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+  }
 
+  try {
     await consumer.run({
       eachMessage: async ({ message }) => {
         if (message.value) {

@@ -2,6 +2,8 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const path = require('path');
 
+const crypto = require('crypto');
+
 // 1. Charger le contrat (le fichier .proto)
 // On cherche le proto soit dans dist/proto (Docker), soit dans src/grpc (Local)
 const PROTO_PATH = process.env.PROTO_PATH || path.join(__dirname, '../grpc/location.proto');

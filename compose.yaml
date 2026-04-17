@@ -42,6 +42,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     restart: unless-stopped
 
   keycloak-service:
@@ -213,20 +214,6 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  simulator:
-      build:
-        context: ./services/location-service
-        dockerfile: Dockerfile
-      container_name: flotte-simulator
-      command: [ "node", "dist/simulation/simulator.js" ]
-      environment:
-        - LOCATION_GRPC_URL=location:50051
-        - PROTO_PATH=/app/dist/proto/location.proto
-      depends_on:
-        location:
-          condition: service_healthy
-      restart: unless-stopped
-
   gateway:
     build:
       context: ./gateway
@@ -239,12 +226,15 @@ services:
       - EVENTS_SERVICE_URL=http://events:8080
       - LOCATION_SERVICE_URL=http://location:3000
       - LOCATION_GRPC_URL=location:50051
+      - KAFKA_BROKER=kafka:9092
       - OTEL_SERVICE_NAME=graphql-gateway
     ports:
       - "4000:4000"
       - "127.0.0.1:80:4000"
       - "[::1]:80:4000"
     depends_on:
+      kafka-setup:
+        condition: service_completed_successfully
       vehicle:
         condition: service_started
       driver:
@@ -256,6 +246,18 @@ services:
       location:
         condition: service_started
     restart: unless-stopped
+
+  kafka-setup:
+    image: apache/kafka:3.7.0
+    container_name: flotte-kafka-setup
+    depends_on:
+      kafka:
+        condition: service_started
+    command: >
+      /bin/sh -c "
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic flotte.localisation.gps --bootstrap-server kafka:9092 --partitions 1 --replication-factor 1 &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic flotte.location.events --bootstrap-server kafka:9092 --partitions 1 --replication-factor 1
+      "
 
   frontend:
     build:
