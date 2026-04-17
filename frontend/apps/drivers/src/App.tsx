@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_DRIVERS, CREATE_DRIVER, UPDATE_DRIVER_STATUS, UPDATE_DRIVER, DELETE_DRIVER } from './queries';
+import { Edit2, Trash2, Plus } from 'lucide-react';
 
 export default function DriverList() {
   const { loading, error, data, refetch } = useQuery(GET_DRIVERS, { fetchPolicy: 'network-only' });
@@ -95,24 +96,24 @@ export default function DriverList() {
   const totalCount = data?.drivers?.total_count || 0;
 
   return (
-      <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+      <div style={{ padding: '0', fontFamily: 'sans-serif' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
-          <h2 style={{ color: '#1e293b', margin: 0 }}>
-            👤 Gestion des Conducteurs <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 'normal' }}>({totalCount} au total)</span>
+          <h2 style={{ color: '#0f172a', margin: 0 }}>
+            Conducteurs <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 'normal' }}>({totalCount} au total)</span>
           </h2>
-          <button onClick={() => openModal()} style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-            + Nouveau Conducteur
+          <button onClick={() => openModal()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '14px' }}>
+            <Plus size={16} /> Ajouter un conducteur
           </button>
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
-          <thead style={{ backgroundColor: '#f8fafc', color: '#475569', textAlign: 'left' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', fontSize: '14px' }}>
+          <thead style={{ backgroundColor: '#f8fafc', color: '#64748b', textAlign: 'left', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <tr>
-            <th style={{ padding: '15px' }}>Nom & Prénom</th>
-            <th style={{ padding: '15px' }}>Contact</th>
-            <th style={{ padding: '15px' }}>N° de Permis</th>
-            <th style={{ padding: '15px' }}>Statut</th>
-            <th style={{ padding: '15px' }}>Actions</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Nom & Prénom</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Contact</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>N° de Permis</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Statut</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Actions</th>
           </tr>
           </thead>
           <tbody>
@@ -120,17 +121,17 @@ export default function DriverList() {
               <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>Aucun conducteur trouvé.</td></tr>
           ) : (
               drivers.map((d: any) => (
-                  <tr key={d.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '15px', fontWeight: 'bold' }}>{d.last_name?.toUpperCase()} {d.first_name}</td>
-                    <td style={{ padding: '15px', fontSize: '0.9rem' }}>{d.email}<br/><span style={{color: '#64748b'}}>{d.phone}</span></td>
-                    <td style={{ padding: '15px', fontFamily: 'monospace' }}>{d.license?.license_number || 'Non renseigné'}</td>
-                    <td style={{ padding: '15px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-start' }}>
+                  <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 16px', fontWeight: '500', color: '#0f172a' }}>{d.last_name?.toUpperCase()} {d.first_name}</td>
+                    <td style={{ padding: '10px 16px', fontSize: '13px', color: '#475569' }}>{d.email}<br/><span style={{color: '#94a3b8'}}>{d.phone}</span></td>
+                    <td style={{ padding: '10px 16px', fontFamily: 'monospace', color: '#475569' }}>{d.license?.license_number || 'Non renseigné'}</td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
                         <DriverStatusBadge status={d.status} />
                         <select
                             value={d.status}
                             onChange={(e) => handleStatusChange(d.id, e.target.value)}
-                            style={{ padding: '2px 5px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '0.75rem' }}
+                            style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', fontSize: '11px', backgroundColor: 'white', color: '#475569' }}
                         >
                           <option value="ACTIVE">Activer</option>
                           <option value="ON_TOUR">En Tournée</option>
@@ -140,10 +141,15 @@ export default function DriverList() {
                         </select>
                       </div>
                     </td>
-                    <td style={{ padding: '15px' }}>
-                      {/* 👇 Les boutons d'action fonctionnels */}
-                      <button onClick={() => openModal(d)} style={{ marginRight: '15px', cursor: 'pointer', background: 'none', border: 'none', color: '#2563eb' }} title="Modifier">✏️</button>
-                      <button onClick={() => handleDelete(d.id)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#dc2626' }} title="Supprimer">🗑️</button>
+                    <td style={{ padding: '10px 16px' }}>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <button onClick={() => openModal(d)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#64748b', display: 'flex', alignItems: 'center', padding: 0 }} title="Modifier">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => handleDelete(d.id)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#ef4444', display: 'flex', alignItems: 'center', padding: 0 }} title="Supprimer">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
               ))
@@ -154,8 +160,8 @@ export default function DriverList() {
         {isModalOpen && (
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
               <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>
-                  {editingDriver ? "✏️ Modifier le Conducteur" : "📝 Nouveau Conducteur"}
+                <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {editingDriver ? <><Edit2 size={20} /> Modifier le Conducteur</> : <><Plus size={20} /> Nouveau Conducteur</>}
                 </h3>
 
                 {errorMessage && (

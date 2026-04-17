@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_VEHICLES, CREATE_VEHICLE, UPDATE_VEHICLE, DELETE_VEHICLE } from './queries';
+import { Edit2, Trash2, Plus } from 'lucide-react';
 
 export default function VehicleList() {
     const { loading, error, data, refetch } = useQuery(GET_VEHICLES);
@@ -71,37 +72,42 @@ export default function VehicleList() {
     if (error) return <div>Erreur...</div>;
 
     return (
-        <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h2>🚚 Gestion de la Flotte</h2>
-                <button onClick={() => openModal()} style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-                    + Ajouter un véhicule
+        <div style={{ padding: '0', fontFamily: 'sans-serif' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+                <h2 style={{ color: '#0f172a', margin: 0 }}>Véhicules</h2>
+                <button onClick={() => openModal()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '14px' }}>
+                    <Plus size={16} /> Ajouter un véhicule
                 </button>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
-                <thead style={{ backgroundColor: '#f8fafc', color: '#475569', textAlign: 'left' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', fontSize: '14px' }}>
+                <thead style={{ backgroundColor: '#f8fafc', color: '#64748b', textAlign: 'left', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <tr>
-                    <th style={{ padding: '15px' }}>Immatriculation</th>
-                    <th style={{ padding: '15px' }}>Marque & Modèle</th>
-                    <th style={{ padding: '15px' }}>Kilométrage</th>
-                    <th style={{ padding: '15px' }}>Statut</th>
-                    <th style={{ padding: '15px' }}>Actions</th>
+                    <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Immatriculation</th>
+                    <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Marque & Modèle</th>
+                    <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Kilométrage</th>
+                    <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Statut</th>
+                    <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Actions</th>
                 </tr>
                 </thead>
                 <tbody>
                 {data?.vehicles.map((v: any) => (
-                    <tr key={v.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '15px', fontWeight: 'bold' }}>{v.plate_number}</td>
-                        <td style={{ padding: '15px' }}>{v.brand} {v.model}</td>
-                        <td style={{ padding: '15px' }}>{v.mileage_km.toLocaleString()} km</td>
-                        <td style={{ padding: '15px' }}>
-                            {/* 👇 Les badges sont de retour ici ! */}
+                    <tr key={v.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '10px 16px', fontWeight: '500', color: '#0f172a' }}>{v.plate_number}</td>
+                        <td style={{ padding: '10px 16px', color: '#475569' }}>{v.brand} {v.model}</td>
+                        <td style={{ padding: '10px 16px', color: '#475569' }}>{v.mileage_km.toLocaleString()} km</td>
+                        <td style={{ padding: '10px 16px' }}>
                             <StatusBadge status={v.status} />
                         </td>
-                        <td style={{ padding: '15px' }}>
-                            <button onClick={() => openModal(v)} style={{ marginRight: '15px', cursor: 'pointer', background: 'none', border: 'none', color: '#2563eb' }}>✏️ Éditer</button>
-                            <button onClick={() => { if(window.confirm("Supprimer ?")) deleteVehicle({ variables: { id: v.id } }) }} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#dc2626' }}>🗑️ Supprimer</button>
+                        <td style={{ padding: '10px 16px' }}>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button onClick={() => openModal(v)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#64748b', display: 'flex', alignItems: 'center', padding: 0 }} title="Éditer">
+                                    <Edit2 size={16} />
+                                </button>
+                                <button onClick={() => { if(window.confirm("Supprimer ?")) deleteVehicle({ variables: { id: v.id } }) }} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#ef4444', display: 'flex', alignItems: 'center', padding: 0 }} title="Supprimer">
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 ))}
@@ -111,8 +117,8 @@ export default function VehicleList() {
             {isModalOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                     <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '450px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-                        <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b' }}>
-                            {editingVehicle ? "✏️ Modifier le véhicule" : "📝 Nouveau véhicule"}
+                        <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {editingVehicle ? <><Edit2 size={20} /> Modifier le véhicule</> : <><Plus size={20} /> Nouveau véhicule</>}
                         </h3>
 
                         {errorMessage && (

@@ -8,6 +8,14 @@
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "build:remotes": "npm run build --prefix apps/location && npm run build --prefix apps/vehicles && npm run build --prefix apps/drivers && npm run build --prefix apps/maintenance",
+    "start:all": "concurrently \"npm run preview --prefix apps/location\" \"npm run preview --prefix apps/vehicles\" \"npm run preview --prefix apps/drivers\" \"npm run preview --prefix apps/maintenance\" \"npm run dev --prefix apps/shell\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "lucide-react": "^1.8.0"
   }
 }

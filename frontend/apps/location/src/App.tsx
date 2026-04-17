@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { GET_VEHICLE_LOCATION, WATCH_VEHICLE_LOCATION } from './queries';
+import { Navigation } from 'lucide-react';
 
 // 🐛 Fix obligatoire pour que les icônes Leaflet s'affichent bien dans React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -48,16 +49,17 @@ export default function LocationMap() {
 
   if (loading) return <div>Chargement...</div>;
   return (
-      <div style={{ padding: '2rem', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', height: '100vh' }}>
-
+      <div style={{ padding: '0', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 100px)' }}>
         {/* HEADER & CONTROLES */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', backgroundColor: 'white', padding: '15px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ margin: 0, color: '#1e293b' }}>📍 Suivi de la Flotte</h2>
 
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
             {location && (
-                <div style={{ display: 'flex', gap: '10px', fontSize: '0.9rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '8px 15px', borderRadius: '20px' }}>
-                  <span>Vitesse: <strong>{location.speed_kmh || 0} km/h</strong></span>
+                <div style={{ display: 'flex', gap: '10px', fontSize: '0.9rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '8px 15px', borderRadius: '8px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Navigation size={14} /> Vitesse: <strong>{location.speed_kmh || 0} km/h</strong>
+                  </span>
                   <span>•</span>
                   <span>Dernier signal: <strong>{new Date(location.recorded_at).toLocaleTimeString()}</strong></span>
                 </div>
@@ -65,7 +67,7 @@ export default function LocationMap() {
             <select
                 value={selectedVehicleId}
                 onChange={(e) => setSelectedVehicleId(e.target.value)}
-                style={{ padding: '8px', borderRadius: '5px', border: '1px solid #cbd5e1' }}
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}
             >
               <option value="550e8400-e29b-41d4-a716-446655440076">Camion A </option>
               {/* Ajoute d'autres ID ici pour tester */}
@@ -74,8 +76,8 @@ export default function LocationMap() {
         </div>
 
         {/* CARTE LEAFLET */}
-        <div style={{ flex: 1, borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', border: '2px solid #e2e8f0' }}>
-          <MapContainer center={position} zoom={location ? 14 : 5} style={{ height: '100%', width: '100%' }}>
+        <div style={{ flex: 1, minHeight: '480px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+          <MapContainer center={position} zoom={location ? 14 : 5} style={{ height: '100%', minHeight: '480px', width: '100%' }}>
 
             <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_MAINTENANCES, CREATE_MAINTENANCE, UPDATE_MAINTENANCE_RECORD, UPDATE_MAINTENANCE_STATUS } from './queries';
+import { Edit2, Plus } from 'lucide-react';
 
 export default function MaintenanceList() {
   const { loading, error, data, refetch } = useQuery(GET_MAINTENANCES, { fetchPolicy: 'network-only' });
@@ -113,22 +114,22 @@ export default function MaintenanceList() {
   const records = data?.maintenanceRecords?.items || [];
 
   return (
-      <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+      <div style={{ padding: '0', fontFamily: 'sans-serif' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
-          <h2 style={{ color: '#1e293b', margin: 0 }}>🔧 Interventions & Maintenance</h2>
-          <button onClick={openCreateModal} style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-            + Planifier
+          <h2 style={{ color: '#0f172a', margin: 0 }}>Interventions & Maintenance</h2>
+          <button onClick={openCreateModal} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '14px' }}>
+            <Plus size={16} /> Planifier
           </button>
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
-          <thead style={{ backgroundColor: '#f8fafc', color: '#475569', textAlign: 'left' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', fontSize: '14px' }}>
+          <thead style={{ backgroundColor: '#f8fafc', color: '#64748b', textAlign: 'left', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <tr>
-            <th style={{ padding: '15px' }}>Véhicule</th>
-            <th style={{ padding: '15px' }}>Intervention</th>
-            <th style={{ padding: '15px' }}>Date prévue</th>
-            <th style={{ padding: '15px' }}>Statut & Coût</th>
-            <th style={{ padding: '15px' }}>Actions</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Véhicule</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Intervention</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Date prévue</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Statut & Coût</th>
+            <th style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>Actions</th>
           </tr>
           </thead>
           <tbody>
@@ -136,24 +137,24 @@ export default function MaintenanceList() {
               <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>Aucune intervention trouvée.</td></tr>
           ) : (
               records.map((r: any) => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '15px', fontWeight: 'bold', fontFamily: 'monospace' }}>
+                  <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 16px', fontWeight: '500', fontFamily: 'monospace', color: '#0f172a' }}>
                       {r.vehicle?.plate_number || r.vehicle?.id?.substring(0,8) + '...'}
                     </td>
-                    <td style={{ padding: '15px', fontSize: '0.9rem' }}>
+                    <td style={{ padding: '10px 16px', fontSize: '13px', color: '#475569' }}>
                       <strong>{r.type}</strong><br/>
-                      <span style={{ color: r.priority === 'HIGH' || r.priority === 'CRITICAL' ? '#dc2626' : '#64748b' }}>
+                      <span style={{ color: r.priority === 'HIGH' || r.priority === 'CRITICAL' ? '#ef4444' : '#64748b' }}>
                     Priorité: {r.priority}
                   </span>
                     </td>
-                    <td style={{ padding: '15px' }}>{new Date(r.scheduled_date).toLocaleDateString()}</td>
-                    <td style={{ padding: '15px' }}>
+                    <td style={{ padding: '10px 16px', color: '#475569' }}>{new Date(r.scheduled_date).toLocaleDateString()}</td>
+                    <td style={{ padding: '10px 16px' }}>
                       <StatusBadge status={r.status} /><br/>
-                      {r.cost_eur ? <span style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>{r.cost_eur} €</span> : null}
+                      {r.cost_eur ? <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 'bold', marginTop: '4px', display: 'block' }}>{r.cost_eur} €</span> : null}
                     </td>
-                    <td style={{ padding: '15px' }}>
-                      <button onClick={() => openEditModal(r)} style={{ padding: '6px 12px', backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}>
-                        ✏️ Éditer
+                    <td style={{ padding: '10px 16px' }}>
+                      <button onClick={() => openEditModal(r)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#64748b', display: 'flex', alignItems: 'center', padding: 0 }} title="Éditer">
+                        <Edit2 size={16} />
                       </button>
                     </td>
                   </tr>
@@ -166,7 +167,7 @@ export default function MaintenanceList() {
         {isCreateModalOpen && (
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
               <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '450px' }}>
-                <h3 style={{ marginTop: 0, color: '#1e293b' }}>📅 Planifier une intervention</h3>
+                <h3 style={{ marginTop: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}><Plus size={20} /> Planifier une intervention</h3>
                 {errorMessage && <div style={{ color: '#991b1b', backgroundColor: '#fef2f2', padding: '10px', marginBottom: '15px', borderRadius: '5px' }}>{errorMessage}</div>}
 
                 <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -206,8 +207,8 @@ export default function MaintenanceList() {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                    <button type="button" onClick={closeModals} style={{ padding: '8px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Annuler</button>
-                    <button type="submit" style={{ padding: '8px 15px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Planifier</button>
+                    <button type="button" onClick={closeModals} style={{ padding: '10px 15px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Annuler</button>
+                    <button type="submit" style={{ padding: '10px 15px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Planifier</button>
                   </div>
                 </form>
               </div>
@@ -218,7 +219,7 @@ export default function MaintenanceList() {
         {isEditModalOpen && (
             <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, overflowY: 'auto' }}>
               <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '600px', maxHeight: '90vh', overflowY: 'auto', margin: '20px' }}>
-                <h3 style={{ marginTop: 0, color: '#1e293b' }}>📝 Détails & Clôture de l'intervention</h3>
+                <h3 style={{ marginTop: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}><Edit2 size={20} /> Détails & Clôture de l'intervention</h3>
                 {errorMessage && <div style={{ color: '#991b1b', backgroundColor: '#fef2f2', padding: '10px', marginBottom: '15px', borderRadius: '5px' }}>{errorMessage}</div>}
 
                 <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -285,8 +286,8 @@ export default function MaintenanceList() {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                    <button type="button" onClick={closeModals} style={{ padding: '10px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Annuler</button>
-                    <button type="submit" style={{ padding: '10px 15px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Enregistrer toutes les modifications</button>
+                    <button type="button" onClick={closeModals} style={{ padding: '10px 15px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Annuler</button>
+                    <button type="submit" style={{ padding: '10px 15px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Enregistrer</button>
                   </div>
                 </form>
               </div>

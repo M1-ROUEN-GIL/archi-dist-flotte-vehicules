@@ -62,6 +62,29 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #0f172a;
+  font-family: var(--sans);
+}
+
+.app-shell__content {
+  flex: 1;
+  overflow: auto;
+  background: #fff;
+}
+
+.app-shell__content > * {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   background: white;
@@ -110,4 +133,113 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+.topnav {
+  background: #fff;
+  padding: 20px 32px 0;
+}
+
+.topnav__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.topnav__left {
+  display: flex;
+  align-items: center;
+}
+
+.topnav__logo {
+  font-size: 28px;
+  line-height: 1.1;
+  color: #0b1220;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.topnav__brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.topnav__subtitle {
+  margin: 0;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.topnav__search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #f1f5f9;
+  min-width: 260px;
+}
+
+.topnav__searchIcon {
+  color: #94a3b8;
+}
+
+.topnav__searchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #0b1220;
+  font-size: 16px;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.topnav__tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 32px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.topnav__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px 8px 0 0;
+  text-decoration: none;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 14px;
+  border: 1px solid transparent;
+  margin-bottom: -1px;
+}
+
+.topnav__tab:hover {
+  color: #0f172a;
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+.topnav__tab.is-active {
+  color: #0f172a;
+  background: #fff;
+  border-color: #e5e7eb;
+  border-bottom-color: #fff;
+  font-weight: 600;
+}
+
+.topnav__tabIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: inherit;
 }
