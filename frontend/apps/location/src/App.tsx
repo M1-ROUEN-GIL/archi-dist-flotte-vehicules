@@ -6,14 +6,6 @@ import 'leaflet/dist/leaflet.css';
 import { GET_VEHICLE_LOCATION, WATCH_VEHICLE_LOCATION } from './queries';
 import { Navigation } from 'lucide-react';
 
-// 🐛 Fix obligatoire pour que les icônes Leaflet s'affichent bien dans React
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
 // Composant pour recentrer la carte automatiquement quand le camion bouge
 const RecenterAutomatically = ({ lat, lng }: { lat: number, lng: number }) => {
   const map = useMap();
@@ -24,6 +16,25 @@ const RecenterAutomatically = ({ lat, lng }: { lat: number, lng: number }) => {
 };
 
 export default function LocationMap() {
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      // 🐛 Fix obligatoire pour que les icônes Leaflet s'affichent bien dans React
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      });
+    } catch (e) {
+      console.error("Leaflet setup error:", e);
+      setError("Erreur d'initialisation de la carte.");
+    }
+  }, []);
+
+  if (error) return <div style={{ color: 'red', padding: '1rem' }}>❌ {error}</div>;
+
   // ⚠️ ID écrit en dur pour l'exemple. À relier avec ton module Véhicules !
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("550e8400-e29b-41d4-a716-446655440076");
 

@@ -13,7 +13,7 @@ export default defineConfig({
         './DriverList': './src/App.tsx',
       },
       // On partage React et Apollo pour éviter les doublons avec le Shell
-      shared: ['react', 'react-dom', '@apollo/client', 'graphql'],
+      shared: ['react', 'react-dom', 'react-router-dom', '@apollo/client', 'graphql'],
     }),
   ],
   server: {

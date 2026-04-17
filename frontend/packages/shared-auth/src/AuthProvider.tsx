@@ -2,8 +2,10 @@ import React, { createContext, useEffect, useState, useRef } from 'react';
 import Keycloak from 'keycloak-js';
 
 // Configuration pointant vers ton conteneur Keycloak (vérifie bien le port !)
+const isProd = import.meta.env.PROD;
+
 const keycloak = new Keycloak({
-    url: 'http://localhost:8180/auth',
+    url: isProd ? '/auth' : 'http://localhost:8180/auth',
     realm: 'gestion-flotte',
     clientId: 'frontend-web'
 });
@@ -54,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 token: keycloak.token,
                 username: keycloak.tokenParsed?.preferred_username,
                 roles: cleanRoles, // 👈 On distribue la liste propre !
-                logout: () => keycloak.logout({ redirectUri: 'http://localhost:5173' }),
+                logout: () => keycloak.logout({ redirectUri: isProd ? 'http://flotte.local' : 'http://localhost:5173' }),
             }}
         >
     {children}

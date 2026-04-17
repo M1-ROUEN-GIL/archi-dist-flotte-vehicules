@@ -11,7 +11,7 @@ export default defineConfig({
       exposes: {
         './MaintenanceList': './src/App.tsx',
       },
-      shared: ['react', 'react-dom', '@apollo/client', 'graphql'],
+      shared: ['react', 'react-dom', 'react-router-dom', '@apollo/client', 'graphql'],
     }),
   ],
   server: {

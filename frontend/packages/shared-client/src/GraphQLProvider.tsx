@@ -6,9 +6,13 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { useAuth } from '@flotte/shared-auth';
 
+const isProd = import.meta.env.PROD;
+
 // ⚠️ URLs de la Gateway GraphQL
-const GATEWAY_HTTP_URL = 'http://localhost:4000/graphql';
-const GATEWAY_WS_URL = 'ws://localhost:4000/graphql';
+const GATEWAY_HTTP_URL = isProd ? '/graphql' : 'http://localhost:4000/graphql';
+const GATEWAY_WS_URL = isProd 
+    ? `ws://${window.location.host}/graphql` 
+    : 'ws://localhost:4000/graphql';
 
 export const AppGraphQLProvider = ({ children }: { children: React.ReactNode }) => {
     const { token } = useAuth();

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package flotte.location.v1;
+
+service LocationService {
+  // Streaming bidirectionnel — boîtier GPS envoie, serveur accuse réception
+  rpc StreamPositions (stream GpsPosition) returns (stream Ack);
+  // Streaming serveur — client s'abonne aux positions d'un véhicule
+  rpc WatchVehicle (WatchRequest) returns (stream GpsPosition);
+
+}
+
+message GpsPosition {
+  string vehicle_id  = 1;
+  double latitude    = 2;
+  double longitude   = 3;
+  float  speed_kmh   = 4;
+  float  heading_deg = 5;
+  float  accuracy_m  = 6;
+  float  altitude_m  = 7;
+  string source      = 8;
+  int64  timestamp   = 9;
+  string driver_id   = 10;
+}
+
+message WatchRequest {
+  string vehicle_id = 1;
+}
+
+message Ack {
+  string event_id = 1;
+  bool   accepted = 2;
+}

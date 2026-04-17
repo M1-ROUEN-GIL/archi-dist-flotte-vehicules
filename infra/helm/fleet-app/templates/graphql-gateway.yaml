@@ -53,6 +53,12 @@ spec:
               value: "http://maintenance-service.{{ .Values.namespace }}.svc.cluster.local:8080"
             - name: EVENTS_SERVICE_URL
               value: "http://events-service.{{ .Values.namespace }}.svc.cluster.local:8080"
+            - name: KAFKA_BROKER
+              value: "kafka-service.{{ .Values.namespace }}.svc.cluster.local:9092"
+            - name: LOCATION_SERVICE_URL
+              value: "http://location-service.{{ .Values.namespace }}.svc.cluster.local:3000"
+            - name: LOCATION_GRPC_URL
+              value: "location-service.{{ .Values.namespace }}.svc.cluster.local:50051"
             - name: OTEL_SERVICE_NAME
               value: "graphql-gateway"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

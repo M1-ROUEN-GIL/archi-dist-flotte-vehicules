@@ -62,3 +62,10 @@ spec:
                   number: 3000
             path: /api/(location)(.*)
             pathType: ImplementationSpecific
+          - backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
+            path: /(.*)
+            pathType: ImplementationSpecific

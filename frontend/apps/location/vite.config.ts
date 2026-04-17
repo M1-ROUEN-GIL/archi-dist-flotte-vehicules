@@ -11,10 +11,15 @@ export default defineConfig({
       exposes: {
         './LocationMap': './src/App.tsx',
       },
-      shared: ['react', 'react-dom', '@apollo/client', 'graphql'],
+      shared: ['react', 'react-dom', 'react-router-dom', '@apollo/client', 'graphql'],
     }),
   ],
   server: { port: 5005, strictPort: true },
   preview: { port: 5005, strictPort: true },
-  build: { modulePreload: false, target: 'esnext', minify: false, cssCodeSplit: false },
+  build: { 
+    modulePreload: false, 
+    target: 'esnext', 
+    minify: false, 
+    cssCodeSplit: false 
+  },
 });

@@ -191,8 +191,8 @@ class LocationClient extends BaseClient {
 
     try {
       // 1. Calcul du chemin absolu vers le fichier .proto
-      // process.cwd() correspond à la racine où tu lances ton serveur (flotte/gateway)
-      const PROTO_PATH = path.resolve(process.cwd(), '../services/location-service/src/grpc/location.proto');
+      // On le cherche dans le dossier proto du projet gateway (copié lors du build Docker)
+      const PROTO_PATH = path.resolve(process.cwd(), 'proto/location.proto');
 
       // 2. Chargement du fichier
       const packageDefinition = protoLoader.loadSync(PROTO_PATH, {

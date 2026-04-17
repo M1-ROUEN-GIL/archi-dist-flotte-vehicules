@@ -113,11 +113,11 @@ const Home = () => {
     );
 };
 
-// Imports dynamiques des Micro-Frontends
-const VehicleList = React.lazy(() => import('vehicles_app/VehicleList'));
-const DriverList = React.lazy(() => import('drivers_app/DriverList'));
-const MaintenanceList = React.lazy(() => import('maintenance_app/MaintenanceList'));
-const LocationMap = React.lazy(() => import('location_app/LocationMap'));
+// Imports dynamiques des Micro-Frontends avec résolution robuste (m.default || m)
+const VehicleList = React.lazy(() => import('vehicles_app/VehicleList').then(m => ({ default: m.default || m })));
+const DriverList = React.lazy(() => import('drivers_app/DriverList').then(m => ({ default: m.default || m })));
+const MaintenanceList = React.lazy(() => import('maintenance_app/MaintenanceList').then(m => ({ default: m.default || m })));
+const LocationMap = React.lazy(() => import('location_app/LocationMap').then(m => ({ default: m.default || m })));
 
 function App() {
     return (

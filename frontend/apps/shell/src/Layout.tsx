@@ -8,7 +8,7 @@ export const Layout = () => {
     const { username, roles, logout } = useAuth();
 
     // Petite fonction pour extraire les 2 premières lettres pour l'avatar (ex: "Ahcene" -> "AH")
-    const getInitials = (name: string) => {
+    const getInitials = (name?: string) => {
         return name ? name.substring(0, 2).toUpperCase() : '??';
     };
 

@@ -35,6 +35,7 @@ RUN npm install --omit=dev
 # Copy compiled code and schemas (needed for runtime loading)
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/graphql/schemas ./dist/graphql/schemas
+COPY --from=builder /app/proto ./proto
 
 # Aligné sur compose.yaml (services vehicle, driver, maintenance — pas *-service).
 ENV PORT=4000

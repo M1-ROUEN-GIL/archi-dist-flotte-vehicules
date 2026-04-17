@@ -11,7 +11,7 @@ export default defineConfig({
       exposes: {
         './VehicleList': './src/App.tsx',
       },
-      shared: ['react', 'react-dom', '@apollo/client', 'graphql']
+      shared: ['react', 'react-dom', 'react-router-dom', '@apollo/client', 'graphql']
     })
   ],
   server: { port: 5002, strictPort: true }, // On met l'app sur le port 5002
