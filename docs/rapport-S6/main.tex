@@ -1,0 +1,362 @@
+\documentclass[12pt,a4paper]{article}
+
+% ============================================================
+% PACKAGES
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{mdframed}
+\usepackage{float}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{hyperref}
+
+% ============================================================
+% MISE EN PAGE
+% ============================================================
+\geometry{
+  headheight=25pt,
+  top=2.6cm,
+  bottom=2.8cm,
+  left=2.8cm,
+  right=2.8cm
+}
+\setstretch{1.12}
+
+% ============================================================
+% COULEURS
+% ============================================================
+\definecolor{primary}{RGB}{28, 90, 168}
+\definecolor{primarylight}{RGB}{88, 145, 220}
+\definecolor{secondary}{RGB}{232, 240, 252}
+\definecolor{codebg}{RGB}{248, 250, 255}
+\definecolor{codeframe}{RGB}{170, 195, 230}
+\definecolor{success}{RGB}{34, 130, 90}
+\definecolor{warning}{RGB}{200, 120, 40}
+\definecolor{darkgray}{RGB}{45, 55, 72}
+\definecolor{lightgray}{RGB}{95, 110, 140}
+
+% ============================================================
+% STYLE DU CODE
+% ============================================================
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{primary}\bfseries,
+  commentstyle=\color{lightgray}\itshape,
+  stringstyle=\color{success},
+  breaklines=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\sffamily\textcolor{lightgray},
+  numbersep=6pt,
+  tabsize=2,
+  captionpos=b,
+  aboveskip=1em,
+  belowskip=1em,
+  xleftmargin=0pt,
+  framexleftmargin=0pt
+}
+
+% ============================================================
+% EN-TETE ET PIED DE PAGE
+% ============================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily\textcolor{primary!85!black}{Projet M1 GIL --- Gestion de flotte}}
+\fancyhead[R]{\small\sffamily\textcolor{primary!85!black}{Univ. Rouen Normandie \textperiodcentered{} 2025--2026}}
+\fancyfoot[C]{\small\sffamily\textcolor{primary!70!black}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{primary!35}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrulewidth}{0pt}
+
+% ============================================================
+% STYLE DES TITRES
+% ============================================================
+\titleformat{\section}
+  {\Large\sffamily\bfseries\color{primary}}
+  {\thesection.}{0.55em}{}
+
+\titleformat{\subsection}
+  {\large\sffamily\bfseries\color{primary!85!black}}
+  {\thesubsection.}{0.45em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\sffamily\bfseries\color{primary!75!black}}
+  {\thesubsubsection.}{0.4em}{}
+
+\titlespacing*{\section}{0pt}{1.6ex plus .2ex}{1ex plus .1ex}
+\titlespacing*{\subsection}{0pt}{1.3ex plus .15ex}{0.7ex plus .1ex}
+
+% ============================================================
+% BOITE INFO
+% ============================================================
+\newmdenv[
+  backgroundcolor=secondary,
+  linecolor=primary,
+  linewidth=1.1pt,
+  leftline=true,
+  rightline=false,
+  topline=false,
+  bottomline=false,
+  innerleftmargin=11pt,
+  innerrightmargin=11pt,
+  innertopmargin=9pt,
+  innerbottommargin=9pt,
+  skipabove=0.6em,
+  skipbelow=0.6em
+]{infobox}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=primary!90!black,
+  urlcolor=primarylight,
+  pdfborderstyle={/S/U/W 0}
+}
+
+% ============================================================
+% DOCUMENT
+% ============================================================
+\begin{document}
+
+% ------------------------------------------------------------
+% PAGE DE TITRE
+% ------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{1cm}
+
+  {\Large\textbf{Universit\'{e} de Rouen Normandie}\\[0.3cm]
+  \large Master 1 -- G\'{e}nie Informatique et Logiciel}
+
+  \vspace{1.5cm}
+  {\color{primary!55}\rule{\linewidth}{0.5mm}}\\[0.45cm]
+
+  {\Huge\sffamily\bfseries\color{primary} Projet Gestion de Flotte\\[0.35cm]}
+  {\LARGE\sffamily\bfseries\color{primary!80!black} Rapport de Semaine 6}\\[0.35cm]
+  {\large\sffamily\color{primary!65!black} Architecture Frontend \& S\'{e}curit\'{e} (SSO)}
+
+  {\color{primary!55}\rule{\linewidth}{0.5mm}}\\[1.5cm]
+
+  \begin{minipage}{0.45\textwidth}
+    \begin{flushleft}
+      \textbf{\'{E}tudiants :}\\
+      Ahc\`{e}ne Amouchas \\
+      Florian Pepin \\[0.5cm]
+      \textbf{Encadrants :}\\
+      Lydia \& Luc
+    \end{flushleft}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.45\textwidth}
+    \begin{flushright}
+      \textbf{Ann\'{e}e universitaire :}\\
+      2025 -- 2026 \\[0.5cm]
+      \textbf{Semaine :}\\
+      6 / 7
+    \end{flushright}
+  \end{minipage}
+
+  \vfill
+  {\large 16 avril 2026}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+La semaine 6 marque une \'{e}tape d\'{e}cisive dans le d\'{e}veloppement de la plateforme de gestion de flotte avec la mise en place de l'infrastructure frontend. L'objectif principal a \'{e}t\'{e} de concevoir une architecture capable de supporter la croissance du projet tout en garantissant une s\'{e}curit\'{e} robuste et centralis\'{e}e.
+
+L'approche retenue s'appuie sur le concept de \textbf{Micro-Frontends} et l'utilisation d'un \textbf{Monorepo}, permettant une s\'{e}paration stricte des responsabilit\'{e}s et une scalabilit\'{e} organisationnelle optimale.
+
+% ============================================================
+\section{Semaine 6 : Architecture Frontend et S\'{e}curit\'{e} (SSO)}
+% ============================================================
+
+\subsection{Objectifs et Philosophie d'Architecture}
+
+Pour r\'{e}pondre aux exigences de scalabilit\'{e} et de maintenabilit\'{e}, l'interface utilisateur n'a pas \'{e}t\'{e} con\c{c}ue comme une application monolithique, mais selon une architecture orient\'{e}e composants isol\'{e}s. Cette approche s'articule autour de deux concepts majeurs : le \textbf{Monorepo} et les \textbf{Micro-Frontends (MFE)}.
+
+L'objectif est de permettre \`{a} plusieurs d\'{e}veloppeurs d'op\'{e}rer en parall\`{e}le sur des modules distincts (ex: cartographie, gestion des v\'{e}hicules) sans g\'{e}n\'{e}rer de conflits, tout en garantissant une coh\'{e}rence visuelle et s\'{e}curitaire centralis\'{e}e.
+
+\subsection{Structure en Monorepo (NPM Workspaces)}
+
+L'\'{e}cosyst\`{e}me frontend est regroup\'{e} au sein d'un d\'{e}p\^{o}t unique organis\'{e} via les \textbf{NPM Workspaces}. Cette structure permet de mutualiser les d\'{e}pendances globales tout en s\'{e}parant strictement le code source. L'arborescence se divise en deux cat\'{e}gories principales :
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Le r\'{e}pertoire \texttt{apps/} :} Contient les applications ex\'{e}cutables de mani\`{e}re autonome (ex: \texttt{shell}, \texttt{location}, \texttt{vehicles}).
+  \item \textbf{Le r\'{e}pertoire \texttt{packages/} :} Regroupe le code transversal partag\'{e} entre les applications (ex: \texttt{shared-ui} pour les composants graphiques, \texttt{shared-auth} pour la s\'{e}curit\'{e}).
+\end{itemize}
+
+\subsection{Approche Micro-Frontend via Module Federation}
+
+L'assemblage des diff\'{e}rentes interfaces s'effectue dynamiquement c\^{o}t\'{e} client gr\^{a}ce au plugin \textbf{Module Federation} de l'outil de build Vite.js.
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{L'application H\^{o}te (Shell) :} Elle agit comme une coquille vide de haut niveau. Son r\^{o}le se limite \`{a} g\'{e}rer le routage global, l'interface racine (barre de navigation) et l'application stricte de la politique de s\'{e}curit\'{e}.
+  \item \textbf{Les applications Distantes (Remotes) :} Ce sont des micro-applications ind\'{e}pendantes. Au moment de la navigation, le Shell t\'{e}l\'{e}charge et injecte dynamiquement (via \texttt{React.lazy} et \texttt{Suspense}) le composant expos\'{e} par le Remote.
+\end{itemize}
+
+\subsection{S\'{e}curit\'{e} Centralis\'{e}e et Single Sign-On (SSO) avec Keycloak}
+
+Afin de garantir un niveau de s\'{e}curit\'{e} optimal, le processus d'authentification a \'{e}t\'{e} d\'{e}l\'{e}gu\'{e} au standard \textbf{OAuth2 / OpenID Connect (OIDC)} via un serveur \textbf{Keycloak} conteneuris\'{e}.
+
+\begin{infobox}
+\textbf{Flux d'authentification :} Aucun formulaire de connexion n'est impl\'{e}ment\'{e} dans l'application React. Les requ\^{e}tes non authentifi\'{e}es sont redirig\'{e}es vers Keycloak (Standard Flow avec PKCE). Apr\`{e}s validation, Keycloak restitue un jeton JWT permettant aux applications frontend d'habiliter l'acc\`{e}s en fonction des r\^{o}les (RBAC).
+\end{infobox}
+
+\subsection{Conception du Package Transversal : AuthProvider}
+
+La m\'{e}canique d'interception et de v\'{e}rification du jeton OIDC a \'{e}t\'{e} encapsul\'{e}e dans le paquetage \texttt{@flotte/shared-auth}. Ce module expose un Provider de contexte React inject\'{e} \`{a} la racine de l'application Shell.
+
+\begin{enumerate}
+  \item \textbf{Verrou d'initialisation (Anti-Race Condition) :} Un verrou m\'{e}moris\'{e} hors de la port\'{e}e du composant garantit une unique instanciation du client Keycloak, m\^{e}me en environnement de d\'{e}veloppement (React Strict Mode).
+  \item \textbf{Blocage du rendu :} Le Provider bloque le montage de l'arbre DOM tant que l'initialisation de Keycloak n'est pas r\'{e}solue, emp\^{e}chant l'affichage momentan\'{e} de routes prot\'{e}g\'{e}es (\textit{Flickering}).
+  \item \textbf{Hook personnalis\'{e} (\texttt{useAuth}) :} Expose une API de fa\c{a}de permettant \`{a} n'importe quel micro-frontend de r\'{e}cup\'{e}rer l'identit\'{e} de l'utilisateur ou de d\'{e}clencher une d\'{e}connexion.
+\end{enumerate}
+
+\subsection{Routage Global et Chargement Asynchrone (Shell)}
+
+L'application h\^{o}te (\texttt{Shell}) orchestre la navigation gr\^{a}ce \`{a} \texttt{react-router-dom}. Afin d'optimiser les performances, les modules distants ne sont pas charg\'{e}s au d\'{e}marrage mais import\'{e}s dynamiquement via \texttt{React.lazy()}. Ce m\'{e}canisme de \textit{Lazy Loading} diff\`{e}re le t\'{e}l\'{e}chargement des bundles JavaScript jusqu'au moment pr\'{e}cis o\`{u} l'utilisateur acc\`{e}de \`{a} la route correspondante.
+
+\subsection{Communication Inter-Services : Client GraphQL Partag\'{e}}
+
+Pour connecter l'interface \`{a} la Gateway GraphQL, un second paquetage partag\'{e} a \'{e}t\'{e} d\'{e}velopp\'{e} : \texttt{@flotte/shared-client}, bas\'{e} sur \texttt{@apollo/client}.
+
+Gr\^{a}ce \`{a} un intercepteur r\'{e}seau (\textit{Context Link Apollo}), le client r\'{e}cup\`{e}re dynamiquement le jeton JWT fourni par l'\texttt{AuthProvider} et l'injecte dans l'en-t\^{e}te HTTP \texttt{Authorization: Bearer <token>} de chaque requ\^{e}te sortante.
+
+\subsection{D\'{e}ploiement et Int\'{e}gration du Micro-Frontend ``V\'{e}hicules''}
+
+Le d\'{e}veloppement du module de gestion de flotte (CRUD V\'{e}hicules) valide l'approche f\'{e}d\'{e}r\'{e}e. C'est un projet Vite.js autonome qui consomme l'API GraphQL pour afficher les donn\'{e}es m\'{e}tiers.
+
+\begin{infobox}
+\textbf{Configuration technique :}
+\begin{itemize}
+  \item \textbf{Allocation de ports :} Utilisation de ports TCP statiques (ex: 5002) pour \'{e}viter les conflits CORS.
+  \item \textbf{Dependency Sharing :} Partage des biblioth\`{e}ques critiques (\texttt{react}, \texttt{apollo}) comme singletons pour \'{e}viter le double chargement et les conflits de Hooks.
+\end{itemize}
+\end{infobox}
+
+\subsection{Commandes Fondamentales de l'Infrastructure}
+
+La gestion du Monorepo NPM et le cycle de construction des Micro-Frontends s'articulent autour des commandes suivantes :
+
+\begin{lstlisting}[language=bash, caption=Gestion du Monorepo et des MFEs]
+# Creation d'une nouvelle sous-application
+npm create vite@latest nom_app -- --template react-ts
+
+# Installation du plugin de federation
+npm install @originjs/vite-plugin-federation --save-dev
+
+# Compilation isolee du module distant
+npm run build --workspace=nom_app
+
+# Exposition locale du module compile (preview)
+npm run preview --workspace=nom_app
+
+# Demarrage du Shell principal
+npm run dev --workspace=shell
+\end{lstlisting}
+
+\subsection{Int\'{e}gration et Consommation du Contrat GraphQL}
+
+La traduction du sch\'{e}ma GraphQL en composants React s'articule autour de quatre axes :
+\begin{itemize}
+  \item \textbf{Typage statique :} Les types GraphQL (ex: \texttt{Vehicle}) sont transpos\'{e}s en interfaces TypeScript.
+  \item \textbf{Optimisation r\'{e}seau :} Utilisation de la syntaxe \texttt{gql} pour ne r\'{e}clamer que les champs n\'{e}cessaires (\textit{No Over-fetching}).
+  \item \textbf{Rendu pilot\'{e} par les Enums :} Utilisation des \texttt{VehicleStatus} pour conditionner dynamiquement le rendu visuel.
+  \item \textbf{Abstraction du cycle de vie (\texttt{useQuery}) :} Gestion native des \'{e}tats de chargement et de mise en cache.
+\end{itemize}
+
+\subsection{M\'{e}thodologie d'impl\'{e}mentation : Cas du module ``Conducteurs''}
+
+L'ajout d'un nouveau domaine m\'{e}tier suit un processus standardis\'{e} :
+
+\subsubsection{Initialisation et d\'{e}pendances}
+\begin{lstlisting}[language=bash]
+npm create vite@latest drivers -- --template react-ts
+cd drivers
+npm install @apollo/client graphql
+npm install @originjs/vite-plugin-federation --save-dev
+\end{lstlisting}
+
+\subsubsection{Configuration de la F\'{e}d\'{e}ration}
+\begin{lstlisting}[language=Java, caption=drivers/vite.config.ts (extraits)]
+export default defineConfig({
+  plugins: [
+    react(),
+    federation({
+      name: 'driversapp',
+      filename: 'remoteEntry.js',
+      exposes: {
+        './DriverList': './src/App.tsx',
+      },
+      shared: ['react', 'react-dom', '@apollo/client', 'graphql'],
+    }),
+  ],
+  server: { port: 5003, strictPort: true }
+});
+\end{lstlisting}
+
+\subsubsection{D\'{e}finition du Contrat GraphQL}
+\begin{lstlisting}[language=Java, caption=drivers/src/queries.ts]
+export const GET_DRIVERS = gql`
+  query GetDrivers {
+    drivers {
+      items {
+        id
+        firstname
+        lastname
+        status
+      }
+    }
+  }
+`;
+\end{lstlisting}
+
+\subsubsection{Int\'{e}gration dans le Shell}
+\begin{lstlisting}[language=Java, caption=shell/vite.config.ts]
+remotes: {
+  driversapp: 'http://localhost:5003/assets/remoteEntry.js',
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java, caption=shell/App.tsx]
+const DriverList = React.lazy(() => import('driversapp/DriverList'));
+
+<Route path="drivers" element={
+  <Suspense fallback={<div>Chargement du module...</div>}>
+    <DriverList />
+  </Suspense>
+} />
+\end{lstlisting}
+
+% ============================================================
+\section{Conclusion et Perspectives de Finalisation}
+% ============================================================
+
+Bien que l'ossature technique des Micro-Frontends et la s\'{e}curit\'{e} centralis\'{e}e soient d\'{e}sormais op\'{e}rationnelles, certains modules n\'{e}cessitent encore des ajustements finaux. 
+
+\begin{infobox}
+\textbf{Note sur le rendu :} La partie relative \`{a} la \textbf{cartographie interactive} ainsi que les derni\`{e}res optimisations de l'interface sont en cours de finalisation. Afin de fournir un livrable complet et un rapport de qualit\'{e} sup\'{e}rieure, l'ensemble du projet (code source et documentation finale) sera officiellement soumis ce \textbf{samedi}. 
+\end{infobox}
+
+Ce d\'{e}lai suppl\'{e}mentaire nous permet d'assurer une int\'{e}gration parfaite entre le service de localisation (backend) et son rendu visuel (frontend), tout en affinant la coh\'{e}rence globale de la plateforme.
+
+\end{document}
