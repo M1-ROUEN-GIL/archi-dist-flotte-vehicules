@@ -28,7 +28,7 @@ minikube tunnel  # dans un terminal séparé
 | Frontend       | http://localhost:3005            | http://flotte.local             |
 | Gateway GraphQL| http://localhost:4000            | http://flotte.local/graphql     |
 | Keycloak       | http://localhost:8180            | http://flotte.local/auth        |
-| Grafana        | http://localhost:3000            | http://flotte.local/grafana     |
+| Grafana        | http://localhost:3001            | http://flotte.local/grafana     |
 | Jaeger         | http://localhost:16686           | http://flotte.local/jaeger      |
 
 **Identifiants par défaut**
