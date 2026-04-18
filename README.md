@@ -89,5 +89,5 @@ Tous les scripts se trouvent dans [`scripts/`](./scripts).
 - **Auth** : Keycloak (OAuth2 / OIDC)
 - **Data** : PostgreSQL 16, Apache Kafka (KRaft)
 - **Infra** : Docker, Kubernetes / Helm 3
-- **Observabilité** : Prometheus, Grafana, Jaeger, Loki, OpenTelemetry
+- **Observabilité** : Prometheus, Grafana, Jaeger, Loki, Promtail, OpenTelemetry
 - **Tests E2E** : Playwright
