@@ -8,38 +8,26 @@ receivers:
 
 processors:
   batch:
-  resource:
-    attributes:
-      - key: service_name
-        from_attribute: service.name
-        action: insert
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 70
+    spike_limit_percentage: 30
 
 exporters:
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-  debug:
-    verbosity: detailed
   otlp/jaeger:
-    endpoint: jaeger:4317
+    endpoint: "jaeger:4317"
     tls:
       insecure: true
   loki:
     endpoint: "http://loki:3100/loki/api/v1/push"
-    default_labels_enabled:
-      exporter: true
-      job: true
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
-      exporters: [otlp/jaeger, debug]
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [prometheus, debug]
+      processors: [batch, memory_limiter]
+      exporters: [otlp/jaeger]
     logs:
       receivers: [otlp]
-      processors: [batch, resource]
-      exporters: [loki, debug]
+      processors: [batch]
+      exporters: [loki]

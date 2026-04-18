@@ -44,5 +44,5 @@ USER nodejs
 # Le port classique de NestJS est 3000, mais tu peux garder 3002 si ton infra l'exige
 EXPOSE 3002
 
-# Lancement de l'application compilée
-CMD ["node", "dist/main.js"]
+# Lancement de l'application compilée avec instrumentation OTel
+CMD ["node", "-r", "./dist/tracing.js", "dist/main.js"]

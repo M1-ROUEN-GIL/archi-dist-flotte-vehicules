@@ -88,15 +88,17 @@ services:
       dockerfile: Dockerfile
     container_name: flotte-vehicle
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=dev,otel
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_SERVICE_NAME=vehicle-service
+      - JAVA_TOOL_OPTIONS=-javaagent:opentelemetry-javaagent.jar
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/vehicle_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
       - KAFKA_BROKER=kafka:9092
       - KEYCLOAK_ISSUER_URI=http://keycloak-service:8080/auth/realms/gestion-flotte
       - KEYCLOAK_JWK_SET_URI=http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
-      - JAVA_TOOL_OPTIONS=
-      - OTEL_SERVICE_NAME=vehicle-service
     ports:
       - "8080:8080"
     depends_on:
@@ -112,15 +114,17 @@ services:
       dockerfile: Dockerfile
     container_name: flotte-maintenance
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=dev,otel
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - JAVA_TOOL_OPTIONS=-javaagent:opentelemetry-javaagent.jar
+      - OTEL_SERVICE_NAME=maintenance-service
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/maintenance_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - KEYCLOAK_ISSUER_URI=http://keycloak-service:8080/auth/realms/gestion-flotte
       - KEYCLOAK_JWK_SET_URI=http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
-      - JAVA_TOOL_OPTIONS=
-      - OTEL_SERVICE_NAME=maintenance-service
     ports:
       - "8082:8080"
     depends_on:
@@ -138,15 +142,17 @@ services:
       dockerfile: Dockerfile
     container_name: flotte-driver
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=dev,otel
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - JAVA_TOOL_OPTIONS=-javaagent:opentelemetry-javaagent.jar
+      - OTEL_SERVICE_NAME=driver-service
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/driver_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
       - KAFKA_BROKER=kafka:9092
       - KEYCLOAK_ISSUER_URI=http://keycloak-service:8080/auth/realms/gestion-flotte
       - KEYCLOAK_JWK_SET_URI=http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
-      - JAVA_TOOL_OPTIONS=
-      - OTEL_SERVICE_NAME=driver-service
     ports:
       - "8081:8080"
     depends_on:
@@ -164,15 +170,17 @@ services:
       dockerfile: Dockerfile
     container_name: flotte-events
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=dev,otel
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - JAVA_TOOL_OPTIONS=-javaagent:opentelemetry-javaagent.jar
+      - OTEL_SERVICE_NAME=events-service
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/events_db
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=password
       - KAFKA_BROKER=kafka:9092
       - KEYCLOAK_ISSUER_URI=http://keycloak-service:8080/auth/realms/gestion-flotte
       - KEYCLOAK_JWK_SET_URI=http://keycloak-service:8080/auth/realms/gestion-flotte/protocol/openid-connect/certs
-      - JAVA_TOOL_OPTIONS=
-      - OTEL_SERVICE_NAME=events-service
     ports:
       - "8083:8080"
     depends_on:
@@ -196,6 +204,8 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=postgres # On utilise la base par défaut de ton TimescaleDB
       - KAFKA_BROKER=kafka:9092
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=location-service
     ports:
       - "50051:50051" # Port gRPC (simulateur externe)
       - "3000:3000"      # (utile pour le frontend)
@@ -228,6 +238,7 @@ services:
       - LOCATION_GRPC_URL=location:50051
       - KAFKA_BROKER=kafka:9092
       - OTEL_SERVICE_NAME=graphql-gateway
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
     ports:
       - "4000:4000"
       - "127.0.0.1:80:4000"

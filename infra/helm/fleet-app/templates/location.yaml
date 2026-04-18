@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: location-deployment
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
 spec:
   replicas: 1
   selector:
@@ -46,6 +46,10 @@ spec:
                 secretKeyRef:
                   name: db-secrets
                   key: KAFKA_BROKER
+            - name: OTEL_SERVICE_NAME
+              value: "location-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "otel-collector.{{ .Values.namespace }}.svc.cluster.local:4317"
           startupProbe:
             tcpSocket:
               port: 3000
@@ -69,3 +73,20 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: location-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: location-service
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+  type: ClusterIP

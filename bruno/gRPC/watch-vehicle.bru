@@ -1,0 +1,25 @@
+meta {
+  name: watch-vehicle
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: {{grpc_url}}
+  method: flotte.location.v1.LocationService/WatchVehicle
+  proto: ../services/location-service/src/grpc/location.proto
+}
+
+body {
+  {
+    "vehicle_id": "vehicle-001"
+  }
+}
+
+docs {
+  Server streaming — s'abonne aux positions GPS en temps réel d'un véhicule.
+  Le serveur envoie un flux de GpsPosition tant que le véhicule émet.
+
+  Prérequis Docker   : le simulateur doit tourner (flotte-simulator).
+  Prérequis Minikube : kubectl port-forward svc/location-service 50051:50051 -n flotte-namespace
+}

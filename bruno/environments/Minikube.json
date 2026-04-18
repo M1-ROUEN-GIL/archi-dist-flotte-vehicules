@@ -7,6 +7,7 @@
     { "name": "keycloak_token_url", "value": "http://flotte.local/auth/realms/gestion-flotte/protocol/openid-connect/token", "enabled": true, "secret": false, "type": "text" },
     { "name": "kc_client_id", "value": "admin-cli", "enabled": true, "secret": false, "type": "text" },
     { "name": "kc_username", "value": "test-user", "enabled": true, "secret": false, "type": "text" },
-    { "name": "kc_password", "value": "password", "enabled": true, "secret": false, "type": "text" }
+    { "name": "kc_password", "value": "password", "enabled": true, "secret": false, "type": "text" },
+    { "name": "grpc_url", "value": "localhost:50051", "enabled": true, "secret": false, "type": "text" }
   ]
 }

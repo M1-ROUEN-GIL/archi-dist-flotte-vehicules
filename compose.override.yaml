@@ -3,8 +3,11 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1.55
     container_name: flotte-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
     ports:
       - "16686:16686" # Web UI
+      # 4317 est géré exclusivement par otel-collector (pas de bind direct pour Jaeger)
     restart: unless-stopped
 
   # 2. Prometheus - Metrics
@@ -56,5 +59,17 @@ services:
     depends_on:
       - jaeger
       - prometheus
+      - loki
+    restart: unless-stopped
+
+  # 6. Promtail - collecte logs frontend + location (non-OTLP)
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: flotte-promtail
+    command: -config.file=/etc/promtail/config.yaml
+    volumes:
+      - ./infra/helm/fleet-observability/config/promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
       - loki
     restart: unless-stopped

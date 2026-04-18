@@ -1,0 +1,34 @@
+meta {
+  name: stream-positions
+  type: grpc
+  seq: 2
+}
+
+grpc {
+  url: {{grpc_url}}
+  method: flotte.location.v1.LocationService/StreamPositions
+  proto: ../services/location-service/src/grpc/location.proto
+}
+
+body {
+  {
+    "vehicle_id": "vehicle-test-bruno",
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "speed_kmh": 50.0,
+    "heading_deg": 90.0,
+    "accuracy_m": 5.0,
+    "altitude_m": 35.0,
+    "source": "bruno-test",
+    "timestamp": 1700000000,
+    "driver_id": "driver-001"
+  }
+}
+
+docs {
+  Bidirectionnel streaming — simule un boîtier GPS qui envoie une position.
+  Le serveur répond avec un Ack { event_id, accepted }.
+
+  Prérequis Docker   : service location démarré (localhost:50051).
+  Prérequis Minikube : kubectl port-forward svc/location-service 50051:50051 -n flotte-namespace
+}

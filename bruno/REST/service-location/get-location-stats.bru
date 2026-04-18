@@ -1,0 +1,32 @@
+meta {
+  name: get-location-stats
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/locations/vehicle-001/stats?from=2025-01-01T00:00:00Z&to=2025-12-31T23:59:59Z
+  body: none
+  auth: inherit
+}
+
+docs {
+  Récupère les statistiques de déplacement d'un véhicule sur une période.
+  Paramètres :
+    - from : date de début (ISO 8601)
+    - to   : date de fin (ISO 8601)
+  Retourne : distance totale, vitesse moyenne, nombre de points, etc.
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("les stats ont les champs attendus", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('vehicle_id');
+    expect(body).to.have.property('total_distance_km');
+    expect(body).to.have.property('point_count');
+  });
+}

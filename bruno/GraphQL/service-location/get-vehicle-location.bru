@@ -1,0 +1,52 @@
+meta {
+  name: get-vehicle-location
+  type: graphql
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/graphql
+  body: graphql
+  auth: inherit
+}
+
+body:graphql {
+  query GetVehicleLocation($vehicle_id: ID!) {
+    vehicleLocation(vehicle_id: $vehicle_id) {
+      vehicle_id
+      latitude
+      longitude
+      speed_kmh
+      heading_deg
+      timestamp
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "vehicle_id": "vehicle-001"
+  }
+}
+
+docs {
+  Récupère la dernière position connue d'un véhicule via GraphQL.
+  Remplacer vehicle_id par un identifiant de véhicule actif.
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("pas d'erreurs GraphQL", function() {
+    expect(res.getBody()).to.not.have.property('errors');
+  });
+
+  test("la position contient les coordonnées", function() {
+    const loc = res.getBody().data.vehicleLocation;
+    expect(loc).to.have.property('latitude');
+    expect(loc).to.have.property('longitude');
+    expect(loc).to.have.property('vehicle_id');
+  });
+}

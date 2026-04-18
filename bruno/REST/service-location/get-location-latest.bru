@@ -1,0 +1,36 @@
+meta {
+  name: get-location-latest
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/api/locations/vehicle-001/latest
+  body: none
+  auth: inherit
+}
+
+docs {
+  Récupère la dernière position connue d'un véhicule.
+  Remplacer vehicle-001 par un identifiant de véhicule actif.
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("la position a les champs obligatoires", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('vehicle_id');
+    expect(body).to.have.property('latitude');
+    expect(body).to.have.property('longitude');
+    expect(body).to.have.property('timestamp');
+  });
+
+  test("latitude et longitude sont des nombres", function() {
+    const body = res.getBody();
+    expect(body.latitude).to.be.a('number');
+    expect(body.longitude).to.be.a('number');
+  });
+}

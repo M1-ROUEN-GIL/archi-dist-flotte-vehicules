@@ -19,6 +19,8 @@ spec:
         env:
         - name: QUERY_BASE_PATH
           value: /jaeger
+        - name: COLLECTOR_OTLP_ENABLED
+          value: "true"
         ports:
         - containerPort: 16686
         - containerPort: 4317

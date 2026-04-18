@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak-deployment
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,6 @@ spec:
     spec:
       containers:
         - name: keycloak
-          # Pas :latest — Keycloak 26+ a changé l'admin bootstrap ; :latest casse start-dev + KEYCLOAK_ADMIN.
           image: quay.io/keycloak/keycloak:26.5.7
           command: ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
           env:
@@ -37,13 +36,11 @@ spec:
               value: "true"
             - name: KC_PROXY_HEADERS
               value: "xforwarded"
-            # Aligné avec l’ingress `path: /auth` et les URLs JWK des microservices
             - name: KC_HTTP_RELATIVE_PATH
               value: "/auth"
           ports:
             - containerPort: 8080
               name: http
-          # Sans ça, le pod passe « Ready » alors que Keycloak boot encore → nginx / Bruno → 503 sur /auth
           startupProbe:
             httpGet:
               path: /auth/realms/gestion-flotte
@@ -67,3 +64,17 @@ spec:
         - name: realm-import
           configMap:
             name: keycloak-realm-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: http

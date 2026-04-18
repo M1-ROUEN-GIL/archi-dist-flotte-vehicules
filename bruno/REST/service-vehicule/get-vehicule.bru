@@ -1,0 +1,30 @@
+meta {
+  name: get-vehicule
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/vehicles/351fbadf-269a-432c-8e79-665fceafe2a5
+  body: none
+  auth: inherit
+}
+
+docs {
+  Récupère un véhicule par son UUID.
+  Remplacer l'UUID dans l'URL par un identifiant existant.
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("le véhicule a les champs obligatoires", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('id');
+    expect(body).to.have.property('plate_number');
+    expect(body).to.have.property('brand');
+    expect(body).to.have.property('status');
+  });
+}

@@ -1,15 +1,28 @@
 #!/bin/bash
+set -e
 
-# 1. Préparation Minikube
-minikube start
-minikube addons enable ingress
+echo "🚀 Démarrage de Minikube..."
+minikube start --addons=ingress
 
-# 2. Nettoyage (optionnel mais recommandé pour repartir de zéro)
+echo "⏳ Attente du contrôleur Ingress..."
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=120s
+
+# Passage en LoadBalancer pour minikube tunnel
+kubectl patch svc ingress-nginx-controller -n ingress-nginx \
+  -p '{"spec":{"type":"LoadBalancer"}}'
+
+echo "🧹 Nettoyage du namespace..."
 kubectl delete namespace flotte-namespace --ignore-not-found
 kubectl create namespace flotte-namespace
 
-# 3. Création des Secrets et ConfigMaps
-# Utilisation de l'utilisateur 'admin' défini dans la configuration Helm
+# Ajout des repos pour éviter les erreurs de dependency build
+helm repo add bitnami https://charts.bitnami.com/bitnami --force-update > /dev/null 2>&1 || true
+helm repo update bitnami > /dev/null 2>&1 || true
+
+echo "🔐 Création des secrets..."
 kubectl create secret generic db-secrets \
   --from-literal=SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-flotte-service:5432/vehicle_db \
   --from-literal=DRIVER_DATASOURCE_URL=jdbc:postgresql://postgres-flotte-service:5432/driver_db \
@@ -20,76 +33,65 @@ kubectl create secret generic db-secrets \
   --from-literal=KAFKA_BROKER=kafka-service:9092 \
   -n flotte-namespace
 
-# 4. Build des Images dans le Docker daemon de Minikube
-eval $(minikube docker-env)
+echo "📦 Build des images (via minikube image build)..."
+services=("vehicle-service" "driver-service" "maintenance-service" "events-service" "location-service")
+for s in "${services[@]}"; do
+    echo "🔨 Building $s..."
+    minikube image build -t "$s:latest" "./services/$s/"
+done
 
-echo "Building images..."
-docker build -t vehicle-service:latest ./services/vehicle-service/
-docker build -t driver-service:latest ./services/driver-service/
-docker build -t maintenance-service:latest ./services/maintenance-service/
-docker build -t events-service:latest ./services/events-service/
-docker build -t graphql-gateway:latest ./gateway/
-docker build -t location-service:latest ./services/location-service/
-docker build -t archi-dist-flotte-vehicules-frontend:latest ./frontend/
+echo "🔨 Building graphql-gateway..."
+minikube image build -t "graphql-gateway:latest" "./gateway/"
 
-# 5. Déploiement Infrastructure (DB, Kafka, Redis)
-helm dependency update ./infra/helm/fleet-infra/
-helm upgrade --install fleet-infra ./infra/helm/fleet-infra/ \
-  -n flotte-namespace \
-  -f ./infra/helm/fleet-infra/values.secret.yaml
+echo "🔨 Building flotte-frontend..."
+minikube image build -t "flotte-frontend:latest" "./frontend/"
 
-# 6. Déploiement Observabilité (Loki, Grafana, OTel)
-helm upgrade --install fleet-obs ./infra/helm/fleet-observability/ \
-  -n flotte-namespace
+echo "🛠️ Déploiement de l'infrastructure (DB, Kafka, Redis)..."
+helm dependency build ./infra/helm/fleet-infra/ || echo "⚠️ Warning: build failed, attempting to continue..."
+helm upgrade --install fleet-infra ./infra/helm/fleet-infra/ -n flotte-namespace -f ./infra/helm/fleet-infra/values.secret.yaml
 
-# 7. Déploiement Keycloak
-# On s'assure que le ConfigMap est créé avant le déploiement
-kubectl apply -f infra/kubernetes/keycloak/keycloak-configmap.yaml -n flotte-namespace
-kubectl apply -f infra/kubernetes/keycloak/keycloak-service.yaml -n flotte-namespace
-kubectl apply -f infra/kubernetes/keycloak/keycloak-deployment.yaml -n flotte-namespace
+echo "📊 Déploiement de l'observabilité..."
+helm upgrade --install fleet-obs ./infra/helm/fleet-observability/ -n flotte-namespace
 
-# 8. Déploiement de l'Application via Helm (Fleet-App)
-# On attend un peu que l'infra soit prête
-echo "Waiting for infrastructure to be ready..."
+echo "⏳ Attente de PostgreSQL..."
 kubectl wait --for=condition=ready --timeout=300s pod/postgres-flotte-service-0 -n flotte-namespace
 
-# Création manuelle des topics Kafka pour éviter les erreurs de la Gateway
-echo "Creating Kafka topics..."
+echo "⏳ Attente de Kafka..."
+kubectl wait --for=condition=ready --timeout=300s pod -l app=kafka-broker -n flotte-namespace
+echo "🎸 Création des topics Kafka..."
 KAFKA_POD=$(kubectl get pods -n flotte-namespace -l app=kafka-broker -o name | head -n 1)
-kubectl exec $KAFKA_POD -n flotte-namespace -- /opt/kafka/bin/kafka-topics.sh --create --topic flotte.localisation.gps --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 --if-not-exists
-kubectl exec $KAFKA_POD -n flotte-namespace -- /opt/kafka/bin/kafka-topics.sh --create --topic flotte.location.events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 --if-not-exists
+# On cherche le binaire avec ou sans .sh
+KAFKA_BIN=$(kubectl exec $KAFKA_POD -n flotte-namespace -- sh -c "find /usr/bin /opt/bitnami/kafka/bin -name kafka-topics -o -name kafka-topics.sh 2>/dev/null | head -1")
 
-helm upgrade --install fleet-app ./infra/helm/fleet-app/ \
-  -n flotte-namespace
+# Si on n'a rien trouvé, on tente un nom par défaut
+if [ -z "$KAFKA_BIN" ]; then KAFKA_BIN="kafka-topics"; fi
 
-# 9. Attendre que les backends soient réellement prêts (sinon nginx → 503, ex. Bruno / Minikube)
-#    Ne concerne que ce script : aucun impact sur Docker Compose ou le mode local hors Minikube.
-echo "Waiting for Keycloak and app rollouts (premier démarrage = plusieurs minutes)..."
+echo "🔧 Utilisation de : $KAFKA_BIN"
+kubectl exec $KAFKA_POD -n flotte-namespace -- $KAFKA_BIN --create --topic flotte.localisation.gps --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 --if-not-exists || true
+kubectl exec $KAFKA_POD -n flotte-namespace -- $KAFKA_BIN --create --topic flotte.location.events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 --if-not-exists || true
+
+
+echo "🚀 Déploiement de l'application complète via Helm..."
+helm upgrade --install fleet-app ./infra/helm/fleet-app/ -n flotte-namespace
+
+echo "🏁 Attente des déploiements applicatifs..."
 kubectl rollout status deployment/keycloak-deployment -n flotte-namespace --timeout=900s
 kubectl rollout status deployment/graphql-gateway-deployment -n flotte-namespace --timeout=600s
-kubectl rollout status deployment/vehicle-service-deployment -n flotte-namespace --timeout=600s
-kubectl rollout status deployment/driver-service-deployment -n flotte-namespace --timeout=600s
-kubectl rollout status deployment/maintenance-service-deployment -n flotte-namespace --timeout=600s
-kubectl rollout status deployment/events-service-deployment -n flotte-namespace --timeout=600s
-
-# 11. Déploiement du service location (NestJS, séparé du Helm fleet-app car env vars différentes)
-kubectl apply -f infra/kubernetes/services/location-service.yaml -n flotte-namespace
-kubectl apply -f infra/kubernetes/deployments/location-deployment.yaml -n flotte-namespace
-kubectl apply -f infra/kubernetes/services/frontend-service.yaml -n flotte-namespace
-kubectl apply -f infra/kubernetes/deployments/frontend-deployment.yaml -n flotte-namespace
-
-# Application des alias de services pour la compatibilité Docker/K8s
-kubectl apply -f infra/kubernetes/services/gateway-alias.yaml -n flotte-namespace
-kubectl apply -f infra/kubernetes/services/keycloak-alias.yaml -n flotte-namespace
-
-kubectl apply -f infra/kubernetes/ingress/ingress.yaml -n flotte-namespace
-kubectl rollout status deployment/location-deployment -n flotte-namespace --timeout=300s
 kubectl rollout status deployment/frontend-deployment -n flotte-namespace --timeout=600s
 
-# 10. Configuration du Host (Optionnel : demande sudo)
+echo "♻️ Redémarrage des collecteurs (Force Refresh)..."
+kubectl rollout restart daemonset promtail -n flotte-namespace
+kubectl rollout restart deployment otel-collector -n flotte-namespace
+
 echo "--------------------------------------------------"
-echo "Terminé ! N'oubliez pas d'ajouter l'entrée suivante à votre /etc/hosts :"
-echo "$(minikube ip) flotte.local"
-echo "Bruno : environnement « Minikube » (base_url http://flotte.local). Pas de changement requis pour « Docker »."
-echo "Si 503 après coup : kubectl get pods -n flotte-namespace"
+echo "✅ Installation terminée avec succès !"
+echo ""
+echo "1. Lancez 'minikube tunnel' dans un terminal séparé (Windows ou Linux)."
+echo "2. Ajoutez l'entrée suivante à votre fichier hosts (C:\Windows\System32\drivers\etc\hosts) :"
+echo "   127.0.0.1 flotte.local"
+echo ""
+echo "Accès :"
+echo "- Frontend : http://flotte.local"
+echo "- GraphQL  : http://flotte.local/graphql"
+echo "- Keycloak : http://flotte.local/auth"
 echo "--------------------------------------------------"

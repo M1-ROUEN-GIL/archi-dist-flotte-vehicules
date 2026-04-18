@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: keycloak-realm-config
-  namespace: flotte-namespace
+  namespace: {{ .Values.namespace }}
 data:
   realm.json: |
     {

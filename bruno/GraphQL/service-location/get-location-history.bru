@@ -1,0 +1,50 @@
+meta {
+  name: get-location-history
+  type: graphql
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/graphql
+  body: graphql
+  auth: inherit
+}
+
+body:graphql {
+  query GetLocationHistory($vehicle_id: ID!, $from: String!, $to: String!) {
+    locationHistory(vehicle_id: $vehicle_id, from: $from, to: $to) {
+      vehicle_id
+      latitude
+      longitude
+      speed_kmh
+      timestamp
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "vehicle_id": "vehicle-001",
+    "from": "2025-01-01T00:00:00Z",
+    "to": "2025-12-31T23:59:59Z"
+  }
+}
+
+docs {
+  Récupère l'historique des positions d'un véhicule sur une période via GraphQL.
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("pas d'erreurs GraphQL", function() {
+    expect(res.getBody()).to.not.have.property('errors');
+  });
+
+  test("retourne un tableau de positions", function() {
+    const history = res.getBody().data.locationHistory;
+    expect(history).to.be.an('array');
+  });
+}

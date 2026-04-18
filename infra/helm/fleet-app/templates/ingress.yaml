@@ -1,3 +1,4 @@
+# Ingress principal
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,10 +7,10 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$1$2
-    # JVM / GraphQL au démarrage : évite 502/504 côté nginx si le backend met du temps à répondre
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "75"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
 spec:
   ingressClassName: nginx
   rules:
@@ -23,7 +24,6 @@ spec:
                 name: grafana
                 port:
                   number: 3000
-
           - path: /(graphql)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -31,7 +31,6 @@ spec:
                 name: graphql-gateway-service
                 port:
                   number: 4000
-
           - path: /api/(vehicles)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -81,6 +80,7 @@ spec:
                 name: frontend-service
                 port:
                   number: 80
+
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -116,7 +116,6 @@ spec:
     - host: flotte.local
       http:
         paths:
-          # Prefix : tout /auth/… (token OIDC, realms, etc.) — ImplementationSpecific pouvait être ambigu selon la version nginx
           - path: /auth
             pathType: Prefix
             backend:

@@ -1,0 +1,23 @@
+meta {
+  name: delete-vehicule
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{base_url}}/api/vehicles/351fbadf-269a-432c-8e79-665fceafe2a5
+  body: none
+  auth: inherit
+}
+
+docs {
+  Supprime un véhicule par son UUID.
+  Attention : opération irréversible.
+  Remplacer l'UUID par un véhicule de test.
+}
+
+tests {
+  test("status 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

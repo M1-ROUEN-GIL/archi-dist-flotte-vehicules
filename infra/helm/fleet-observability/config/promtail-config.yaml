@@ -1,0 +1,25 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: kubernetes-pods
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          __path__: /var/log/pods/flotte-namespace_*/*/*.log
+          namespace: flotte-namespace
+    pipeline_stages:
+      - docker: {}
+      - regex:
+          expression: '/var/log/pods/flotte-namespace_[^/]+/(?P<container>[^/]+)/\d+\.log'
+          source: filename
+      - labels:
+          container:

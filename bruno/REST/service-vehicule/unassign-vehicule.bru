@@ -1,0 +1,22 @@
+meta {
+  name: unassign-vehicule
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{base_url}}/api/vehicles/351fbadf-269a-432c-8e79-665fceafe2a5/assignments/current
+  body: none
+  auth: inherit
+}
+
+docs {
+  Termine l'affectation courante d'un véhicule.
+  Le véhicule repasse en statut AVAILABLE.
+}
+
+tests {
+  test("status 200 ou 204", function() {
+    expect([200, 204]).to.include(res.getStatus());
+  });
+}
