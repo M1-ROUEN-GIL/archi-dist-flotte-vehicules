@@ -55,7 +55,6 @@ Tous les scripts se trouvent dans [`scripts/`](./scripts).
 | :----- | :---------- |
 | `kube.sh` | Lance Minikube, build les images, déploie toute la stack via Helm et attend que tout soit prêt. |
 | `simulate.sh docker\|minikube` | Simule un camion en mouvement en envoyant des coordonnées GPS en temps réel via gRPC. |
-| `reset-docker.sh` | Remet Docker Compose à zéro (volumes inclus), relance les services et redémarre la Gateway. |
 | `watch-kafka.sh` | Affiche en temps réel les événements Kafka du namespace `flotte.*` (Minikube uniquement). |
 | `test-e2e.sh docker\|minikube` | Vérifie l'accès à l'environnement cible, lance les tests Playwright et ouvre le rapport HTML. |
 
