@@ -9,6 +9,7 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
+  # Kubernetes (Minikube) — ignoré si /var/log/pods/ n'existe pas
   - job_name: kubernetes-pods
     static_configs:
       - targets:
@@ -23,3 +24,20 @@ scrape_configs:
           source: filename
       - labels:
           container:
+
+  # Docker Compose — ignoré si le socket Docker n'est pas monté
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: name
+            values: ["flotte-.*"]
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/flotte-(.*)'
+        target_label: service
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+    pipeline_stages:
+      - docker: {}
