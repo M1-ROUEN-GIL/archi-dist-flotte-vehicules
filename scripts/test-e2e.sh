@@ -65,6 +65,12 @@ else
 fi
 
 echo -e "${CYAN}Ouverture du rapport HTML...${NC}"
-./node_modules/.bin/playwright show-report
+# Essayer d'ouvrir le rapport sur différents ports si 9323 est occupé
+for port in 9323 9324 9325 9326 9327; do
+  if ! lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+    ./node_modules/.bin/playwright show-report --port=$port 2>/dev/null || true
+    break
+  fi
+done
 
 exit $EXIT_CODE
