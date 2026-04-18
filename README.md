@@ -94,16 +94,6 @@ Architecture **Micro-Frontend** basée sur Vite Module Federation (npm workspace
 | `shared-client` | Client Apollo GraphQL partagé |
 | `shared-ui` | Composants UI communs |
 
-### Lancer le frontend en développement
-
-```bash
-cd frontend
-npm install
-npm run start:all   # lance tous les remotes + le shell
-```
-
-Le shell est accessible sur **http://localhost:3005** (servi par Docker Compose).
-
 ---
 
 ## Infrastructure & Bases de données
