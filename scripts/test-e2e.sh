@@ -37,7 +37,7 @@ echo -e "${GREEN}OK — $BASE_URL est accessible.${NC}"
 
 # ── Lancement des tests ───────────────────────────────────────────────────────
 echo -e "${CYAN}[2/3] Lancement des tests E2E (mode : $MODE)...${NC}"
-cd "$(dirname "$0")/frontend"
+cd "$(dirname "$0")/../frontend"
 
 EXIT_CODE=0
 BASE_URL="$BASE_URL" npx playwright test --reporter=list,html || EXIT_CODE=$?

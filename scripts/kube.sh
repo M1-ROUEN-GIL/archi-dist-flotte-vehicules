@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+cd "$(dirname "$0")/.."
 
 echo "🚀 Démarrage de Minikube..."
 minikube start --addons=ingress

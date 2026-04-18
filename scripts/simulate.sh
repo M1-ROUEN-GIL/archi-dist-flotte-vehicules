@@ -1,4 +1,5 @@
 #!/bin/bash
+cd "$(dirname "$0")/.."
 
 # Script de simulation de flotte universel (Docker / Minikube)
 echo "--------------------------------------------------------"

@@ -420,14 +420,14 @@ setup('authenticate via Keycloak', async ({ page }) => {
 
 \subsection{Lancement des tests}
 
-Un script shell \texttt{test-e2e.sh} plac\'{e} \`{a} la racine du projet permet de lancer les tests selon l'environnement cible. Il v\'{e}rifie la disponibilit\'{e} de l'application avant de d\'{e}marrer Playwright et ouvre automatiquement le rapport HTML en fin d'ex\'{e}cution.
+Un script shell \texttt{scripts/test-e2e.sh} permet de lancer les tests selon l'environnement cible. Il v\'{e}rifie la disponibilit\'{e} de l'application avant de d\'{e}marrer Playwright et ouvre automatiquement le rapport HTML en fin d'ex\'{e}cution.
 
 \begin{lstlisting}[language=bash, caption=Lancement des tests E2E]
 # Mode Docker Compose (http://localhost:3005)
-./test-e2e.sh docker
+./scripts/test-e2e.sh docker
 
 # Mode Minikube (http://flotte.local)
-./test-e2e.sh minikube
+./scripts/test-e2e.sh minikube
 \end{lstlisting}
 
 \subsection{R\'{e}capitulatif des tests}
